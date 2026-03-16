@@ -1,5 +1,7 @@
 # LLM Inference Stack — From Training to Serving
 
+*Created: 2026-03-12*
+
 ## The Full Pipeline
 
 ```
