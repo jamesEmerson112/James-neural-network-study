@@ -2,6 +2,8 @@
 
 Three influential functional programming languages, each with a different philosophy. This note assumes **zero FP experience** and explains concepts from scratch.
 
+> Connected to the neural network study via the Lambda Calculus → LISP → ML lineage. See [John McCarthy](../04_john_mccarthy.md), [Why LISP Matters](../05_lisp_why_it_matters.md), and [LISP Deep Dive](../05b_lisp_deep_dive.md). Back to [master timeline](../00_timeline_neural_sequence_models.md).
+
 ---
 
 ## What Is Functional Programming?
@@ -26,8 +28,8 @@ Core ideas:
 
 Functional programming didn't appear out of nowhere — it has roots older than computers themselves.
 
-**1936 — Lambda Calculus (Alonzo Church, Princeton)**
-Before electronic computers existed, mathematician Alonzo Church invented the **lambda calculus** — a formal system for expressing computation using nothing but functions. While Alan Turing was building his theoretical tape machine, Church showed that functions alone are enough to compute anything. These two approaches turned out to be equivalent (the Church-Turing thesis), but they spawned very different programming traditions: Turing's machine model led to imperative languages (C, Java), Church's function model led to functional ones.
+**1932 — Lambda Calculus (Alonzo Church, Princeton)**
+Before electronic computers existed, mathematician Alonzo Church invented the **lambda calculus** — a formal system for expressing computation using nothing but functions. Church first published the lambda calculus in 1932; his famous 1936 paper applied it to the Entscheidungsproblem (decidability), proving that some mathematical questions have no algorithmic answer. Meanwhile, Alan Turing independently reached the same conclusion with his theoretical tape machine. These two approaches turned out to be equivalent (the Church-Turing thesis), but they spawned very different programming traditions: Turing's machine model led to imperative languages (C, Java), Church's function model led to functional ones.
 
 **1958 — Lisp (John McCarthy, MIT)**
 The first functional programming language. McCarthy wanted a language for AI research — one that could manipulate symbolic expressions (not just numbers) and treat code as data. Lisp introduced garbage collection, recursion as a primary control flow, and the idea that functions are first-class values. Nearly every FP concept traces back to Lisp.
@@ -35,22 +37,22 @@ The first functional programming language. McCarthy wanted a language for AI res
 **1973 — ML (Robin Milner, University of Edinburgh)**
 Milner was building **LCF**, a system for proving mathematical theorems by computer. He needed a language where programs could be *proved correct* — so he invented ML (Meta Language) with a powerful type system that catches errors at compile time. ML introduced **type inference** (the compiler deduces types without you writing them) and **pattern matching**. This is the direct ancestor of OCaml.
 
-**1985-1990 — The branching point.** Three separate communities, solving three unrelated problems, independently decide that functions are the answer:
-- French computer scientists at INRIA evolve ML → **Caml** → **OCaml** (practical, pragmatic)
+**1986-1990 — The branching point.** Three separate communities, solving three unrelated problems, independently decide that functions are the answer:
+- French computer scientists at INRIA evolve ML → **Caml** (1987) → **OCaml** (practical, pragmatic)
 - Academic researchers consolidate lazy FP languages → **Haskell** (pure, principled)
 - Swedish telecom engineers at Ericsson need fault tolerance → **Erlang** (concurrent, resilient)
 
 ### Family Tree
 
 ```
-Lambda Calculus (1936, Alonzo Church)
+Lambda Calculus (1932, Alonzo Church)
 │
 └── Lisp (1958, John McCarthy, MIT)
     │
     └── ML (1973, Robin Milner, Edinburgh)          ← born from theorem proving
         │
         ├── Standard ML (1983)
-        ├── Caml (1985, Gérard Huet, INRIA France)
+        ├── Caml (1987, Ascánder Suárez, INRIA France)
         │   └── OCaml (1996, Xavier Leroy)          ← "let's make ML practical"
         │
         └── Miranda (1985, David Turner)            ← lazy, proprietary
@@ -67,21 +69,22 @@ Prolog (1972, Alain Colmerauer, Marseille)
 Year   OCaml lineage          Haskell lineage         Erlang lineage
 ─────  ────────────────────   ─────────────────────   ─────────────────────────
 1973   ML born (Milner)
-1985   Caml (INRIA)           Miranda (Turner)
+1985                          Miranda (Turner)
 1986                                                  Armstrong starts Erlang at Ericsson
-1987                          FPCA conference: "we
+1987   Caml (INRIA)           FPCA conference: "we
                               need ONE lazy language"
+1989                          GHC prototype (Hammond)
 1990                          Haskell 1.0 released
-1992                          Wadler's monads paper    Erlang goes into production
-                              GHC compiler born         at Ericsson (phone switches)
+1992                          Wadler's monads papers   Erlang goes into production
+                                                        at Ericsson (phone switches)
 1996   OCaml 1.0 (Leroy)
 1998                                                  Ericsson BANS Erlang internally
-                                                       → Armstrong open-sources it
+                                                       → open-sourced (Dec 1998)
 2003                          Haskell 98 standard
-2005   Jane Street adopts                             Erlang gains traction outside
+2003   Jane Street adopts                             Erlang gains traction outside
         OCaml for trading                              telecom
 2010                          Haskell Platform         Erlang at WhatsApp
-2014                                                  WhatsApp (50 eng, 450M users)
+2014                                                  WhatsApp (~35 eng, 450M users)
                                                        acquired by Facebook for $19B
 2020   OCaml 5 (multicore)   GHC 9.x series          Elixir matures on BEAM VM
 ```
@@ -111,11 +114,11 @@ Year   OCaml lineage          Haskell lineage         Erlang lineage
 
 The story starts in **Edinburgh, 1973**. Robin Milner — one of the most important computer scientists of the 20th century (later won the Turing Award) — was building a system called **LCF** (Logic for Computable Functions) to help mathematicians prove theorems using computers. He needed a programming language where you could trust that programs were correct. Existing languages were too sloppy — C let you corrupt memory, Lisp had no type checking. So Milner invented **ML** (Meta Language) with an iron-clad type system that could catch errors at compile time, *and* a type inference algorithm (Algorithm W) so you didn't have to tediously annotate every variable.
 
-ML crossed the English Channel to **INRIA** (France's national computer science lab). In 1985, **Gérard Huet** and his team created **Caml** (Categorical Abstract Machine Language) — a French dialect of ML. Then came **Caml Light**, a leaner version.
+ML crossed the English Channel to **INRIA** (France's national computer science lab). In 1987, **Ascánder Suárez**, working under Gérard Huet's Formel project, implemented **Caml** (Categorical Abstract Machine Language) — a French dialect of ML. Then came **Caml Light**, a leaner version by Xavier Leroy and Damien Doligez.
 
 In **1996**, **Xavier Leroy** (also INRIA) created **OCaml** — Objective Caml. The "Objective" refers to an object system he added, though it's rarely used in practice. The real contribution was a blazing-fast native code compiler and a practical, batteries-included standard library. Leroy wanted ML to stop being an academic curiosity and become a real tool for real software.
 
-The twist came in the mid-2000s: **Yaron Minsky**, a researcher-turned-trader at **Jane Street** (a quantitative trading firm in NYC), fell in love with OCaml. He convinced the firm to bet their entire trading infrastructure on it — billions of dollars flowing through OCaml code daily. Jane Street became the world's largest industrial OCaml user, hired many core OCaml developers, open-sourced major libraries (Core, Async, ppx), and basically bankrolled the language's modern ecosystem. The lesson: a language born from theorem proving ended up running Wall Street.
+The twist came in **2003**: **Yaron Minsky**, fresh from his Cornell PhD (2002), joined **Jane Street** (a quantitative trading firm in NYC) and fell in love with OCaml. He convinced the firm to bet their entire trading infrastructure on it — billions of dollars flowing through OCaml code daily. Jane Street became the world's largest industrial OCaml user, hired many core OCaml developers, open-sourced major libraries (Core, Async, ppx), and basically bankrolled the language's modern ecosystem. The lesson: a language born from theorem proving ended up running Wall Street.
 
 ### What makes it special
 - **Type inference** — you rarely write type annotations; the compiler figures them out
@@ -164,11 +167,11 @@ The breaking point came at the **FPCA conference in Portland, Oregon, September 
 - **Philip Wadler** (University of Glasgow) — wrote the landmark paper on **monads** (1992) that solved Haskell's biggest practical problem: how do you do I/O in a language that forbids side effects?
 - **Paul Hudak** (Yale) — one of the original designers, later wrote "A Gentle Introduction to Haskell"
 
-They named it after **Haskell Brooks Curry** (1900–1982), an American logician who formalized the concept of **currying** — transforming a function that takes multiple arguments into a chain of functions each taking one argument: `f(x, y)` becomes `f(x)(y)`. Curry never knew a language would be named after him.
+They named it after **Haskell Brooks Curry** (1900–1982), an American mathematician and logician whose work in combinatory logic was foundational to FP. The technique called **currying** — transforming a function that takes multiple arguments into a chain of functions each taking one argument: `f(x, y)` becomes `f(x)(y)` — actually traces back to Gottlob Frege (1893) and Moses Schönfinkel (1924). Curry developed the idea further in the 1930s, and the name "currying" was coined by Christopher Strachey in 1967. Curry never knew a language would be named after him.
 
-**Haskell 1.0** arrived in **1990**. The **Glasgow Haskell Compiler (GHC)**, started in **1992**, became the de facto implementation and is still the standard today — one of the longest-running open source compiler projects in history, shepherded by Simon Peyton Jones for over 30 years.
+**Haskell 1.0** arrived in **1990**. The **Glasgow Haskell Compiler (GHC)** began as a prototype by Kevin Hammond in **1989**, with a first beta release in April 1991 and the first full release in 1992. It became the de facto implementation and is still the standard today — one of the longest-running open source compiler projects in history, shepherded by Simon Peyton Jones for over 30 years.
 
-The **monads breakthrough** deserves its own mention. Pure languages had a fundamental problem: if functions can't have side effects, how do you print to the screen? Read a file? Get the current time? Philip Wadler's 1992 paper "Monads for functional programming" showed how to *model* effects as values in the type system — the IO monad. This was arguably the most influential programming languages paper of the 1990s and its ideas rippled into Scala, Rust, Swift, and even JavaScript's Promise chains (which are monadic, whether JS developers know it or not).
+The **monads breakthrough** deserves its own mention. Pure languages had a fundamental problem: if functions can't have side effects, how do you print to the screen? Read a file? Get the current time? Philip Wadler presented "The essence of functional programming" at POPL in January 1992, followed by "Monads for functional programming" at the Marktoberdorf summer school later that year (published 1995). These papers showed how to *model* effects as values in the type system — the IO monad. This was arguably the most influential programming languages idea of the 1990s and its concepts rippled into Scala, Rust, Swift, and even JavaScript (though JS Promises, despite looking monadic, actually violate the monad laws because they automatically flatten nested Promises — `Promise<Promise<T>>` collapses to `Promise<T>`).
 
 Haskell never became a mainstream industry language, but it has been a **factory for ideas that go mainstream**: type classes → Rust traits, monads → async/await, algebraic data types → TypeScript unions, pattern matching → now in Python 3.10+. The joke in the community is: *"Haskell: avoid success at all costs"* — which Simon Peyton Jones says was intentionally ambiguous. Does it mean "avoid success, at all costs" (stay niche) or "avoid success-at-all-costs" (don't compromise purity for popularity)?
 
@@ -229,7 +232,7 @@ Haskell's purity seems restrictive but it gives you guarantees no other language
 While academics in Edinburgh, Glasgow, and Portland were debating type theory and purity, **Joe Armstrong** at **Ericsson's Computer Science Laboratory** in Stockholm had a very different problem: telephone switches.
 
 In **1986**, Ericsson was the world's largest telecom equipment maker. Their switches handled millions of simultaneous phone calls, and the requirements were brutal:
-- **99.9999999% uptime** ("nine nines" — about 0.03 seconds of downtime per year)
+- **99.999% uptime** ("five nines" — about 5 minutes of downtime per year) was the telecom industry standard
 - Software updates **without taking the system offline** (you can't tell a country "no phone calls for 10 minutes while we deploy")
 - Handling **millions of concurrent connections**, each independent
 
@@ -239,13 +242,13 @@ The name "**Erlang**" has a delicious double meaning:
 1. **Ericsson Language** — the corporate origin
 2. **Agner Krarup Erlang** (1878–1929) — a Danish mathematician who founded **telecom queuing theory** (the math behind "how many phone lines does a city need?"). The **erlang** is still a standard unit for measuring telephone traffic. Naming the language after him was a wink to telecom insiders.
 
-Erlang went into production inside Ericsson in the early 1990s, powering the **AXD 301 ATM switch** — which achieved that legendary nine-nines reliability. But then came the twist.
+Erlang went into production inside Ericsson in the early 1990s, powering the **AXD 301 ATM switch** — deployed by British Telecom, this system reportedly achieved **99.9999999% uptime** ("nine nines"), far exceeding the five-nines requirement. But then came the twist.
 
-In **1998, Ericsson's management banned Erlang**. The reasoning: they wanted to use "industry standard" languages like C++ and Java. They didn't want to depend on a niche language they'd have to maintain. Armstrong and his colleagues were devastated — but they convinced management to let them **open-source Erlang** before the ban. Armstrong himself left Ericsson.
+In **1998, Ericsson's management banned Erlang**. The reasoning: they wanted to use "industry standard" languages like C++ and Java. They didn't want to depend on a niche language they'd have to maintain. Armstrong and his colleagues were devastated — and in December 1998, during or shortly after the ban, they **open-sourced Erlang**. Armstrong himself left Ericsson.
 
 The ban backfired spectacularly. The open-source community adopted Erlang for exactly the properties Ericsson management didn't appreciate. Ericsson quietly started using it again. Armstrong returned.
 
-The ultimate validation came with **WhatsApp**. In **2014**, WhatsApp had **~50 engineers** serving **450 million users** — and their backend was Erlang. The "let it crash" philosophy, the lightweight processes, the hot code swapping — all the features Armstrong built for phone switches turned out to be exactly what you need for a messaging app at planetary scale. Facebook acquired WhatsApp for **$19 billion**, making it the most expensive Erlang application in history.
+The ultimate validation came with **WhatsApp**. In **2014**, WhatsApp had only about **35 engineers** (roughly 55 total employees) serving **450 million users** — and their backend was Erlang. The "let it crash" philosophy, the lightweight processes, the hot code swapping — all the features Armstrong built for phone switches turned out to be exactly what you need for a messaging app at planetary scale. Facebook acquired WhatsApp for **$19 billion**, making it the most expensive Erlang application in history.
 
 Joe Armstrong passed away in **April 2019**, but Erlang lives on through the **BEAM VM** — the virtual machine that also runs **Elixir** (a modern language created by José Valim in 2011 that brought Ruby-like syntax to Erlang's runtime). Armstrong was supportive of Elixir, seeing it as a way to bring his ideas to a new generation.
 
@@ -303,7 +306,7 @@ Just let it crash. The supervisor notices, restarts the process
 with clean state, and the rest of the system is unaffected.
 ```
 
-This works because processes are **isolated** — one crashing process can't corrupt another's memory. WhatsApp served 2 billion users with a small team partly because Erlang handles failure so gracefully.
+This works because processes are **isolated** — one crashing process can't corrupt another's memory. WhatsApp served hundreds of millions of users with ~35 engineers partly because Erlang handles failure so gracefully.
 
 ### Key insight
 Erlang teaches you that **fault tolerance matters more than fault prevention**. Instead of trying to handle every possible error, build systems that recover automatically. This philosophy has influenced Elixir, Akka (Scala/Java), and distributed systems design broadly.
