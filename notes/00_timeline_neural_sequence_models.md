@@ -365,6 +365,7 @@ All notes in this repository, organized by narrative arc.
 - [Phase 1: Naive LSTM](08_phase1_naive_lstm.md) — building LSTM from scratch
 - [LSTM: The Memory Machine](11_lstm_the_memory_machine.md) — gates, cell state, and constant error carousel
 - [NN LSTM Inputs and Outputs](15_nn_lstm_inputs_and_outputs.md) — practical tensor shapes and data flow
+- [Softmax: Turning Scores into Probabilities](22_softmax.md) — logits, temperature, and why CrossEntropyLoss includes it
 
 ### Seq2Seq, Attention & Transformers
 
