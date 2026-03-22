@@ -45,14 +45,17 @@
 
 | Year | What | Who | Key Idea |
 |------|------|-----|----------|
+| 1985 | **Boltzmann machine** | Hinton & Sejnowski | Energy-based generative model — uses the Boltzmann distribution to define probabilities over states. Training via MCMC sampling. Led to RBMs and deep belief nets (2006), which helped trigger the deep learning revolution |
 | 1986 | **MLP + Backprop** | Rumelhart, Hinton, Williams | "Learning representations by back-propagating errors" in *Nature* 323. Multi-layer networks trained with backpropagation. Solved XOR. Neural nets revived |
 | 1986 | **PDP Book** | Rumelhart, McClelland (eds.) | *Parallel Distributed Processing* (MIT Press, 2 vols). Chapter 8 = full backprop treatment. Final section introduces training recurrent nets via unrolling. 30,000+ citations |
 | 1986 | **Jordan Network** | Michael Jordan (UCSD) | "Serial Order" — first RNN variant. Output fed back to context units. Network remembers what it *said* |
 | 1986 | **RNN** | Rumelhart, Hinton, Williams | Recurrent connections described in PDP Ch. 8 — share weights across time, feed hidden state back. Networks process sequences with memory |
 | 1989 | **CNN** | Yann LeCun | Convolutional neural networks — local filters for image recognition |
+| 1989 | **Q-learning** | Chris Watkins | Model-free RL algorithm — learn action values directly from experience without knowing the environment's rules. Foundation for DQN decades later |
 | 1990 | **Elman Network** | Jeffrey Elman (UCSD) | "Finding Structure in Time" — hidden state (not output) fed back to context units. Became the standard "vanilla RNN" architecture |
 | 1990 | **BPTT formalized** | Paul Werbos | "Backpropagation Through Time: What It Does and How to Do It" — unroll the RNN, run standard backprop on the unrolled graph |
 | 1991 | Vanishing gradient proved | Hochreiter | Diploma thesis *"Untersuchungen zu dynamischen neuronalen Netzen"* (in German, TU Munich, advisor: Schmidhuber). Proved gradients decay exponentially through time steps |
+| 1992 | **TD-Gammon** | Gerald Tesauro (IBM) | Neural net learns backgammon via self-play + temporal difference learning. Expert-level play; changed how humans played the game. Proved neural nets + RL + self-play works |
 | 1994 | Vanishing gradient confirmed | Bengio, Simard, Frasconi | "Learning Long-Term Dependencies with Gradient Descent is Difficult" — confirmed Hochreiter's result in English, widely read |
 | 1997 | **LSTM** | Hochreiter & Schmidhuber | "Long Short-Term Memory" in *Neural Computation* 9(8). Cell state ("constant error carousel") + input/output gates solve vanishing gradients. Original had NO forget gate **(Assignment Phase 1)** |
 | 2000 | **Forget gate added to LSTM** | Gers, Schmidhuber, Cummins | "Learning to Forget: Continual Prediction with LSTM" — without forget gate, cell state grows forever. This completed the modern LSTM architecture used today |
@@ -62,11 +65,16 @@
 | Year | What | Who | Key Idea |
 |------|------|-----|----------|
 | 2012 | **AlexNet** | Krizhevsky, Sutskever, Hinton | CNN wins ImageNet by a landslide — deep learning revolution begins. GPUs + data + scale |
-| 2014 | **GANs** | Goodfellow | Generator vs discriminator — adversarial training for image generation |
+| 2013 | **DQN** | Mnih et al. (DeepMind) | Deep Q-Network — CNN + Q-learning plays 49 Atari games from raw pixels. Experience replay + target networks. Put DeepMind on the map; Google acquired them for ~$500M |
+| 2013 | **VAE** | Kingma & Welling | Variational Autoencoder — encoder compresses to latent space, decoder reconstructs. Approximate density via ELBO. Smooth latent space but blurry outputs |
+| 2014 | **GANs** | Goodfellow | Generator vs discriminator — adversarial training for image generation. Conceived during a bar argument in Montreal; worked on the first try |
 | 2014 | **Seq2Seq** | Sutskever, Vinyals, Le | Encoder → fixed vector → Decoder. First serious neural machine translation |
 | 2014 | **Attention** | Bahdanau, Cho, Bengio | Decoder "looks back" at all encoder states instead of one fixed vector **(Assignment Phase 2)** |
 | 2014 | GRU | Cho et al. | Simplified LSTM — 2 gates instead of 3, no separate cell state |
 | 2015 | Attention variants | Luong et al. | Different scoring: dot product, cosine similarity, etc. |
+| 2016 | **AlphaGo** | Silver et al. (DeepMind) | Beat Lee Sedol 4-1 at Go — watched by 200M people. Supervised learning + RL self-play + Monte Carlo Tree Search. "Move 37" discovered strategies 3,000 years of human play hadn't found |
+| 2016 | **PixelRNN / PixelCNN** | van den Oord et al. (DeepMind) | Autoregressive image generation — predict one pixel at a time. Tractable density but painfully slow |
+| 2017 | **AlphaZero** | Silver et al. (DeepMind) | Learned chess, shogi, and Go from scratch via pure self-play — no human data. Beat Stockfish (best chess engine) after 4 hours of training |
 | 2017 | **Transformer** | Vaswani et al. (Google) | "Attention Is All You Need" — drop recurrence. Self-attention over all positions in parallel **(Assignment Phases 3 & 4)** |
 
 ## The LLM Era (2018–Now)
@@ -77,10 +85,15 @@
 | 2018 | **GPT-1** | Radford et al. (OpenAI) | Decoder-only transformer, autoregressive pretraining on BookCorpus |
 | 2019 | **GPT-2** | OpenAI | 1.5B params. Showed scaling up decoder-only transformers yields strong zero-shot performance |
 | 2019 | **T5** | Google | "Text-to-Text Transfer Transformer" — frames every NLP task as text-in, text-out |
+| 2019 | **AlphaStar** | Vinyals et al. (DeepMind) | Grandmaster-level StarCraft II — real-time, imperfect information, multi-unit coordination. Top 0.2% of human players |
+| 2019 | **OpenAI Five** | OpenAI | Beat world champions at Dota 2 (5v5). Trained with PPO — the same algorithm later used for RLHF in ChatGPT |
 | 2020 | **GPT-3** | OpenAI | 175B params. In-context learning — few-shot via prompting, no fine-tuning needed |
+| 2020 | **AlphaFold 2** | Jumper et al. (DeepMind) | Solved protein folding — predicted 3D protein structures with atomic accuracy. RL + attention. Nobel Prize in Chemistry 2024 |
+| 2020 | **Diffusion models (DDPM)** | Ho, Jain, Abbeel (UC Berkeley) | Denoising Diffusion — gradually add noise, learn to reverse it. Stable training, sharp outputs. Eventually dethroned GANs for image generation |
 | 2020 | **Vision Transformer (ViT)** | Dosovitskiy et al. (Google) | Applied transformers to images by splitting into patches. Transformers escape NLP |
 | 2021 | **DALL-E** | OpenAI | Transformer generates images from text descriptions |
 | 2022 | **ChatGPT / InstructGPT** | OpenAI | RLHF (reinforcement learning from human feedback) aligns GPT-3.5 to follow instructions |
+| 2022 | **Stable Diffusion** | Rombach et al. | Latent diffusion — run denoising in compressed latent space, not pixel space. Open-sourced, triggered the AI art explosion |
 | 2022 | **Chinchilla** | Hoffmann et al. (DeepMind) | Scaling laws — models were over-parameterized & under-trained. Train longer on more data |
 | 2023 | **GPT-4** | OpenAI | Multimodal (text + vision), massive leap in reasoning |
 | 2023 | **LLaMA** | Meta | Open-weight LLMs. Kicked off the open-source LLM explosion |
@@ -307,7 +320,7 @@ built the brain machine.
 
 ## The One-Sentence Story
 
-**Incompleteness (Gödel) → computation (Turing) → artificial neuron (McCulloch-Pitts) → learnable neuron (Perceptron) → gradient descent / adaptive filtering (ADALINE) → AI winter (Minsky & Papert) → multi-layer + backprop (MLP) → recurrence (RNN) → memory gates (LSTM) → attention → "attention is all you need" (Transformer) → scale it up (GPT/BERT) → scale it WAY up (GPT-3/4) → make it multimodal & teach it to reason.**
+**Incompleteness (Gödel) → computation (Turing) → artificial neuron (McCulloch-Pitts) → learnable neuron (Perceptron) → gradient descent / adaptive filtering (ADALINE) → AI winter (Minsky & Papert) → multi-layer + backprop (MLP) → recurrence (RNN) → memory gates (LSTM) → learn by playing (RL: TD-Gammon → DQN → AlphaGo) → attention → "attention is all you need" (Transformer) → scale it up (GPT/BERT) → learn to generate (VAEs/GANs/diffusion) → scale it WAY up (GPT-3/4) → align it with humans (RLHF) → make it multimodal & teach it to reason.**
 
 ## What Actually Changed in the 21st Century
 
@@ -379,6 +392,18 @@ All notes in this repository, organized by narrative arc.
 
 - [CNN Vision Tasks](17_cnn_vision_tasks.md) — convolutional neural networks for image understanding
 - [Do Vision Transformers See Like CNNs?](16_do_vision_transformers_see_like_cnns.md) — ViT vs CNN comparison
+
+### Attention Mechanics
+
+- [Scaled Dot-Product Attention](23_scaled_dot_product_attention.md) — why √d, dot product vs cosine similarity, the Goldilocks argument
+
+### Generative Models
+
+- [Generative Models Taxonomy](24_generative_models_taxonomy.md) — the full tree: VAEs, GANs, Boltzmann machines, autoregressive models, diffusion models
+
+### Reinforcement Learning
+
+- [Reinforcement Learning Overview](25_reinforcement_learning_overview.md) — trial-and-error learning, the game pipeline (checkers → AlphaGo → RLHF), why RL is hard, real-world applications
 
 ### LLM Inference & Benchmarks
 
