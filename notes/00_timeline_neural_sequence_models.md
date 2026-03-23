@@ -401,8 +401,9 @@ All notes in this repository, organized by narrative arc.
 
 - [Generative Models Taxonomy](24_generative_models_taxonomy.md) — the full tree: VAEs, GANs, Boltzmann machines, autoregressive models, diffusion models
 
-### Reinforcement Learning
+### Learning Paradigms & Reinforcement Learning
 
+- [The Three Paradigms of Learning](26_three_paradigms_of_learning.md) — how supervised, unsupervised, and reinforcement learning emerged, evolved, and converged — from Legendre (1805) to RLHF (2022)
 - [Reinforcement Learning Overview](25_reinforcement_learning_overview.md) — trial-and-error learning, the game pipeline (checkers → AlphaGo → RLHF), why RL is hard, real-world applications
 
 ### LLM Inference & Benchmarks
