@@ -1,6 +1,6 @@
 # John von Neumann (1903-1957)
 
-> Part of the [Neural Network Study Timeline](../00_timeline_neural_sequence_models.md). See also: [McCulloch-Pitts](../01_mcculloch_pitts_and_the_1943_scene.md).
+> Part of the [Neural Network Study Timeline](../00_timeline.md). See also: [McCulloch-Pitts](../01_mcculloch_pitts_and_the_1943_scene.md).
 
 ## The Man Who Connected Everything
 

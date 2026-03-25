@@ -1,6 +1,6 @@
 # Reinforcement Learning — Teaching Machines Through Trial and Error
 
-> Part of the [Neural Network Study Timeline](00_timeline_neural_sequence_models.md). See also: [Generative Models Taxonomy](24_generative_models_taxonomy.md), [Softmax](22_softmax.md).
+> Part of the [Neural Network Study Timeline](00_timeline.md). See also: [Generative Models Taxonomy](24_generative_models_taxonomy.md), [Softmax](22_softmax.md).
 
 ---
 
@@ -320,4 +320,4 @@ What you'd need to build:
 - [Generative Models Taxonomy](24_generative_models_taxonomy.md) — GANs use a minimax game (game theory connection)
 - [Softmax](22_softmax.md) — Boltzmann distribution appears in RL exploration (Boltzmann exploration policy)
 - [Transformers](19_transformers.md) — decision transformers frame RL as sequence prediction
-- [Master Timeline](00_timeline_neural_sequence_models.md) — where each RL milestone fits
+- [Master Timeline](00_timeline.md) — where each RL milestone fits

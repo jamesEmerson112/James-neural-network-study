@@ -1,6 +1,6 @@
 # The Three Paradigms of Machine Learning — A History of How Machines Learned to Learn
 
-> Part of the [Neural Network Study Timeline](00_timeline_neural_sequence_models.md). See also: [Rosenblatt and the Perceptron](02_rosenblatt_and_the_perceptron.md), [Minsky — Death and Resurrection](06_minsky_perceptrons_death_and_resurrection.md), [Backprop: The Wiggle Ratio](09_backprop_the_wiggle_ratio.md), [Generative Models Taxonomy](24_generative_models_taxonomy.md), [Reinforcement Learning Overview](25_reinforcement_learning_overview.md).
+> Part of the [Neural Network Study Timeline](00_timeline.md). See also: [Rosenblatt and the Perceptron](02_rosenblatt_and_the_perceptron.md), [Minsky — Death and Resurrection](06_minsky_perceptrons_death_and_resurrection.md), [Backprop: The Wiggle Ratio](09_backprop_the_wiggle_ratio.md), [Generative Models Taxonomy](24_generative_models_taxonomy.md), [Reinforcement Learning Overview](25_reinforcement_learning_overview.md).
 
 ---
 
@@ -778,7 +778,7 @@ SUPERVISED                  UNSUPERVISED                REINFORCEMENT
 
 ## Cross-References
 
-- [Timeline](00_timeline_neural_sequence_models.md) — master chronology where all these milestones appear
+- [Timeline](00_timeline.md) — master chronology where all these milestones appear
 - [Rosenblatt and the Perceptron](02_rosenblatt_and_the_perceptron.md) — full biography of the supervised learning pioneer
 - [Minsky — Death and Resurrection](06_minsky_perceptrons_death_and_resurrection.md) — how the AI winter happened
 - [Backprop: The Wiggle Ratio](09_backprop_the_wiggle_ratio.md) — intuitive backpropagation explanation

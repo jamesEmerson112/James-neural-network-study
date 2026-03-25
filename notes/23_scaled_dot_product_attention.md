@@ -1,6 +1,6 @@
 # Scaled Dot-Product Attention — Why √d Is the Magic Number
 
-> Part of the [Neural Network Study Timeline](00_timeline_neural_sequence_models.md). See also: [Softmax](22_softmax.md), [Transformers](19_transformers.md), [BERT](20_bert.md).
+> Part of the [Neural Network Study Timeline](00_timeline.md). See also: [Softmax](22_softmax.md), [Transformers](19_transformers.md), [BERT](20_bert.md).
 
 ---
 
@@ -164,4 +164,4 @@ This connects to a deep thread in neural network history — keeping activations
 - [BERT](20_bert.md) — encoder-only transformer using this attention mechanism
 - [Vanishing Gradient and tanh](13_vanishing_gradient_and_tanh.md) — related problem of keeping gradients in stable ranges
 - [Assignment 3 Battle Plan](12_assignment3_battle_plan.md) — implementing multi-head attention
-- [Master Timeline](00_timeline_neural_sequence_models.md) — where it all fits
+- [Master Timeline](00_timeline.md) — where it all fits

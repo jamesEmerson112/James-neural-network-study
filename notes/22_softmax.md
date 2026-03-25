@@ -1,6 +1,6 @@
 # Softmax — Turning Scores into Probabilities
 
-> Part of the [Neural Network Study Timeline](00_timeline_neural_sequence_models.md). See also: [Backprop](09_backprop_the_wiggle_ratio.md), [Transformers](19_transformers.md), [BERT](20_bert.md).
+> Part of the [Neural Network Study Timeline](00_timeline.md). See also: [Backprop](09_backprop_the_wiggle_ratio.md), [Transformers](19_transformers.md), [BERT](20_bert.md).
 
 ---
 
@@ -274,4 +274,4 @@ Every LLM today   →  softmax over vocabulary at every token generation step
 - [Vanishing Gradient and tanh](13_vanishing_gradient_and_tanh.md) — related activation function issues
 - [Transformers](19_transformers.md) — softmax in self-attention
 - [BERT](20_bert.md) — softmax in fine-tuning classification heads
-- [Master Timeline](00_timeline_neural_sequence_models.md) — where it all fits
+- [Master Timeline](00_timeline.md) — where it all fits

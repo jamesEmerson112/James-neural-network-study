@@ -67,7 +67,7 @@ George Boole published *The Laws of Thought* in 1854 (building on his 1847 work)
     Logic isn't philosophy anymore. It's math you can compute.
 ```
 
-This is already in the [timeline](../00_timeline_neural_sequence_models.md). Boole turned logic into something mechanical — the first real step toward Leibniz's dream. McCulloch and Pitts would use exactly this in 1943 to build their neuron model.
+This is already in the [timeline](../00_timeline.md). Boole turned logic into something mechanical — the first real step toward Leibniz's dream. McCulloch and Pitts would use exactly this in 1943 to build their neuron model.
 
 ### Cantor (1870s-1890s) — Infinity Has Sizes, and a Trick
 
@@ -810,5 +810,5 @@ But they're playing it on his board.
 
 - [The Halting Problem](../turing/06_the_halting_problem.md) — Turing destroys the third pillar (decidability) that Godel left standing
 - [Turing Overview](../turing/00_overview.md) — The man who defined computation after Godel broke formal reasoning
-- [Timeline](../00_timeline_neural_sequence_models.md) — Where Godel fits in the full 1931-to-now arc
+- [Timeline](../00_timeline.md) — Where Godel fits in the full 1931-to-now arc
 - [McCulloch-Pitts](../01_mcculloch_pitts_and_the_1943_scene.md) — The first neural model, built inside Godel's and Turing's limits

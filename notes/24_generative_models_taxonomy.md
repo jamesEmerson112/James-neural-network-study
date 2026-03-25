@@ -1,6 +1,6 @@
 # Generative Models — The Taxonomy of Learning to Create
 
-> Part of the [Neural Network Study Timeline](00_timeline_neural_sequence_models.md). See also: [Softmax](22_softmax.md) (Boltzmann connection), [Transformers](19_transformers.md), [BERT](20_bert.md).
+> Part of the [Neural Network Study Timeline](00_timeline.md). See also: [Softmax](22_softmax.md) (Boltzmann connection), [Transformers](19_transformers.md), [BERT](20_bert.md).
 
 ---
 
@@ -358,4 +358,4 @@ The three Montreal professors — Bengio, Goodfellow (student), and their collab
 - [Transformers](19_transformers.md) — decoder-only transformers are autoregressive generative models
 - [BERT](20_bert.md) — encoder-only, NOT generative (discriminative/understanding)
 - [Backprop: The Wiggle Ratio](09_backprop_the_wiggle_ratio.md) — how all these models train
-- [Master Timeline](00_timeline_neural_sequence_models.md) — where each model fits historically
+- [Master Timeline](00_timeline.md) — where each model fits historically

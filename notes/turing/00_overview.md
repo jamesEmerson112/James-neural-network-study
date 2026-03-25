@@ -1,6 +1,6 @@
 # Alan Turing (1912-1954)
 
-> Part of the [Neural Network Study Timeline](../00_timeline_neural_sequence_models.md). See also: [McCulloch-Pitts](../01_mcculloch_pitts_and_the_1943_scene.md), [Backprop](../09_backprop_the_wiggle_ratio.md).
+> Part of the [Neural Network Study Timeline](../00_timeline.md). See also: [McCulloch-Pitts](../01_mcculloch_pitts_and_the_1943_scene.md), [Backprop](../09_backprop_the_wiggle_ratio.md).
 
 ## The Man Who Invented Computation
 

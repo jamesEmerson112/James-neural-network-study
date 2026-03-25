@@ -2,7 +2,7 @@
 
 Three influential functional programming languages, each with a different philosophy. This note assumes **zero FP experience** and explains concepts from scratch.
 
-> Connected to the neural network study via the Lambda Calculus → LISP → ML lineage. See [John McCarthy](../04_john_mccarthy.md), [Why LISP Matters](../05_lisp_why_it_matters.md), and [LISP Deep Dive](../05b_lisp_deep_dive.md). Back to [master timeline](../00_timeline_neural_sequence_models.md).
+> Connected to the neural network study via the Lambda Calculus → LISP → ML lineage. See [John McCarthy](../04_john_mccarthy.md), [Why LISP Matters](../05_lisp_why_it_matters.md), and [LISP Deep Dive](../05b_lisp_deep_dive.md). Back to [master timeline](../00_timeline.md).
 
 ---
 

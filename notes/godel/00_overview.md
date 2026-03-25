@@ -1,6 +1,6 @@
 # Kurt Godel (1906-1978)
 
-> Part of the [Neural Network Study Timeline](../00_timeline_neural_sequence_models.md). See also: [McCulloch-Pitts & the 1943 Scene](../01_mcculloch_pitts_and_the_1943_scene.md) for how Gödel's ideas flowed into neural networks.
+> Part of the [Neural Network Study Timeline](../00_timeline.md). See also: [McCulloch-Pitts & the 1943 Scene](../01_mcculloch_pitts_and_the_1943_scene.md) for how Gödel's ideas flowed into neural networks.
 
 ## The Man Who Broke Mathematics
 
@@ -62,4 +62,4 @@ The man who understood the limits of formal systems couldn't reason his way past
 ## Cross-References
 
 - [The Halting Problem](../turing/06_the_halting_problem.md) — Turing's destruction of decidability, the third pillar Godel left standing
-- [Timeline](../00_timeline_neural_sequence_models.md) — Where Godel fits in the full arc from 1931 to modern LLMs
+- [Timeline](../00_timeline.md) — Where Godel fits in the full arc from 1931 to modern LLMs
