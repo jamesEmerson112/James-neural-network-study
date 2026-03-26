@@ -19,15 +19,16 @@
 1931–1948   THE FOUNDATIONS      Gödel, Turing, McCulloch-Pitts, Shannon
 1949–1962   THE PIONEERS         Hebb, Nash, Minsky (SNARC), Rosenblatt, Widrow & Hoff
 1969–1985   THE AI WINTER        Minsky & Papert kill funding
-1986–2008   THE RESURRECTION     Backpropagation, autoencoders, CNNs, LSTMs, deep belief nets
-2012–2017   THE DEEP LEARNING    AlexNet, VAEs, GANs, DCGAN, Attention, Transformers
-            REVOLUTION
-2018–NOW    THE LLM ERA          BERT, GPT, diffusion, Claude — scale wins
+1986–2008   THE RESURRECTION     Backpropagation, autoencoders, CNNs, LSTMs, CTC, deep belief nets
+2012–2017   THE DEEP LEARNING    Word2Vec, GANs, Batch Norm, Attention, Transformers, PPO,
+            REVOLUTION           bias & fairness awakening
+2018–NOW    THE LLM ERA          ELMo → BERT → GPT, self-supervised learning, diffusion,
+                                 scalable training, AI regulation — scale wins
 ```
 
 ## The One-Sentence Story
 
-**Incompleteness (Gödel) → computation (Turing) → information as math (Shannon) → artificial neuron (McCulloch-Pitts) → learnable neuron (Perceptron) → gradient descent / adaptive filtering (ADALINE) → AI winter (Minsky & Papert) → multi-layer + backprop (MLP) → compress and reconstruct (autoencoders) → recurrence (RNN) → memory gates (LSTM) → deep networks revived (deep belief nets) → learn by playing (RL: TD-Gammon → DQN → AlphaGo) → attention → "attention is all you need" (Transformer) → scale it up (GPT/BERT) → learn to generate (VAEs/GANs/diffusion) → scale it WAY up (GPT-3/4) → align it with humans (RLHF) → make it multimodal & teach it to reason.**
+**Incompleteness (Gödel) → computation (Turing) → information as math (Shannon) → artificial neuron (McCulloch-Pitts) → learnable neuron (Perceptron) → gradient descent / adaptive filtering (ADALINE) → AI winter (Minsky & Papert) → multi-layer + backprop (MLP) → compress and reconstruct (autoencoders) → recurrence (RNN) → memory gates (LSTM) → deep networks revived (deep belief nets) → words as vectors (Word2Vec/GloVe) → learn by playing (RL: TD-Gammon → DQN → A3C → PPO) → attention → "attention is all you need" (Transformer) → context-aware embeddings (ELMo → BERT) → scale it up (GPT) → train it at scale (Batch Norm → mixed precision → TPUs → Megatron/DeepSpeed) → learn to generate (VAEs/GANs/diffusion) → learn without labels (SimCLR/DINO) → hear and speak (CTC → DeepSpeech → wav2vec → Whisper) → confront bias (COMPAS → Gender Shades → Model Cards → EU AI Act) → scale it WAY up (GPT-3/4) → align it with humans (RLHF) → make it multimodal & teach it to reason.**
 
 ## What Actually Changed in the 21st Century
 
