@@ -48,6 +48,45 @@ The network **learns these filters automatically** during training — you don't
 Input Image → [Conv → ReLU → Pool] × N → Flatten → Fully Connected → "cat"
 ```
 
+### Receptive field
+
+The **receptive field** of a neuron is the region of the original input that can influence that neuron's output.
+
+```
+Layer 1 (3×3 conv):   each neuron sees a 3×3 patch of the input
+Layer 2 (3×3 conv):   each neuron sees a 3×3 patch of layer 1's output
+                       → which means it sees a 5×5 patch of the original input
+Layer 3 (3×3 conv):   each neuron sees 7×7 of the original input
+
+Receptive field GROWS with depth:
+  Layer 1: 3×3     Layer 2: 5×5     Layer 3: 7×7    ...
+```
+
+**Key properties:**
+
+| Property | Why |
+|---|---|
+| Grows with depth | Each layer adds context from a wider spatial area |
+| Pooling increases it faster | A 2×2 pool effectively doubles the receptive field of subsequent layers |
+| FC layers see everything | Fully connected layers have a receptive field covering the entire input |
+| Center pixels contribute more | A center pixel falls within more overlapping filter positions than an edge pixel — it influences more neurons |
+
+```
+Why center > edge:
+
+3×3 filter sliding over 5×5 input:
+
+  Corner pixel (0,0):  appears in 1 filter position
+  Edge pixel (0,2):    appears in 2 filter positions
+  Center pixel (2,2):  appears in 9 filter positions (all of them)
+
+  → center pixels have MORE influence on the output
+  → this is called the "effective" receptive field — technically the RF is
+    a fixed size, but the center contributes disproportionately
+```
+
+**Why it matters:** A network needs a receptive field large enough to "see" the objects it's trying to classify. If the receptive field is too small, the network only sees local textures, never the whole object. This is why deeper networks and dilated convolutions (DeepLab) exist — to grow the receptive field without losing resolution.
+
 ### Worked example: Counting parameters (no bias)
 
 Given: 224×224×3 input → Conv (3×3, stride 1, same padding) → 224×224×32 → Pool → 112×112×32 → FC → 1×1×9
