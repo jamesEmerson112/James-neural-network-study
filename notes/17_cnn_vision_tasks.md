@@ -48,6 +48,119 @@ The network **learns these filters automatically** during training — you don't
 Input Image → [Conv → ReLU → Pool] × N → Flatten → Fully Connected → "cat"
 ```
 
+### Worked example: Counting parameters (no bias)
+
+Given: 224×224×3 input → Conv (3×3, stride 1, same padding) → 224×224×32 → Pool → 112×112×32 → FC → 1×1×9
+
+**Conv layer — 864 parameters**
+```
+One 3×3 filter must cover all input channels:  3 × 3 × 3 = 27 weights per filter
+We need 32 filters (one per output channel):   27 × 32 = 864
+
+Key insight: these 27 weights are SHARED across all 224×224 positions.
+The filter slides everywhere, reusing the same weights — that's why CNNs are efficient.
+```
+
+**Pooling layer — 0 parameters**
+```
+Pooling just picks the max (or average) from each window. No learnable weights.
+112×112×32 output, but nothing to train.
+```
+
+**Fully connected layer — 3,612,672 parameters**
+```
+Flatten the pooling output:     112 × 112 × 32 = 401,408 input neurons
+Each input connects to each output:  401,408 × 9 = 3,612,672
+
+NO weight sharing — every connection has its own unique weight.
+That's why FC layers are so expensive.
+```
+
+**Total: 864 + 0 + 3,612,672 = 3,613,536 parameters**
+
+```
+Conv layer:  ██ 0.02%                    (864)
+FC layer:    ████████████████████ 99.98%  (3,612,672)
+
+The FC layer dominates — this is why modern architectures (GoogLeNet, ResNet)
+replaced large FC layers with global average pooling to cut parameters.
+```
+
+### Worked example: Backward pass — computing gradients
+
+Setup: 2×2 kernel (W) slides over 3×3 input (X), no padding, stride=1, producing 2×2 output (H).
+
+```
+X = | x₁₁  x₁₂  x₁₃ |     W = | w₁₁  w₁₂ |     H = | h₁₁  h₁₂ |     → Loss
+    | x₂₁  x₂₂  x₂₃ |         | w₂₁  w₂₂ |         | h₂₁  h₂₂ |
+    | x₃₁  x₃₂  x₃₃ |
+
+Forward: slide kernel over X, multiply and sum at each of 4 positions → H
+Backward: given dH (blame at output), find dW and dX (blame for weights and inputs)
+```
+
+**dW₂₂ — "how much blame does kernel weight w₂₂ get?"**
+
+At each of the 4 positions, w₂₂ (bottom-right of kernel) always multiplies the bottom-right value of the input patch. So dW₂₂ = dH × the input values that w₂₂ touched:
+
+```
+Given: dH = | 1.2  -0.5 |     X = | 9  4  6 |
+            | 1.1   0.7 |         | 6  7  3 |
+                                   | 4  5  5 |
+
+Position 1: w₂₂ touched x₂₂ = 7  →  dh₁₁ × x₂₂ = 1.2 × 7 = 8.4
+Position 2: w₂₂ touched x₂₃ = 3  →  dh₁₂ × x₂₃ = -0.5 × 3 = -1.5
+Position 3: w₂₂ touched x₃₂ = 5  →  dh₂₁ × x₃₂ = 1.1 × 5 = 5.5
+Position 4: w₂₂ touched x₃₃ = 5  →  dh₂₂ × x₃₃ = 0.7 × 5 = 3.5
+
+dW₂₂ = 8.4 + (-1.5) + 5.5 + 3.5 = 15.9
+```
+
+For dW: multiply dH by **input values** (X). The kernel weight always sits in the same position (bottom-right), so the input values it touches shift predictably: x₂₂, x₂₃, x₃₂, x₃₃.
+
+**dX₂₂ — "how much blame does input value x₂₂ get?"**
+
+x₂₂ is in the center of X, so all 4 kernel positions touch it. But as the kernel slides, x₂₂ falls on a DIFFERENT kernel weight each time:
+
+```
+Given: dH = | 2    0.5 |     W = | 5  7 |
+            | 1.4  1.2 |         | 3  2 |
+
+Position 1 (top-left patch):     x₂₂ is at bottom-right → sits under w₂₂ = 2
+Position 2 (top-right patch):    x₂₂ is at bottom-left  → sits under w₂₁ = 3
+Position 3 (bottom-left patch):  x₂₂ is at top-right    → sits under w₁₂ = 7
+Position 4 (bottom-right patch): x₂₂ is at top-left     → sits under w₁₁ = 5
+
+dX₂₂ = dh₁₁ × w₂₂ + dh₁₂ × w₂₁ + dh₂₁ × w₁₂ + dh₂₂ × w₁₁
+     = (2)(2)      + (0.5)(3)    + (1.4)(7)    + (1.2)(5)
+     = 4           + 1.5         + 9.8          + 6.0
+     = 21.3
+```
+
+For dX: multiply dH by **kernel weights** (W). Because x₂₂ shifts position inside the kernel window as the kernel slides, the kernel weights appear in reversed order (w₂₂, w₂₁, w₁₂, w₁₁).
+
+**Why dW and dX look different:**
+
+```
+dW: the KERNEL WEIGHT stays fixed (always bottom-right)
+    → the INPUT values it touches shift naturally (x₂₂, x₂₃, x₃₂, x₃₃)
+    → no reversal
+
+dX: the INPUT VALUE stays fixed (always at x₂₂)
+    → which KERNEL WEIGHT touches it changes as the kernel moves over it
+    → the kernel weights appear reversed (w₂₂, w₂₁, w₁₂, w₁₁)
+    → this "flip" is not a rule — it's just geometry
+       (kernel moves right → x₂₂ shifts left INSIDE the window)
+```
+
+**⚠️ STILL GROKKING THIS** — the reversal in dX feels unintuitive. The key is to just trace "which kernel weight lands on x₂₂?" at each position rather than trying to memorize a flip rule.
+
+**What are dW and dX used for?**
+```
+dW → update the kernel weights:   w_new = w_old - learning_rate × dW    (learning)
+dX → pass blame to previous layer: becomes dH for the layer before       (backprop continues)
+```
+
 ---
 
 ## How All Tasks Share a CNN Backbone
