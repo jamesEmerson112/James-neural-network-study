@@ -157,6 +157,8 @@ A ResNet outputs x + garbage ≈ x. The skip connection provides a safe fallback
 
 Skip connections create **shortcuts in the loss landscape** — gradients can flow directly through the skip path, making deep networks as easy to optimize as shallow ones. This dramatically reduces optimization error, allowing ResNets to go 152 layers deep where VGG-19 already struggled.
 
+**Important clarification:** The primary benefit of skip connections is **gradient flow and identity mapping** — they solve the optimization problem (vanishing gradients, degradation in deep networks). Skip connections do NOT primarily reduce overfitting (estimation error). A ResNet can still overfit just as much as a plain network with the same capacity; the difference is that the ResNet can actually be *trained* to that capacity in the first place.
+
 ### The Architecture Progression as Error Management
 
 | Architecture | Year | Key Innovation | Which Error It Attacked |

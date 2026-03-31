@@ -453,6 +453,53 @@ Same idea as Word2Vec, but for knowledge graphs instead of text.
 
 ---
 
+---
+
+## Transfer Learning
+
+**The idea:** Take a CNN trained on a large dataset (e.g., ImageNet with 1.2M images), then reuse its learned features for a different task with less data.
+
+```
+ImageNet-trained ResNet:
+
+Early layers:    edges, textures     ← generic, useful for almost any image task
+Middle layers:   parts, patterns     ← somewhat generic
+Late layers:     ImageNet classes    ← very task-specific
+
+Transfer learning = keep the generic layers, replace the specific ones
+```
+
+### Two strategies
+
+| Strategy | What you do | When to use |
+|---|---|---|
+| **Feature extraction (freeze)** | Freeze all pretrained layers, only train a new final classifier | Small dataset, similar domain to pretraining |
+| **Fine-tuning** | Unfreeze some/all layers, train with a small learning rate | More data available, or domain differs from pretraining |
+
+```
+Feature extraction:          Fine-tuning:
+[Conv1] ❄️ frozen            [Conv1] 🔥 lr=0.0001 (very slow updates)
+[Conv2] ❄️ frozen            [Conv2] 🔥 lr=0.0001
+[Conv3] ❄️ frozen            [Conv3] 🔥 lr=0.001
+[FC]    🔥 train from scratch [FC]   🔥 lr=0.01 (fastest updates)
+
+Fine-tuning tip: use smaller learning rates for earlier layers
+(they already have good features, don't destroy them)
+```
+
+### Common misconceptions from the quiz
+
+**"Transfer learning is invariably effective"** — False. It works best when:
+- Source and target domains are **similar** (ImageNet → medical imaging works well; ImageNet → satellite radar imagery works poorly)
+- The target dataset is small enough that training from scratch would overfit
+- When domains are very different, transfer can actually *hurt* (negative transfer)
+
+**"The main benefit is regularization"** — Not quite. The primary benefit is **feature reuse** — the pretrained network already knows how to detect edges, textures, and shapes. This is more efficient than learning from random initialization. Regularization is a side effect (pretrained weights act as a good starting point that constrains the solution space), but it's not the main reason transfer learning works.
+
+**"Transfer learning always needs fine-tuning"** — No. Feature extraction (freezing all layers) often works surprisingly well, especially when the target domain is similar to the source domain. Fine-tuning is better when you have enough data and the domains differ.
+
+---
+
 ## Questions
 
 - How do graph neural networks (GNNs) fit into scene graph generation?
