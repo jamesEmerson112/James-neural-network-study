@@ -164,6 +164,129 @@ uses the exponential specifically because it is the unique continuous function t
 
 ---
 
+## The two-worlds picture — a higher-order yin-yang
+
+Before the group-isomorphism formalism below, there is an intuitive picture worth sitting with. It answers a question that naturally arises when thinking about $\exp$ and $\log$: **why don't they have a "clean" yin-yang the way plus has minus?**
+
+Plus and minus feel like a clean pair because they live in one world — the additive numbers. Adding something is undone by taking it away, and both operations happen inside the same system. Multiplication and division are similarly a clean pair inside the multiplicative numbers: multiplying by 3 is undone by dividing by 3.
+
+So actually, you have **two yin-yang pairs, living in two separate worlds**:
+
+- **Additive world**: $+$ and $-$. Identity element $0$. Inverse of $a$ is $-a$.
+- **Multiplicative world**: $\times$ and $\div$. Identity element $1$. Inverse of $x$ is $1/x$.
+
+These two worlds look completely different on the surface. Different identity, different inverses, different operations. But structurally, **they are the same world in disguise**. Every truth in the additive world has a mirror truth in the multiplicative world. They are two different coordinate systems for the same underlying object, and the function that translates between them is the exponential.
+
+### Two number lines, stacked
+
+Imagine two number lines, stacked.
+
+**The additive number line** is the one you learned in elementary school:
+
+```
+ ... ─────┼──────┼──────┼──────┼──────┼──────┼──────┼───── ...
+         -3     -2     -1      0      1      2      3
+          └──+1──┘──+1──┘──+1──┘──+1──┘──+1──┘──+1──┘
+```
+
+Every tick is the **same distance** apart. Identity is $0$. "Do nothing" means add $0$.
+
+**The multiplicative number line** is the positive numbers, marked off not at equal distances but at equal ratios:
+
+```
+ ... ──┼───┼───┼───┼───┼───────┼───────────┼───────────────── ...
+      1/8 1/4 1/2  1   2       4           8
+       └×2┘×2─┘×2──┘×2─┘──×2───┘─────×2────┘
+```
+
+Every tick is the **same ratio** apart. Identity is $1$. "Do nothing" means multiply by $1$.
+
+From the perspective of the additive world, the multiplicative ticks look unevenly spaced — they bunch up near zero and spread out toward infinity. But from the perspective of the multiplicative world, those ticks are *perfectly evenly spaced*, each one "multiplication step" apart from the next. "Evenly spaced" depends on which world you live in.
+
+### The two-way bridge
+
+Now stitch the two lines together. The exponential function is the mapping from the additive line down onto the multiplicative line:
+
+```
+   ADDITIVE:     -3    -2    -1     0     1     2     3
+                  │     │     │     │     │     │     │
+                  │     │     │     │     │     │     │        exp ↓
+                  ▼     ▼     ▼     ▼     ▼     ▼     ▼
+MULTIPLICATIVE:  1/e³  1/e²  1/e    1     e    e²    e³
+                 0.05  0.14  0.37   1   2.72  7.39  20.09
+```
+
+$\exp$ takes each evenly-spaced tick on the additive ruler and drops it onto the corresponding ratio-spaced tick on the multiplicative ruler. The numbers $-3, -2, -1, 0, 1, 2, 3$ become $1/e^3, 1/e^2, 1/e, 1, e, e^2, e^3$.
+
+Read the same picture upward, and it is the logarithm:
+
+```
+MULTIPLICATIVE:  1/e³  1/e²  1/e    1     e    e²    e³
+                  │     │     │     │     │     │     │
+                  │     │     │     │     │     │     │        log ↑
+                  ▲     ▲     ▲     ▲     ▲     ▲     ▲
+   ADDITIVE:     -3    -2    -1     0     1     2     3
+```
+
+$\log$ takes each ratio-spaced tick on the multiplicative ruler and lifts it back to the corresponding evenly-spaced tick on the additive ruler.
+
+**The two arrows are the yin-yang.** $\exp$ points downward from additive to multiplicative. $\log$ points upward from multiplicative to additive. They are inverse to each other. You can go back and forth as many times as you like and always end up where you started — because the two worlds are, structurally, the same world seen from two different angles.
+
+### The mirror table
+
+Every operation in the additive world has a mirror operation in the multiplicative world, related by the exponential:
+
+| Additive world | Multiplicative world |
+|---|---|
+| Identity: $0$ | Identity: $1$ |
+| Element: $a$ | Element: $e^a$ |
+| $a + b$ | $e^a \cdot e^b = e^{a+b}$ |
+| $-a$ (negation) | $1/e^a = e^{-a}$ (reciprocal) |
+| $a - b$ (subtraction) | $e^a / e^b = e^{a-b}$ (division) |
+| $k \cdot a$ (scalar multiply) | $(e^a)^k = e^{ka}$ (power) |
+
+Read each row as: the thing on the left, translated by $\exp$, becomes the thing on the right. Nothing is left out. Every additive operation has a multiplicative twin, and the exponential is the function that points at the twin.
+
+### The folded tape and the slide rule
+
+Here is the picture worth keeping in your head. Imagine the two number lines as two strips of tape. $\exp$ is a physical operation that stretches the tape:
+
+```
+     additive tape:  ───┼─────┼─────┼─────┼─────┼─────┼─────┼───
+                       -3    -2    -1     0     1     2     3
+
+                                  exp stretches
+                                  the tape
+                                        │
+                                        ▼
+
+multiplicative tape: ──┼──┼───┼───┼─────┼─────────┼──────────────┼──
+                     1/e³1/e²1/e   1       e         e²             e³
+```
+
+$\exp$ takes the additive tape and **stretches** it so that the ticks, which used to be evenly spaced, get pulled apart exponentially toward the right and crushed together toward the left. $\log$ unstretches it. Same tape, two ways of looking at it. That stretching *is* the exponential function.
+
+This is literally what a **slide rule** does. Napier invented the logarithm in 1614, and within a few years engineers realized you could build a physical device — a slide rule — with the multiplicative tape printed on it. To multiply two numbers, you slide one tape against the other, and the *physical distances add* (because physical distances are additive) while the *numbers multiply* (because the tape is labeled multiplicatively). For about 350 years, every engineer and scientist had a slide rule on their desk. The Apollo program's engineers used slide rules to help put humans on the Moon in 1969. The slide rule is a mechanical realization of the $\exp/\log$ bridge, and it only fell out of use when electronic calculators became cheap in the early 1970s.
+
+### Why this is a higher-order yin-yang
+
+Plus and minus are yin-yang because they are the two directions **within the additive world**. You can add or subtract, and the two operations cancel within one system. Same with multiplication and division inside the multiplicative world.
+
+$\exp$ and $\log$ are yin-yang of a different kind. They are not the two directions within one world — they are the two directions **between two worlds**. $\exp$ translates additive into multiplicative. $\log$ translates multiplicative into additive. Each one undoes the other's translation, but they are doing something much deeper than simply canceling. They are revealing that the two worlds are the same world, viewed from two different angles.
+
+Another way to say it:
+
+- Plus and minus are like turning left and turning right within a single room.
+- $\exp$ and $\log$ are like walking through a doorway into another room, then walking back.
+
+Both are "reversible," but they are reversible in fundamentally different senses. One is a motion within a space. The other is a transition between spaces.
+
+This is why $\exp$ is harder to pin down as a yin-yang on first encounter — because its partner is not sitting next to it in the same world, operating on the same kind of object. Its partner is across a bridge, on the other side of a translation. Once the two-worlds picture clicks, the yin-yang locks into place: $\exp$ and $\log$ are not "an operation and its inverse within one system," they are **the two arrows of a bridge between two systems that turn out to be the same system in different clothes**.
+
+This is a higher-order yin-yang than plus and minus, and it is why the exponential is harder to conceptualize than addition. It is also why, once the conceptualization clicks, the exponential stops feeling like a weird function and starts feeling like one of the most important objects in mathematics — because most of the interesting phenomena in the world have additive structure on one side and multiplicative structure on the other, and $\exp$/$\log$ are the only continuous functions that can carry you between them.
+
+---
+
 ## The big picture: exp and log are a group isomorphism
 
 Here is the most general way to say what we have been circling around.
@@ -219,6 +342,7 @@ This is Euler's 1748 analytic definition of the natural logarithm. It is not a s
 - **$e^{a+b} = e^a \cdot e^b$** — the exponential turns addition into multiplication. Its dual $\ln(xy) = \ln x + \ln y$ turns multiplication back into addition.
 - **Uniqueness theorem**: among continuous functions, the only solutions to $f(a+b) = f(a)f(b)$ are exponentials $f(x) = e^{cx}$. This means "turn addition into multiplication" is a problem with a forced answer.
 - **Consequences in ML and physics**: log-likelihoods (sums, not products), Gaussian factorization, Boltzmann distributions, KL divergence, cross-entropy, softmax, energy-based models. **Every one is an application of the functional equation.**
+- **Exp and log are a higher-order yin-yang** — not an operation and its inverse inside one world, but the two arrows of a bridge between the additive and multiplicative worlds. Plus and minus turn left/right inside one room; $\exp$/$\log$ walk through a doorway between two rooms that turn out to be the same room in different clothes. (See the two-worlds picture above.)
 - **Exp and log are a group isomorphism** between $(\mathbb{R}, +)$ and $(\mathbb{R}_{>0}, \times)$. The additive and multiplicative structures of the real numbers are the same structure viewed in two different coordinate systems, and $e^x$ / $\ln$ is the map between them.
 - **Every time your math needs to turn sums into products or vice versa, $e^x$ is what does it — and by the uniqueness theorem, it is the *only* continuous function that can.**
 
