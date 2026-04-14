@@ -1,16 +1,12 @@
 # 05. Working the Math by Hand
 
-Now let's take the formulas from [03_forward_process.md](03_forward_process.md) and plug in actual numbers. This is the single best way to cement the intuition.
+Plugging actual numbers into the formulas from [03_forward_process.md](03_forward_process.md). Nothing makes the symbols concrete like running the arithmetic once.
 
 ---
 
-## Example A: The assignment theory problem
+## Example A: A small three-step walkthrough
 
-The assignment asks:
-
-> A small-scale diffusion model uses a variance schedule where the first three values are $\beta_1 = 0.1$, $\beta_2 = 0.2$, and $\beta_3 = 0.3$.
-> 1. Calculate the cumulative product, $\bar{\alpha}_3$.
-> 2. Determine the mean and variance of the conditional distribution $q(x_3 \mid x_0)$.
+Consider a small-scale diffusion model with variance schedule $\beta_1 = 0.1$, $\beta_2 = 0.2$, $\beta_3 = 0.3$. Compute $\bar{\alpha}_3$, then the mean and variance of $q(x_3 \mid x_0)$.
 
 ### Step 1: Compute $\alpha$ values
 
@@ -32,7 +28,7 @@ Recall $\bar{\alpha}_t = \alpha_1 \cdot \alpha_2 \cdots \alpha_t$.
 | 2 | $0.9 \times 0.8$ | **0.72** |
 | 3 | $0.9 \times 0.8 \times 0.7$ | **0.504** |
 
-**Answer to Q1:** $\bar{\alpha}_3 = \mathbf{0.504}$
+**Result:** $\bar{\alpha}_3 = \mathbf{0.504}$
 
 ### Step 3: Write out $q(x_3 \mid x_0)$
 
@@ -47,7 +43,7 @@ Plugging in $\bar{\alpha}_3 = 0.504$:
 - **Mean** $= \sqrt{0.504}\,x_0 = \mathbf{0.7099\,x_0}$ (approximately)
 - **Variance** $= 1 - 0.504 = \mathbf{0.496}$ (applied identically to every pixel, which is what "$\cdot \mathbf{I}$" means)
 
-**Answer to Q2:**
+**Result:**
 
 $$
 q(x_3 \mid x_0) = \mathcal{N}\!\left(0.7099\,x_0,\ 0.496\,\mathbf{I}\right)
@@ -58,19 +54,19 @@ $$
 - After 3 noisy steps, only about 71% of the original pixel magnitudes remain (the mean is a shrunken version of $x_0$).
 - The accumulated noise variance is about 0.5 — roughly equal parts signal and noise.
 - A single sample $x_3$ can be drawn as $x_3 = 0.7099\,x_0 + \sqrt{0.496}\,\varepsilon$ where $\varepsilon \sim \mathcal{N}(0, \mathbf{I})$.
-- Visually, if $x_0$ is a clean MNIST digit, $x_3$ would be a recognizable-but-very-noisy digit. The "3 steps with aggressive $\beta$ values" approach is unusually harsh — the real assignment uses much milder $\beta$ values (see Example B below).
+- Visually, if $x_0$ is a clean MNIST digit, $x_3$ would be a recognizable-but-very-noisy digit. The "3 steps with aggressive $\beta$ values" approach is unusually harsh — a more realistic schedule uses much milder $\beta$ values (see Example B below).
 
 ---
 
-## Example B: The actual assignment configuration
+## Example B: A realistic 10-step configuration
 
-The real config uses:
+A more realistic (but still small) config:
 
-- `timesteps = 10`
-- `noise_start = 0.0001`
-- `noise_end = 0.02`
+- $T = 10$ timesteps
+- $\beta_{\text{start}} = 0.0001$
+- $\beta_{\text{end}} = 0.02$
 
-So $\beta$ is a linear schedule with 10 values from 0.0001 to 0.02. Let's tabulate everything.
+So $\beta$ is a linear schedule with 10 values from 0.0001 to 0.02.
 
 ### Step 1: $\beta$ schedule (linspace from 0.0001 to 0.02 over 10 points)
 
@@ -123,7 +119,26 @@ Note: this assignment uses **0-indexed** timesteps ($t = 0, 1, \ldots, 9$), whic
 
 1. **Signal barely shrinks**: Even at $t = 9$ (the final step), $\sqrt{\bar{\alpha}} = 0.95$. So the "clean image" component is still 95% of its original magnitude.
 2. **Noise stays small**: The standard deviation of the accumulated noise at $t = 9$ is only $\sqrt{0.0963} \approx 0.31$. That's a modest amount of noise — you'd still recognize the digit.
-3. **This is on purpose**: With only 10 timesteps, you can't do what the real paper does (drive the signal all the way to pure noise), so the assignment keeps the total noise level modest. You're training the network to be a noise-predictor on these relatively gentle corruptions.
+3. **This is on purpose**: With only 10 timesteps, you can't do what the real paper does (drive the signal all the way to pure noise), so a 10-step schedule keeps the total noise level modest. The network is training on relatively gentle corruptions.
+
+```
+  Evolution over the 10-step schedule
+
+  1.00 ┤●●●●●●●●●●     √ᾱ (signal surviving)
+  0.95 ┤         ○
+  0.90 ┤
+  0.50 ┤
+  0.31 ┤                                       ▲
+  0.20 ┤                                 ▲
+  0.10 ┤                           ▲
+  0.05 ┤                    ▲
+  0.01 ┤▲▲▲▲▲             √(1−ᾱ) (noise std)
+  0.00 ┤
+       └──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬─→ t
+          0  1  2  3  4  5  6  7  8  9
+```
+
+The 10-step schedule is deliberately gentle: even at $t = 9$ the signal is still at 95% and the noise std is only 0.31. Contrast with the real paper ($T = 1000$, same endpoints) where by $t = 1000$ the signal has been driven to near-zero and the final $x_T$ really is pure Gaussian noise. More steps = finer trajectory from clean to noisy = easier to reverse.
 
 Compare this to DDPM's real configuration: $T = 1000$, $\beta_{\text{start}} = 0.0001$, $\beta_{\text{end}} = 0.02$. Same endpoints, but 100× more steps, so $\bar{\alpha}_T \approx 0.00004$ — practically zero, meaning $x_T$ is essentially pure Gaussian noise with almost none of the original signal left.
 

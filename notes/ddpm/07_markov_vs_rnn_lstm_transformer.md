@@ -33,6 +33,19 @@ Key traits:
 
 Mental picture: a pachinko ball bouncing from peg to peg. Its next position depends on where it is now and a random deflection. Its history of bounces doesn't matter.
 
+```
+  Markov chain — raw state flows forward, no memory
+
+    x₀ ──► x₁ ──► x₂ ──► x₃ ──► x₄
+    │      │      │      │      │
+    └──────┴──────┴──────┴──────┘
+         each step only sees
+         the previous state
+
+  state = raw image tensor
+  transition = fixed math (add Gaussian noise)
+```
+
 ---
 
 ## 2. RNN hidden state — "a learned summary of the past"
@@ -63,6 +76,22 @@ Key traits:
 
 Mental picture: a runner carrying a backpack. The backpack has fixed size, so they have to decide at each step what to pack in and what to throw out. The runner's training taught them what's worth keeping.
 
+```
+  RNN — learned hidden state threads through time
+
+    x₁     x₂     x₃     x₄     (inputs)
+    │      │      │      │
+    ▼      ▼      ▼      ▼
+    h₀ ──► h₁ ──► h₂ ──► h₃ ──► h₄
+           │      │      │      │
+           ▼      ▼      ▼      ▼
+           y₁     y₂     y₃     y₄    (outputs)
+
+  state = learned vector hₜ
+  transition = learned function f_W
+  same W reused at every step
+```
+
 ---
 
 ## 3. LSTM cell state — "a runner with a better backpack"
@@ -87,6 +116,22 @@ Key traits:
 - **Same parameter-sharing across time** as RNN.
 
 Mental picture: the runner now has a backpack *plus* a notepad. The notepad can hold stable information indefinitely, and the runner has learned rules for when to write to it, erase from it, and read from it.
+
+```
+  LSTM — two parallel state channels, gated
+
+           x₁     x₂     x₃     x₄
+           │      │      │      │
+    c₀ ═══════════════════════════► c₄   (long-term: the notepad)
+           ↕ gates ↕ gates ↕ gates ↕
+    h₀ ──► h₁ ──► h₂ ──► h₃ ──► h₄      (short-term: the backpack)
+           │      │      │      │
+           ▼      ▼      ▼      ▼
+           y₁     y₂     y₃     y₄
+
+  state = (hₜ, cₜ)
+  cₜ can flow through almost untouched → long-range memory
+```
 
 ---
 
@@ -116,6 +161,22 @@ Key traits:
 - **Parameters are shared across positions** via the same attention heads and MLPs, just like RNN weights were shared across time.
 
 Mental picture: instead of a runner with a backpack, imagine a librarian with a card catalog. At every step, the librarian re-reads every card in the catalog to find the relevant ones. There's no summary slip — the raw cards are always available.
+
+```
+  Transformer — no running state, attention looks at everything
+
+    x₁     x₂     x₃     x₄     ← all positions kept
+    │      │      │      │
+    └──────┼──────┼──────┤
+           │      │      │
+           ▼      ▼      ▼
+        y₁ sees  y₂ sees  y₃ sees  y₄ sees
+        {x₁}     {x₁,x₂} {x₁..x₃} {x₁..x₄}
+        via attention over all past positions
+
+  state = nothing threaded forward
+  each output is a fresh weighted read of the full past
+```
 
 ---
 

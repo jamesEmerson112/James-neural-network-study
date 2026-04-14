@@ -99,7 +99,7 @@ for t = T-1 down to 0:
 return x_0
 ```
 
-Let me unpack the mean formula because it looks intimidating:
+The mean formula, unpacked:
 
 $$
 \mu = \frac{1}{\sqrt{\alpha_t}}\left( x_t - \frac{\beta_t}{\sqrt{1 - \bar{\alpha}_t}}\,\varepsilon_\theta(x_t, t) \right)
@@ -124,30 +124,34 @@ The reverse process is a probability distribution $p(x_{t-1} \mid x_t)$, and a d
 ## Putting it all together: the generation flow
 
 ```
-START: x_10 = pure Gaussian noise (looks like TV static)
-  ↓ denoise step at t=9 → x_9  (still mostly static, maybe faint structure)
-  ↓ denoise step at t=8 → x_8
-  ↓ denoise step at t=7 → x_7
-  ↓ ...
-  ↓ denoise step at t=1 → x_1  (recognizable digit with mild noise)
-  ↓ denoise step at t=0 → x_0  (clean generated digit)
-END: x_0 is your sampled image
+  x_T      x_{T−1}    x_{T−2}    ...    x_1      x_0
+  ██░░░░   ██░░░░     ██░░░      ...    █▓░      █
+  ██░░░░   ██░░░░     ██▓░░             █▓       █
+  ██░░░░   ██░▓░      █▓▓░              ██       █
+  ██░░░░   █▓░░░      █▓░░              █▓       █
+  ░░░░░░   ░▓░░░      ░░▓░              ░░       ·
+  ░░░░░░   ░░░░░      ░░░░              ░░       ·
+  pure     static     faint             digit    clean
+  static   + hint     digit             + noise  digit
+
+  ←──────  T network calls, each shrinking the noise  ──────→
 ```
 
-Each arrow is one call to the network plus some math. With $T = 10$, that's 10 network calls per generated image. In the real DDPM paper with $T = 1000$, it's 1000 network calls — which is why diffusion sampling is considered "slow" compared to GANs (one call) or VAEs (one call). Later research (DDIM, consistency models) has cut this down dramatically.
+Each reverse step calls the network, uses its noise prediction to compute a posterior mean, and adds a small stochastic kick (except at the last step). With $T = 10$ that's 10 network calls per generated image. The real DDPM paper runs $T = 1000$ — which is why diffusion sampling is considered "slow" compared to GANs or VAEs (one call each). DDIM, consistency models, and later variants cut this down dramatically.
+
 
 ---
 
-## Connection to the assignment code
+## How this maps to code
 
-In `trainer_diffusion.py`, you'll implement:
+A typical DDPM trainer implements:
 
-- **`forward_diffusion(x_0, t)`** → implements $x_t = \sqrt{\bar{\alpha}_t}\,x_0 + \sqrt{1 - \bar{\alpha}_t}\,\varepsilon$, returns $(x_t, \varepsilon)$. See [03_forward_process.md](03_forward_process.md) for the math.
-- **Training loop** → samples random $t$, calls `forward_diffusion`, feeds $x_t$ to the UNet, computes MSE against $\varepsilon$, backprops.
-- **`sample_timestep(x, t)`** → implements one reverse step with the mean formula above, adds noise if $t > 0$.
-- **`sample()`** → runs the reverse loop from $T-1$ down to 0, returning the final $x_0$.
+- **`forward_diffusion(x_0, t)`** → $x_t = \sqrt{\bar{\alpha}_t}\,x_0 + \sqrt{1 - \bar{\alpha}_t}\,\varepsilon$, returns $(x_t, \varepsilon)$. Math in [03_forward_process.md](03_forward_process.md).
+- **Training loop** → sample random $t$, call `forward_diffusion`, feed $x_t$ to the UNet, MSE against $\varepsilon$, backprop.
+- **`sample_timestep(x, t)`** → one reverse step with the mean formula above, add noise if $t > 0$.
+- **`sample()`** → reverse loop from $T-1$ down to 0, returning $x_0$.
 
-The UNet architecture (in `models/UNet.py`) is already pre-implemented for you. Your only job is to wire up the math — the network expects $(x_t, t)$ as input and produces $\varepsilon_\theta(x_t, t)$ as output.
+The network is typically a UNet that takes $(x_t, t)$ and outputs $\varepsilon_\theta(x_t, t)$. The math is almost line-for-line PyTorch.
 
 For a symbol-to-code cheat sheet, see [08_glossary.md](08_glossary.md).
 

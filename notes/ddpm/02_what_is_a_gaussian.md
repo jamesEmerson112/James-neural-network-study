@@ -1,8 +1,17 @@
-# 03. What Really Is a Gaussian?
+# 02. What Really Is a Gaussian?
 
 ## Why this note exists
 
-DDPM is Gaussians all the way down. The forward process adds Gaussian noise. The closed-form $q(x_t \mid x_0)$ is a Gaussian. The reverse posterior $q(x_{t-1} \mid x_t, x_0)$ is a Gaussian. The network is trained to predict a Gaussian noise sample. If "Gaussian" is a word that makes you nod politely without actually picturing anything, the whole DDPM story will feel like sleight of hand.
+DDPM is Gaussians all the way down. Not "mostly Gaussians" or "Gaussians in a few places" — literally every moving part of the model is a Gaussian, a sample from a Gaussian, a parameter of a Gaussian, or an operation that preserves Gaussianness. Pull on any thread of the DDPM paper and a Gaussian comes out.
+
+Four places it shows up, each doing a different job:
+
+- **The forward process adds Gaussian noise.** At every step $t$, the model takes the image $x_{t-1}$ and produces $x_t$ by shrinking it slightly and adding a fresh draw of Gaussian noise with variance $\beta_t$. The noise is $\varepsilon_t \sim \mathcal{N}(0, \mathbf{I})$ — one standard bell curve per pixel, independent of every other pixel and every other timestep. That's $T \times d$ independent Gaussian draws over the whole forward chain, where $T$ is the number of steps and $d$ is the number of pixels. A million coin-flips of the bell curve.
+- **The closed-form $q(x_t \mid x_0)$ is a Gaussian.** Instead of walking from $x_0$ to $x_t$ one noisy step at a time, the math collapses the entire chain into a single Gaussian you can evaluate in closed form: $q(x_t \mid x_0) = \mathcal{N}(\sqrt{\bar{\alpha}_t}\,x_0,\ (1 - \bar{\alpha}_t)\mathbf{I})$. One formula, one bell curve, any timestep $t$ you want, no simulation needed. This teleport is what makes DDPM trainable — without it you'd have to simulate hundreds of noise steps per training example, and training would die on the table.
+- **The reverse posterior $q(x_{t-1} \mid x_t, x_0)$ is a Gaussian.** When you run Bayes' rule on two Gaussians, you get another Gaussian — with a closed-form mean $\tilde{\mu}_t$ and closed-form variance $\tilde{\beta}_t$. This is the target the model is secretly trying to match: "given the noisy image at step $t$ and the clean original, what's the bell curve over where the slightly-less-noisy image at step $t-1$ should be?" The whole reverse process is a chain of these posterior Gaussians stitched back-to-back.
+- **The network is trained to predict a Gaussian noise sample.** The neural network $\varepsilon_\theta(x_t, t)$ takes a noisy image and a timestep and tries to guess *which specific $\varepsilon$ was added*. The loss is mean-squared-error against the true $\varepsilon$. Framed differently: the network is learning to point from any corrupted sample back toward the mean of the Gaussian that produced it — it's learning a score function for a Gaussian field.
+
+Four jobs, four different Gaussians doing four different things. If "Gaussian" is a word that makes you nod politely without actually picturing a shape — a specific bell with a specific center and a specific width — then the entire DDPM story will feel like sleight of hand. Symbols will move around in the derivations, a posterior will pop out of Bayes' rule, a loss will materialize, and you won't see *why*. The mechanics will look like arbitrary algebra instead of the only thing they could possibly have been.
 
 This note fixes that.
 
@@ -16,6 +25,18 @@ A **Gaussian** (a.k.a. **normal distribution**) is a bell-shaped probability dis
 - **Variance $\sigma^2$** — how wide and stubby vs tall and skinny the bell is
 
 That's the whole thing. Any Gaussian is just (center, width). Two numbers.
+
+```
+       μ=−3          μ=0           μ=+3
+        ▄█▄           ▄█▄           ▄█▄
+       ▄███▄         ▄███▄         ▄███▄
+      ▄█████▄       ▄█████▄       ▄█████▄
+     ▄███████▄     ▄███████▄     ▄███████▄
+  ──────|──────────────|──────────────|─────
+       −3             0             +3
+```
+
+Three identical bells. Only $\mu$ changes — the shape stays fixed, only its position on the axis slides left or right.
 
 ---
 
@@ -46,7 +67,7 @@ $$
 p(x) = \frac{1}{\sqrt{2\pi \sigma^2}} \cdot \exp\!\left( -\frac{(x - \mu)^2}{2\sigma^2} \right)
 $$
 
-Staring at it raw is useless. Let's dissect it into three jobs:
+Staring at it raw is useless. Let's dissect it into four jobs:
 
 **Job 1: The exponential makes it bell-shaped.**
 The core shape is $\exp(-\text{something squared})$. Plot $e^{-u^2}$ for any $u$ and you get a bell centered at $u = 0$. That's the "bell" in "bell curve."
@@ -56,6 +77,19 @@ The $x - \mu$ means "distance from the center." Squaring it means negative and p
 
 **Job 3: $/(2\sigma^2)$ controls the width.**
 Big $\sigma^2$ → the exponent shrinks slowly as $x$ moves away from $\mu$ → wide bell. Small $\sigma^2$ → the exponent shrinks fast → skinny, tall bell. The 2 in the denominator is just bookkeeping to make the math downstream clean.
+
+```
+   σ²=0.25 (skinny, tall)         σ²=4 (wide, short)
+
+          ▄█▄                       ▄▄▄▄▄▄▄
+         ▄███▄                    ▄▄███████▄▄
+         █████                  ▄▄████████████▄▄
+        ▄█████▄              ▄▄████████████████▄▄
+  ──────███████──────    ──███████████████████████──
+       −1  0  +1            −4  −2   0   +2   +4
+```
+
+Both bells have the same mean ($\mu = 0$) and the same total area (1, by normalization). The only difference is variance: small $\sigma^2$ pulls the mass into a sharp spike; large $\sigma^2$ spreads the mass across a wide, low hump.
 
 **Job 4: $1/\sqrt{2\pi\sigma^2}$ is a normalizing constant.**
 This has no conceptual meaning — it's there so the total area under the bell is exactly 1, as required for a probability distribution. You can ignore it conceptually; you only need it if you're computing actual probability densities.
@@ -82,8 +116,6 @@ q(x_t \mid x_0) &= \mathcal{N}\!\left(\sqrt{\bar{\alpha}_t}\,x_0,\ (1 - \bar{\al
 \end{aligned}
 $$
 
-Here's how to read them:
-
 - $\mathcal{N}(\mu, \sigma^2)$ is a **name** for the distribution with mean $\mu$ and variance $\sigma^2$. It is *not* a function call — you don't evaluate it at any input. Think of it as a label: "the normal distribution with these parameters."
 - $\sim$ means **"is distributed as."** So $X \sim \mathcal{N}(\mu, \sigma^2)$ reads as "X is a random variable drawn from a normal distribution with mean $\mu$ and variance $\sigma^2$."
 - $\mathcal{N}(\mu, \Sigma)$ with a capital-sigma $\Sigma$ (not $\sigma^2$) means the **multivariate** version — $\mu$ is now a vector and $\Sigma$ is a covariance matrix.
@@ -104,6 +136,32 @@ $$
 Why does this work? Because multiplying a random variable by $\sigma$ scales its variance by $\sigma^2$ (not $\sigma$), and adding $\mu$ shifts the mean. So $\sigma \cdot z$ has variance $\sigma^2$, and $\mu + \sigma \cdot z$ has mean $\mu$ and variance $\sigma^2$.
 
 This is the foundation of the **reparameterization trick** (see [04_visualizing_one_noising_step.md](04_visualizing_one_noising_step.md) for the DDPM application). Every $\sigma \cdot z$ or $\sqrt{\beta_t}\,\varepsilon$ you see in a DDPM formula is an instance of this: take a standard Gaussian and stretch it to whatever variance you want.
+
+```
+  Step 1: sample z ~ N(0, 1)       (standard bell at origin)
+              ▄█▄
+           ▄███████▄
+    ───────────|───────────
+              z=0
+
+          ↓  multiply by σ  (stretch the bell, keep center)
+
+  Step 2: σ·z ~ N(0, σ²)           (wider bell, still at 0)
+              ▄▄█▄▄
+          ▄▄████████▄▄
+    ───────────|───────────
+              0
+
+          ↓  add μ  (slide the whole bell)
+
+  Step 3: μ + σ·z ~ N(μ, σ²)       (wider bell, now at μ)
+                       ▄▄█▄▄
+                   ▄▄████████▄▄
+    ────|──────────────|───────
+        0              μ
+```
+
+Two operations, in this exact order: **stretch first, then shift.** Stretching multiplies the standard bell's width by $\sigma$ (which is why the *variance* scales by $\sigma^2$). Shifting then slides the whole stretched bell from origin over to $\mu$. Every Gaussian in the universe is reachable from $\mathcal{N}(0, 1)$ by this two-step dance.
 
 ---
 
@@ -134,7 +192,7 @@ $$
 p(x) = \frac{1}{\sqrt{(2\pi)^d \det(\Sigma)}} \cdot \exp\!\left( -\tfrac{1}{2}(x - \mu)^\top \Sigma^{-1} (x - \mu) \right)
 $$
 
-Don't panic. It's the same shape as before, just with vectors and matrices:
+It's the same shape as before, just with vectors and matrices:
 
 - $\mu$ is a length-$d$ vector — the center of the bell in $d$-dimensional space.
 - $\Sigma$ is a $d \times d$ **covariance matrix** — how much each pair of coordinates varies together.
@@ -147,6 +205,23 @@ Don't panic. It's the same shape as before, just with vectors and matrices:
 - Every coordinate has variance 1.
 - Every pair of distinct coordinates has covariance 0 (they're uncorrelated, i.e., independent for Gaussians).
 - Geometrically, the bell is a perfect sphere in $d$ dimensions — no stretch, no tilt, no correlations.
+
+```
+   Σ = I (spherical)              Σ ≠ I (correlated, tilted)
+
+          . : ; : .                     . : ; : .
+        . : ; ▓ ; : .                 . : ; ▓ : .
+      . : ; ▓ █ ▓ ; : .            . : ▓ █ ▓ ; .
+      : ; ▓ █ ★ █ ▓ ; :             : ▓ █ ★ ▓ ; :
+      . : ; ▓ █ ▓ ; : .            . ; ▓ █ ▓ : .
+        . : ; ▓ ; : .                 . : ▓ ; : .
+          . : ; : .                     . : ; : .
+
+   equal variance every           stretched along one
+   direction, no correlation      axis, correlated coords
+```
+
+$\star$ marks the mean, and each shell is a contour of equal probability density. In the spherical case, the shells are perfect circles — every direction from the mean is identical. In the correlated case, the shells are tilted ellipses — some directions have more variance than others, and coordinates move together. DDPM only ever uses the spherical case, which is the simplest possible shape in any dimension.
 
 When you see $\varepsilon \sim \mathcal{N}(0, \mathbf{I})$ in DDPM, it means "each pixel of $\varepsilon$ is an independent $\mathcal{N}(0, 1)$ draw." For a 28×28 MNIST image, that's 784 independent standard normal samples arranged into a 28×28 grid.
 
@@ -180,6 +255,23 @@ $$
 
 Means add. Variances add. Standard deviations do **not** simply add (they combine in quadrature: $\sigma_{X+Y} = \sqrt{\sigma_X^2 + \sigma_Y^2}$).
 
+```
+      X ~ N(0, 1)           Y ~ N(0, 1)           X+Y ~ N(0, 2)
+
+         ▄█▄                    ▄█▄                    ▄█▄
+       ▄█████▄                ▄█████▄              ▄▄███████▄▄
+     ▄█████████▄            ▄█████████▄          ▄▄███████████▄▄
+  ──────|──────         ──────|──────         ──────|──────
+        0                     0                     0
+     σ=1 bell                σ=1 bell          σ=√2 bell (wider)
+
+                      means: 0 + 0 = 0
+                      variances: 1 + 1 = 2
+                      stdev: √2 ≈ 1.41  (NOT 2)
+```
+
+The pedagogical punch is the last line: if you added two Gaussians with $\sigma = 1$ each and *thought* the result had $\sigma = 2$, you'd be wrong by $\sqrt{2}$. Standard deviations don't add; variances do. This single fact is what lets the DDPM teleport formula $(1 - \bar{\alpha}_t)\mathbf{I}$ collapse $T$ noise steps into one cumulative variance term.
+
 **Why DDPM needs this**: the closed-form teleport in [03_forward_process.md](03_forward_process.md) relies on repeatedly combining independent noise terms from each step. Without additivity, you couldn't derive $x_t = \sqrt{\bar{\alpha}_t}\,x_0 + \sqrt{1 - \bar{\alpha}_t}\,\varepsilon$ in one line — you'd be stuck walking through the chain step by step. Additivity is the property that lets all the intermediate noises fold into a single $\varepsilon$.
 
 ### Property 3: Conjugacy (Gaussian prior × Gaussian likelihood = Gaussian posterior)
@@ -211,7 +303,7 @@ Every Gaussian symbol you'll see in note 03 and onward now has a concrete meanin
 | $q(x_t \mid x_0) = \mathcal{N}(\sqrt{\bar{\alpha}_t}\,x_0,\ (1-\bar{\alpha}_t)\mathbf{I})$ | Given the original clean image, the image at step $t$ is a spherical Gaussian centered at a more-shrunken copy, with cumulative variance $(1 - \bar{\alpha}_t)$ per pixel. |
 | $q(x_{t-1} \mid x_t, x_0) = \mathcal{N}(\tilde{\mu}_t,\ \tilde{\beta}_t \mathbf{I})$ | The reverse posterior (if we knew $x_0$) is a spherical Gaussian with a closed-form mean and variance. |
 
-Every $\mathcal{N}(\ldots)$ is just "bell curve centered here, with this width." Once you stop reading it as a scary function call and start reading it as a label for a specific bell-curve shape, the notation becomes transparent.
+Every $\mathcal{N}(\ldots)$ is just "bell curve centered here, with this width" — a label for a specific shape, not a function call.
 
 ---
 

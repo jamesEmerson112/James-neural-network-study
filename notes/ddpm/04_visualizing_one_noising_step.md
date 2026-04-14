@@ -12,17 +12,15 @@ This is the heart of the DDPM forward process. Until you can *see* what it does,
 
 ---
 
-## Step 1: Read the formula out loud
-
-Before any arithmetic, translate the formula into English:
+## The formula in plain English
 
 > **"The new image $x_t$ equals a shrink-factor times the old image $x_{t-1}$, plus a noise-factor times a fresh Gaussian noise sample."**
 
-That's it. Two terms being added. The first term is a scaled copy of the previous image; the second term is scaled random noise. Everything else is bookkeeping.
+Two terms being added. The first is a scaled copy of the previous image; the second is scaled random noise. Everything else is bookkeeping.
 
 ---
 
-## Step 2: The two-knob interpretation
+## The two-knob interpretation
 
 Think of $\beta_t$ as a single dial between 0 and 1 that controls how much noise gets mixed into the image at this step. From that one dial, two coefficients pop out:
 
@@ -43,9 +41,30 @@ So the squared coefficients always sum to 1. In Gaussian-land, the squared coeff
 
 This is not an accident. The $\beta$ schedule was designed this way on purpose so the image magnitudes don't blow up or collapse as $t$ increases.
 
+```
+  How the two knobs trade off as β grows
+
+  β = 0.01   signal ████████████████████░   0.995
+             noise  ░░░░░░░░░░░░░░░░░░░░▓   0.100
+
+  β = 0.10   signal █████████████████░░░░   0.949
+             noise  ░░░░░░░░░░░░░░▓▓▓▓▓▓▓   0.316
+
+  β = 0.30   signal ██████████████░░░░░░░   0.837
+             noise  ░░░░░░░░░░░░▓▓▓▓▓▓▓▓▓   0.548
+
+  β = 0.50   signal ██████████░░░░░░░░░░░   0.707
+             noise  ░░░░░░░░░░▓▓▓▓▓▓▓▓▓▓▓   0.707
+
+  β = 0.90   signal █████░░░░░░░░░░░░░░░░   0.316
+             noise  ░░░░░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   0.949
+```
+
+At $\beta = 0.5$ the two knobs meet — signal and noise coefficients are exactly equal. Below that the image dominates; above that the noise dominates. DDPM's schedule keeps $\beta$ tiny (0.0001 to 0.02) so every single step is deep in "signal dominates" territory. The drift to noise happens slowly, across hundreds or thousands of steps.
+
 ---
 
-## Step 3: A tiny 1D walk-through
+## A tiny 1D walk-through
 
 Let's strip everything down to a single number and run three steps by hand.
 
@@ -100,7 +119,7 @@ After three steps, the "pixel" has drifted from 1.0 to 0.7375 and picked up a no
 
 ---
 
-## Step 4: Extending to a 4-pixel image
+## Extending to a 4-pixel image
 
 Now imagine the "image" is a tiny 4-pixel row: $[1.0, 0.5, -0.2, 0.8]$. One noising step with $\beta = 0.1$:
 
@@ -130,13 +149,31 @@ x_t     &= [ 1.0436,\ 0.4428,\  0.0316,\ 0.8222 ]
 \end{aligned}
 $$
 
-Pixel 2 is the most visibly changed because its original magnitude ($-0.2$) was small relative to the injected noise ($0.7$). Pixels 0 and 3 barely moved because their original magnitudes were large. This is exactly the right intuition for why early steps (small $\beta$) barely touch strong features but gradually wash out weak ones.
+Pixel 2 is the most visibly changed because its original magnitude ($-0.2$) was small relative to the injected noise ($0.7$). Pixels 0 and 3 barely moved because their original magnitudes were large.
+
+```
+  The 4-pixel row, before and after one noising step
+
+  before:  pixel 0  pixel 1  pixel 2  pixel 3
+           █████    ██▌      ▐        ████
+           (1.00)   (0.50)  (−0.20)   (0.80)
+
+  after:   pixel 0  pixel 1  pixel 2  pixel 3
+           █████    ██       ·        ████
+           (1.04)   (0.44)   (0.03)   (0.82)
+
+           ↑        ↑        ↑        ↑
+           barely   barely   flipped  barely
+           moved    moved    sign!    moved
+```
+
+This is exactly the right intuition for why early steps (small $\beta$) barely touch strong features but gradually wash out weak ones.
 
 Scale this reasoning up from 4 pixels to 784 (MNIST) or 65,536 (256×256) and you have the full picture: every pixel is updated independently via the same two-knob formula, with its own fresh noise sample.
 
 ---
 
-## Step 5: Why the square roots?
+## Why the square roots?
 
 This trips everyone up on first encounter. Short answer: **because $\beta_t$ is a variance, and to scale a Gaussian's standard deviation you multiply by $\sqrt{\text{variance}}$, not variance.**
 
@@ -159,7 +196,7 @@ DDPM uses this trick twice: once in each per-step formula (this note) and once i
 
 ---
 
-## Step 6: The storyboard — how things evolve as $t$ grows
+## The storyboard — how things evolve as $t$ grows
 
 With a small constant $\beta$ (say, 0.02) the signal knob starts near 1 and shrinks slowly, while the noise knob starts near 0 and grows. Here's a qualitative storyboard:
 
@@ -186,7 +223,7 @@ For the original paper ($T = 1000$, same $\beta$ endpoints), the signal knob rea
 
 ---
 
-## Step 7: Connection to the closed form
+## Connection to the closed form
 
 [03_forward_process.md](03_forward_process.md) has a magic equation that lets you skip all $T$ steps and jump directly from $x_0$ to any $x_t$:
 
@@ -205,17 +242,12 @@ Both describe the same process. The per-step version is how you'd simulate the c
 
 ---
 
-## Step 8: Resources to search for (no guessed URLs)
+## External resources worth searching for
 
-If you want to see animated visualizations of the forward and reverse processes, there are several well-known blog posts with built-in diagrams. I won't guess URLs — you can search these names directly:
-
-- **Lilian Weng — "What are Diffusion Models?"** A canonical blog post from OpenAI's former head of applied research. Has step-by-step diagrams of the forward and reverse processes.
-- **HuggingFace — "The Annotated Diffusion Model"** A tutorial-style walk-through of the DDPM paper with code and visualizations inline.
-- **Yang Song — "Generative Modeling by Estimating Gradients of the Data Distribution"** Covers score-based models, which are the continuous-time cousin of DDPMs, with excellent animations.
-- **Jay Alammar — "The Illustrated Stable Diffusion"** Targets Stable Diffusion specifically but includes beautifully illustrated explanations of the underlying diffusion process.
-- **3Blue1Brown** General math and neural-network visualization videos on YouTube. No DDPM video at the moment, but the style is exactly what "watching the math" should look like.
-
-Search those titles and you'll find the material.
+- **Lilian Weng — "What are Diffusion Models?"** — canonical blog post, step-by-step diagrams of forward and reverse processes.
+- **HuggingFace — "The Annotated Diffusion Model"** — walk-through of the DDPM paper with code and inline visualizations.
+- **Yang Song — "Generative Modeling by Estimating Gradients of the Data Distribution"** — score-based models (DDPM's continuous-time cousin) with animations.
+- **Jay Alammar — "The Illustrated Stable Diffusion"** — illustrated explanations of the underlying diffusion process.
 
 ---
 
@@ -244,4 +276,4 @@ DDPM inherits this trick wholesale. Every time you see $\sqrt{\text{something}} 
 - The closed-form teleport in [03_forward_process.md](03_forward_process.md) is this per-step formula applied $T$ times and simplified.
 - The whole machinery is a reparameterization trick from the 2014 VAE paper, reused for diffusion.
 
-Run the 1D example by hand once (Step 3 above) and the formula will stop feeling abstract.
+The 1D walkthrough above is the entire formula in miniature — once that clicks, the rest is just scale.

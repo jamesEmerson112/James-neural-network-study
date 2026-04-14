@@ -1,6 +1,6 @@
 # 08. DDPM Glossary — Symbol to Code Mapping
 
-Quick-reference cheat sheet. Print this, tape it next to your monitor, and use it while reading the paper or implementing the trainer.
+Quick-reference cheat sheet — symbols, code variables, and the formulas that tie them together.
 
 ---
 
@@ -157,7 +157,7 @@ When you see the DDPM paper (Ho et al. 2020), here's the symbol dictionary you n
 | $L_{\text{simple}}$ | The simplified MSE loss (what we actually use for training) |
 | $L_{\text{vlb}}$ | The full variational lower bound (derived but not used directly) |
 
-Don't get intimidated by the ELBO derivation in the paper — the key takeaway is the $L_{\text{simple}}$ equation (Eq. 14 in the paper), which is just MSE between true and predicted noise. That's what the assignment has you implement.
+The $L_{\text{simple}}$ equation (Eq. 14 in the paper) is just MSE between true and predicted noise — that's the loss actually used in the training loop. The full ELBO derivation earlier in the paper motivates it but isn't needed to implement the trainer.
 
 ---
 
@@ -169,9 +169,10 @@ The full study order for this folder:
 - **[02_what_is_a_gaussian.md](02_what_is_a_gaussian.md)** — bell curves, $\mathcal{N}(\mu, \sigma^2)$ notation, and the three properties DDPM relies on.
 - **[03_forward_process.md](03_forward_process.md)** — the fixed Markov chain that corrupts images into noise, with the closed-form derivation.
 - **[04_visualizing_one_noising_step.md](04_visualizing_one_noising_step.md)** — a zoomed-in walkthrough of the per-step noising formula, with hand-computed examples.
-- **[05_numeric_example.md](05_numeric_example.md)** — numeric worked examples using the actual assignment configuration.
+- **[05_numeric_example.md](05_numeric_example.md)** — numeric worked examples with a concrete schedule.
 - **[06_reverse_process.md](06_reverse_process.md)** — the learned denoising process, training loop, and sampling loop.
-- **[07_markov_vs_rnn_lstm_transformer.md](07_markov_vs_rnn_lstm_transformer.md)** — a meta comparison pinning down where DDPM sits among sequence-modeling architectures.
+- **[07_markov_vs_rnn_lstm_transformer.md](07_markov_vs_rnn_lstm_transformer.md)** — where DDPM sits among sequence-modeling architectures.
 - **[08_glossary.md](08_glossary.md)** — (this file) symbol ↔ code cheat sheet.
+- **[09_gan_vs_vae_vs_ddpm.md](09_gan_vs_vae_vs_ddpm.md)** — where DDPM sits among generative-model families (the headline comparison).
 
-When you come back to implement the code, start with this glossary and [03_forward_process.md](03_forward_process.md) open side by side. The math translates almost line-for-line into PyTorch.
+When coming back to implement the code, this glossary and [03_forward_process.md](03_forward_process.md) side by side cover most of what's needed. The math translates almost line-for-line into PyTorch.

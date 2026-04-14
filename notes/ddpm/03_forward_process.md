@@ -1,11 +1,12 @@
 # 03. The Forward Process — Destroying the Image
 
-## Goal of this note
-Unpack every piece of notation in the sentence from your assignment:
+## What this note unpacks
+
+The standard one-line description of the DDPM forward process:
 
 > *"The forward diffusion process in Denoising Diffusion Probabilistic Models (DDPM) is a fixed Markov chain defined by a variance schedule $\{\beta_t\}$."*
 
-By the end, you should be able to read that sentence and know exactly what each word means.
+Every word in that sentence — "Markov chain," "fixed," "variance schedule," and the bracket notation $\{\beta_t\}$ — is unpacked below.
 
 ---
 
@@ -50,7 +51,26 @@ $$
 \beta_t \;=\; \text{linspace}(\beta_{\text{start}},\ \beta_{\text{end}},\ T)
 $$
 
-In this assignment: $\beta_{\text{start}} = 0.0001$, $\beta_{\text{end}} = 0.02$, $T = 10$.
+A typical small-scale setup: $\beta_{\text{start}} = 0.0001$, $\beta_{\text{end}} = 0.02$, $T = 10$.
+
+```
+  β schedule (linear, T = 10)
+
+  0.020 ┤                                       ●
+  0.018 ┤                                   ●
+  0.016 ┤                               ●
+  0.013 ┤                           ●
+  0.011 ┤                       ●
+  0.009 ┤                   ●
+  0.007 ┤               ●
+  0.005 ┤           ●
+  0.002 ┤       ●
+  0.000 ┤   ●
+        └───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬─→ t
+            0   1   2   3   4   5   6   7   8   9
+```
+
+Each dot is the variance of the noise injected at that step. Early steps barely touch the image; later steps add more. The schedule is just a list of 10 numbers, chosen once and frozen.
 
 Why "variance schedule"? Because $\beta_t$ is literally the variance of the Gaussian noise distribution used at step $t$:
 
@@ -84,6 +104,22 @@ Example: if $\alpha_1 = 0.9$, $\alpha_2 = 0.8$, $\alpha_3 = 0.7$, then:
 
 As $t$ increases, $\bar{\alpha}_t$ shrinks toward 0 — the signal is progressively wiped out by noise.
 
+```
+  Signal survival (√ᾱ) vs accumulated noise (√(1−ᾱ))
+
+  signal  █████████████████████  1.00  ■          noise (σ)
+          ██████████████████░░░  0.95  ■■
+          ████████████████░░░░░  0.85  ■■■■
+          █████████████░░░░░░░░  0.70  ■■■■■■
+          █████████░░░░░░░░░░░░  0.50  ■■■■■■■■
+          ██████░░░░░░░░░░░░░░░  0.35  ■■■■■■■■■
+          ███░░░░░░░░░░░░░░░░░░  0.20  ■■■■■■■■■■
+          █░░░░░░░░░░░░░░░░░░░░  0.05  ■■■■■■■■■■■
+             t=0 → → → → → → → → t=T
+```
+
+Signal shrinks, noise grows. The squared sum stays at 1 (note 04, Step 2), so total "energy" is conserved — the image just gets rewritten from pixels into pure noise.
+
 ---
 
 ## Part 5: The closed-form jump $q(x_t \mid x_0)$
@@ -116,6 +152,19 @@ This is called the **reparameterization trick** (same idea as in VAE). Instead o
 1. **Speed**: To noise an image for training, you need 1 operation, not $T$ operations.
 2. **Differentiability**: The sampling step is differentiable, so gradients can flow through it.
 3. **Random timestep training**: You can pick a random $t$ uniformly and directly compute $x_t$ for training, without worrying about what happened at $t-1$, $t-2$, etc.
+
+```
+  Step-by-step walk (slow):        Closed-form teleport (fast):
+
+  x₀ → x₁ → x₂ → x₃ ... → x_t       x₀ ─────────────────► x_t
+       ↑    ↑    ↑       ↑                   one shot
+     +ε₁  +ε₂  +ε₃     +ε_t
+
+  T noise operations                1 noise operation
+  can't parallelize across t        any t, instantly
+```
+
+The teleport isn't an approximation — it's the same distribution, just computed differently. Without this trick, DDPM training would require simulating the entire chain for every training example, which would be unusably slow.
 
 ---
 
@@ -193,4 +242,4 @@ The key insight of the derivation: when you chain Gaussian-noise additions, the 
 - **$\bar{\alpha}_t = \prod_i \alpha_i$** = cumulative fraction of original signal surviving after $t$ steps
 - **Closed form** $q(x_t \mid x_0)$ lets you jump directly to any timestep in one operation
 
-Next note: work the math by hand with the concrete numbers from your assignment.
+Next: work the math by hand with concrete numbers — see [05_numeric_example.md](05_numeric_example.md).
