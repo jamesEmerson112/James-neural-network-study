@@ -4,7 +4,18 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:en.wikipedia.org)",
-      "WebFetch(domain:v2.ocaml.org)"
+      "WebFetch(domain:v2.ocaml.org)",
+      "Skill(browse)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:vincentqb.github.io)",
+      "WebFetch(domain:apam.columbia.edu)",
+      "WebFetch(domain:scholar.google.com)",
+      "WebFetch(domain:conservancy.umn.edu)",
+      "WebFetch(domain:www.amazon.science)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:www.researchgate.net)",
+      "Read(//c/tmp/**)",
+      "Read(//dev/**)"
     ]
   }
 }
