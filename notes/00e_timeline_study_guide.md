@@ -64,6 +64,10 @@ All notes in this repository, organized by narrative arc.
 - [LLM Inference Stack](llm-inference-stack/) — how LLMs actually run in production
 - [LLM Benchmarks](21_llm_benchmarks.md) — benchmark descriptions and what they measure
 
+### Applied ML & Forecasting
+
+- [SPADE, GEANN, and Goldilocks](30_spade_geann_goldilocks.md) — Vincent's Amazon forecasting trilogy: cold-start via graphs, peak decomposition via attention, training selection via bandits
+
 ### Programming Languages
 
 - [OCaml vs Haskell vs Erlang](programming-languages/ocaml-vs-haskell-vs-erlang.md) — three functional programming traditions compared. Connected to the LISP lineage: [McCarthy](04_john_mccarthy.md) → [Why LISP Matters](05_lisp_why_it_matters.md) → Lambda Calculus → ML → OCaml/Haskell
