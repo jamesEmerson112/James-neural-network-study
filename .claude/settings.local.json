@@ -17,7 +17,8 @@
       "Read(//c/tmp/**)",
       "Read(//dev/**)",
       "Bash(curl -s \"https://arxiv.org/search/?query=Goldilocks+Active+Sampling+Bandit+Multi-Task+Forecasting&searchtype=all\")",
-      "Bash(curl -s \"https://scholar.google.com/scholar?q=Goldilocks+Active+Sampling+Bandit+Multi-Task+Forecasting+Quenneville-Belair\" -H \"User-Agent: Mozilla/5.0\")"
+      "Bash(curl -s \"https://scholar.google.com/scholar?q=Goldilocks+Active+Sampling+Bandit+Multi-Task+Forecasting+Quenneville-Belair\" -H \"User-Agent: Mozilla/5.0\")",
+      "WebFetch(domain:courses.cs.washington.edu)"
     ]
   }
 }

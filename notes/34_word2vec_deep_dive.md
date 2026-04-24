@@ -1,8 +1,6 @@
-# 10. Word2vec — Skip-gram, CBOW, and Negative Sampling
+# Word2vec — Skip-gram, CBOW, and Negative Sampling
 
 ## What this note unpacks
-
-Quiz topic 10: "**Word2vec.**" The things you need to know:
 
 - The **distributional hypothesis** — "a word is known by the company it keeps"
 - **Skip-gram** and **CBOW** — the two Word2vec architectures
@@ -203,7 +201,7 @@ where $f(w)$ is the raw frequency of word $w$ in the corpus. The 3/4 exponent do
 
 Each internal node has its own learned vector. At each node, you compute the sigmoid of the dot product between the context vector and the node's vector — that's the probability of "going right." The probability of a full word is the product of these sigmoids along the path.
 
-**Cost analysis:** each word's path has depth $\log_2 |V|$ nodes. For a 1 million word vocabulary, that's ~20 nodes instead of 1 million softmax terms. A ~50,000× speedup.
+**Cost analysis:** each word's path has depth $\log_2 |V|$ nodes. For a 1 million word vocabulary, that's ~20 nodes instead of 1 million softmax terms. A ~50,000x speedup.
 
 **Huffman coding detail:** the tree is built using Huffman coding, which assigns shorter paths to more frequent words. Frequent words (like "the") get paths of length ~3, while rare words get paths of length ~25. On average, the tree weighted by word frequency has depth $\sim H(V)$, the entropy of the unigram distribution.
 
@@ -250,23 +248,23 @@ So:
 algorithm: Skip-gram with negative sampling
   initialize all word vectors u_w, v_w ∈ R^d (small random values)
   build Huffman tree or negative sampling distribution P_neg
-  
+
   for each (center, context) pair in the training corpus:
     # positive pair
     score ← v_context^T u_center
     loss_pos ← log σ(score)
-    
+
     # k negative samples
     for i = 1, ..., k:
       n_i ← sample from P_neg
       score_n ← v_{n_i}^T u_center
       loss_neg_i ← log σ(-score_n)
-    
+
     total_loss ← loss_pos + Σ_i loss_neg_i
-    
+
     # gradient ascent on total_loss
     update u_center, v_context, v_{n_1}, ..., v_{n_k}
-  
+
   return word embeddings {u_w} for all w in V
 ```
 
@@ -281,13 +279,13 @@ The updates are tiny: each training step only touches $k + 1 + 1 = k + 2$ vector
 - **1990s — LSA (Latent Semantic Analysis)** and **LDA (Latent Dirichlet Allocation)** are earlier statistical NLP techniques that learn word representations from context. They use matrix factorization and probabilistic modeling instead of neural networks.
 - **2003 — Bengio et al.** publish *A Neural Probabilistic Language Model*, which introduces learned word embeddings as a byproduct of training a neural language model. This is the conceptual ancestor of Word2vec, but too slow to train at scale.
 - **2008 — Collobert & Weston** publish *A Unified Architecture for Natural Language Processing*, showing neural word embeddings can be learned end-to-end for many NLP tasks. Pre-trained embeddings become a thing.
-- **2013 — Tomáš Mikolov** (at Google Brain, with Kai Chen, Greg Corrado, Jeff Dean) publishes two papers on arXiv in January and September: *Efficient Estimation of Word Representations in Vector Space* and *Distributed Representations of Words and Phrases and their Compositionality*. These introduce Skip-gram, CBOW, negative sampling, hierarchical softmax, and the famous vector arithmetic results. The second paper demonstrates "king − man + woman ≈ queen" for the first time.
+- **2013 — Tomas Mikolov** (at Google Brain, with Kai Chen, Greg Corrado, Jeff Dean) publishes two papers on arXiv in January and September: *Efficient Estimation of Word Representations in Vector Space* and *Distributed Representations of Words and Phrases and their Compositionality*. These introduce Skip-gram, CBOW, negative sampling, hierarchical softmax, and the famous vector arithmetic results. The second paper demonstrates "king − man + woman ≈ queen" for the first time.
 - **2013 — Google releases Word2vec** as open-source code along with pre-trained 300-dimensional vectors for 3 million English words and phrases. This single release put high-quality word embeddings in every NLP practitioner's hands.
 - **2014 — GloVe** (Pennington, Socher, Manning at Stanford) offers an alternative approach using word co-occurrence statistics. Shows that Word2vec and GloVe are doing essentially the same thing from different angles.
 - **2016 — FastText** (Bojanowski et al. at Facebook) extends Word2vec with subword information (character n-grams), solving the out-of-vocabulary problem.
 - **2018 — ELMo, BERT** introduce **contextual** embeddings that replace the same word's representation in different contexts. This is the beginning of the end for static embeddings like Word2vec — but Word2vec remains a pedagogical and historical touchstone, and the "meaning as vector geometry" insight carries forward.
 
-**Mikolov's career**: Tomáš Mikolov was a PhD student in Brno, Czech Republic, then joined Google Brain for the Word2vec work. He later moved to Facebook AI (where he worked on FastText) and then to the Czech Technical University. Word2vec is probably the most cited NLP paper of the 2010s.
+**Mikolov's career**: Tomas Mikolov was a PhD student in Brno, Czech Republic, then joined Google Brain for the Word2vec work. He later moved to Facebook AI (where he worked on FastText) and then to the Czech Technical University. Word2vec is probably the most cited NLP paper of the 2010s.
 
 ---
 
@@ -300,5 +298,3 @@ The updates are tiny: each training step only touches $k + 1 + 1 = k + 2$ vector
 - **Hierarchical softmax**: organize vocab as Huffman tree, $\log |V|$ binary decisions instead of $|V|$ softmax terms.
 - **Vector arithmetic**: $\text{vec}(\text{king}) - \text{vec}(\text{man}) + \text{vec}(\text{woman}) \approx \text{vec}(\text{queen})$. Semantic relationships show up as consistent directions because similar-context words are trained to be similar vectors.
 - **History**: Harris 1954 → Firth 1957 → Bengio 2003 → Mikolov 2013 (Word2vec) → GloVe 2014 → ELMo/BERT 2018 (contextual replaces static).
-
-This is the last note for Quiz 5. Return to [quiz_5_00_study_guide.md](quiz_5_00_study_guide.md) for the full study checklist, or take [quiz_5_00_practice_test.md](quiz_5_00_practice_test.md) to self-assess.

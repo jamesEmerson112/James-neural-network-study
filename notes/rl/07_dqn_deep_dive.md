@@ -1,4 +1,4 @@
-# 05. DQN — Deep Q-Network Deep Dive
+# DQN — Deep Q-Network Deep Dive
 
 ## What this note unpacks
 
@@ -160,7 +160,7 @@ algorithm: DQN
   initialize Q-network Q_θ with random weights
   initialize target network Q_θ⁻ ← Q_θ
   initialize replay buffer D (capacity ~1M)
-  
+
   for episode = 1, 2, ...:
     initialize state s_0
     for t = 0, 1, ..., T:
@@ -169,11 +169,11 @@ algorithm: DQN
         a_t ← random action
       else:
         a_t ← argmax_a Q_θ(s_t, a)
-      
+
       # ─── execute and observe ───
       execute a_t, observe r_t and s_{t+1}
       store transition (s_t, a_t, r_t, s_{t+1}) in D
-      
+
       # ─── sample a mini-batch and update ───
       sample mini-batch of transitions (s_j, a_j, r_j, s_{j+1}) from D
       for each transition in the batch:
@@ -181,13 +181,13 @@ algorithm: DQN
           y_j ← r_j
         else:
           y_j ← r_j + γ · max_a' Q_θ⁻(s_{j+1}, a')    # target network used here
-      
+
       # ─── gradient step on (y_j − Q_θ(s_j, a_j))² ───
       θ ← θ − α · ∇_θ Σ_j (y_j − Q_θ(s_j, a_j))²
-      
+
       # ─── periodic target network sync ───
       every C steps: θ⁻ ← θ
-      
+
       s_t ← s_{t+1}
 ```
 
@@ -211,7 +211,7 @@ This was the moment the ML community realized deep RL was a real thing. AlphaGo 
 
 ## Comparison: DQN vs REINFORCE
 
-DQN and REINFORCE ([quiz_5_06_policy_gradients_and_reinforce.md](quiz_5_06_policy_gradients_and_reinforce.md)) are the two canonical deep RL algorithms, and they take opposite approaches:
+DQN and REINFORCE (see [04_policy_gradients.md](04_policy_gradients.md)) are the two canonical deep RL algorithms, and they take opposite approaches:
 
 | | DQN (value-based) | REINFORCE (policy-based) |
 |---|---|---|
@@ -249,7 +249,5 @@ The Atari benchmark became the ImageNet of RL — every algorithm since 2013 has
 - **Q-learning loss**: $L(\theta) = \mathbb{E}[(r + \gamma \max_{a'} Q_{\theta^-}(s', a') - Q_\theta(s, a))^2]$
 - **Experience replay** decorrelates samples and improves sample efficiency; buffer holds ~1M transitions, sample randomly.
 - **Target network** $Q_{\theta^-}$ is a lagging copy that holds the regression target fixed for $C$ steps, preventing the "chasing own tail" divergence.
-- **DQN = value-based**: learns $Q$, acts greedy. Compare to REINFORCE (policy-based, see [quiz_5_06_policy_gradients_and_reinforce.md](quiz_5_06_policy_gradients_and_reinforce.md)).
+- **DQN = value-based**: learns $Q$, acts greedy. Compare to REINFORCE (policy-based, see [04_policy_gradients.md](04_policy_gradients.md)).
 - **History**: Watkins 1989 (Q-learning) → Tesauro 1992 (TD-Gammon) → Mnih 2013/2015 (DQN) → Rainbow 2017 → Agent57 2020.
-
-Next note: [quiz_5_06_policy_gradients_and_reinforce.md](quiz_5_06_policy_gradients_and_reinforce.md) — the policy-based side of deep RL, directly learning $\pi_\theta$ via the policy gradient theorem.

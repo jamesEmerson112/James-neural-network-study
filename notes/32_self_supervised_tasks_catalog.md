@@ -1,8 +1,8 @@
-# 08. Self-Supervised Tasks — Catalog with Inputs, Outputs, and Losses
+# Self-Supervised Tasks — Catalog with Inputs, Outputs, and Losses
 
 ## What this note unpacks
 
-Quiz topic 8 asks: "**What are the types of self-supervised tasks, and what are their inputs, outputs, and losses?**" This note is the catalog. For each canonical SSL task, we write down:
+For each canonical SSL task, we write down:
 
 - **Input**: what goes in
 - **Output / target**: what the model tries to predict
@@ -10,8 +10,6 @@ Quiz topic 8 asks: "**What are the types of self-supervised tasks, and what are 
 - **Example**: a concrete instance
 
 The six task families covered: **masked language modeling**, **autoregressive prediction**, **contrastive learning**, **self-distillation**, **masked image modeling**, **denoising autoencoders**, plus classical **pretext tasks** (rotation, jigsaw, colorization).
-
-See [quiz_5_07_learning_paradigms_comparison.md](quiz_5_07_learning_paradigms_comparison.md) for the big-picture placement of self-supervised learning among other paradigms.
 
 ---
 
@@ -38,7 +36,7 @@ Reading: average negative log-probability that the model assigns to the correct 
 
 **Why it works:** to predict masked tokens accurately, the model must understand syntax, semantics, and world knowledge. A sentence like "The [MASK] that the engineer designed __ ran on electricity" requires multi-sentence reasoning to fill in "machine" or "train." Solving MLM forces the model to learn representations that generalize.
 
-**Who uses it:** BERT (2018), RoBERTa, ALBERT, DeBERTa, and most encoder-only language models. See [../20_bert.md](../20_bert.md).
+**Who uses it:** BERT (2018), RoBERTa, ALBERT, DeBERTa, and most encoder-only language models.
 
 ---
 
@@ -163,7 +161,7 @@ $$
 
 where $\hat{x}_i$ is the model's prediction for masked patch $i$ and $x_i$ is the true pixel values.
 
-**Clever architectural trick (MAE 2022):** the encoder only sees the 25% of unmasked patches, not the full image. The decoder is a separate smaller transformer that receives the encoder's representations plus mask tokens and reconstructs the missing pixels. This makes pretraining 3–4× faster because the encoder handles far fewer tokens.
+**Clever architectural trick (MAE 2022):** the encoder only sees the 25% of unmasked patches, not the full image. The decoder is a separate smaller transformer that receives the encoder's representations plus mask tokens and reconstructs the missing pixels. This makes pretraining 3–4x faster because the encoder handles far fewer tokens.
 
 **Why it works:** reconstructing 75% of an image from 25% of the pixels requires learning holistic image understanding. Simple interpolation doesn't work at this mask ratio — the model needs to understand objects, textures, and context.
 
@@ -205,7 +203,7 @@ $$
 
 **Why it works:** to reconstruct clean data from corrupted input, the model must learn the underlying data distribution — specifically, it must learn to project corrupted inputs back onto the data manifold. This was the conceptual breakthrough of Vincent et al. (2008): forcing the model to denoise is equivalent to learning the data's structure.
 
-**Who uses it:** the original denoising autoencoder (Vincent, Larochelle, Bengio 2008), stacked denoising autoencoders (2010), and — critically — **DDPM** (2020), which can be viewed as a denoising autoencoder trained at every noise level simultaneously. See [../ddpm/06_reverse_process.md](../ddpm/06_reverse_process.md).
+**Who uses it:** the original denoising autoencoder (Vincent, Larochelle, Bengio 2008), stacked denoising autoencoders (2010), and — critically — **DDPM** (2020), which can be viewed as a denoising autoencoder trained at every noise level simultaneously.
 
 **Lineage:** denoising autoencoder → BERT (masking is a form of noise) → MAE (masking applied to images) → DDPM (continuous noise schedule, multiple noise levels). All of them are "corrupt and reconstruct."
 
@@ -245,7 +243,7 @@ Proposed by Noroozi & Favaro (2016).
 
 Proposed by Zhang, Isola, Efros (2016).
 
-**Why these are mostly gone:** contrastive learning (SimCLR/MoCo 2020) and masked image modeling (MAE 2022) outperform these pretext tasks substantially. The classical tasks taught the model *something*, but not as much as contrastive and masked methods do. Pretext tasks are mostly historical, but they still come up on quizzes as examples of "creative SSL task design."
+**Why these are mostly gone:** contrastive learning (SimCLR/MoCo 2020) and masked image modeling (MAE 2022) outperform these pretext tasks substantially. The classical tasks taught the model *something*, but not as much as contrastive and masked methods do.
 
 ---
 
@@ -288,5 +286,3 @@ Modern SSL is dominated by patterns 1 and 2. Pattern 4 dominates language modeli
 - **Masked image modeling**: mask 75% of patches, reconstruct pixels with MSE. MAE.
 - **Denoising autoencoder**: add noise, reconstruct clean. The ancestor of all mask-and-predict methods and of DDPM.
 - **Pretext tasks**: rotation, jigsaw, colorization — classical SSL, mostly superseded.
-
-Next note: [quiz_5_09_gan_and_vae.md](quiz_5_09_gan_and_vae.md) — generative models: GAN and VAE training, loss functions, and the reparameterization trick.

@@ -1,8 +1,8 @@
-# 07. Learning Paradigms — Comparison and Data Assumptions
+# Learning Paradigms — Comparison and Data Assumptions
 
 ## What this note unpacks
 
-Quiz topic 7 asks: "**What's the difference between semi-supervised, few-shot, and self-supervised learning, and what data does each assume is available?**" The tricky part is that these categories overlap and get muddled in practice. This note pins them down precisely, with a canonical table comparing all seven major paradigms (supervised, unsupervised, semi-supervised, self-supervised, few-shot, zero-shot, meta-learning) and the exact data each assumes.
+**What's the difference between semi-supervised, few-shot, and self-supervised learning, and what data does each assume is available?** The tricky part is that these categories overlap and get muddled in practice. This note pins them down precisely, with a canonical table comparing all seven major paradigms (supervised, unsupervised, semi-supervised, self-supervised, few-shot, zero-shot, meta-learning) and the exact data each assumes.
 
 ---
 
@@ -26,7 +26,7 @@ Quiz topic 7 asks: "**What's the difference between semi-supervised, few-shot, a
 
 ---
 
-## The specific paradigms the quiz asks about
+## The specific paradigms to know
 
 ### Semi-supervised learning
 
@@ -64,8 +64,6 @@ The "labels" are generated automatically from the raw data — no human annotati
 **Yann LeCun's framing:** SSL is the "dark matter of intelligence." Most of what humans learn comes from predicting what comes next in their experience (without any explicit reward or label), not from labeled examples. SSL is the closest ML analog.
 
 **Why it matters for modern AI:** every large foundation model (GPT, BERT, CLIP, DALL-E, Stable Diffusion) is pretrained via SSL. The "pretrain on unlabeled data → fine-tune on small labeled task" paradigm is the foundation of modern NLP and is rapidly becoming the standard for vision and multimodal as well.
-
-**See also:** [quiz_5_08_self_supervised_tasks_catalog.md](quiz_5_08_self_supervised_tasks_catalog.md) for the catalog of SSL task types with inputs, outputs, and losses.
 
 ### Few-shot learning
 
@@ -181,7 +179,7 @@ The "self" in self-supervised means "the data supervises itself." No human label
 
 ## Data-to-paradigm decision tree
 
-If the quiz asks "you have X data — which paradigm?", use this:
+Given a data setup, here's how to identify the paradigm:
 
 ```
   Do you have labels?
@@ -193,8 +191,8 @@ If the quiz asks "you have X data — which paradigm?", use this:
     │
     ├── YES, many small tasks    → meta-learning
     │
-    ├── NO, but you have a 
-    │   pretrained model + 
+    ├── NO, but you have a
+    │   pretrained model +
     │   class descriptions        → zero-shot
     │
     └── NO labels at all          → self-supervised (if you invent a proxy task)
@@ -203,7 +201,7 @@ If the quiz asks "you have X data — which paradigm?", use this:
 
 ---
 
-## Quick definitions for the quiz
+## Quick definitions
 
 Memorize these one-liners:
 
@@ -223,7 +221,7 @@ Memorize these one-liners:
 - **1990s — Semi-supervised learning** gains traction with papers like Blum & Mitchell's *Combining Labeled and Unlabeled Data with Co-Training* (1998) and Nigam et al.'s EM-based approaches.
 - **2006 — Hinton, Osindero, Teh** publish *A Fast Learning Algorithm for Deep Belief Nets*. The key move is **unsupervised pretraining** — stack RBMs, train them unsupervised, then fine-tune with backprop. This is the proto-self-supervised approach and the match that lit the deep learning revolution.
 - **2008 — Pascal Vincent, Yoshua Bengio, others** publish the **denoising autoencoder**. Corrupt input, learn to reconstruct clean. This is the direct ancestor of modern masked autoencoders (MAE) and DDPM.
-- **2013 — Mikolov et al.** publish Word2Vec — self-supervised learning of word embeddings from raw text. Quiz topic 10. See [10_word2vec_deep_dive.md](10_word2vec_deep_dive.md).
+- **2013 — Mikolov et al.** publish Word2Vec — self-supervised learning of word embeddings from raw text.
 - **2017 — Vaswani et al.** publish the Transformer, which enables scaling self-supervised pretraining to huge models.
 - **2018 — ELMo, GPT-1, BERT** all land within months of each other. The paradigm "pretrain on lots of text, fine-tune on small labeled task" becomes the default for NLP.
 - **2020 — GPT-3** demonstrates massive-scale in-context learning. Few-shot learning via prompting (no gradient updates) becomes viable.
@@ -242,5 +240,3 @@ The arc: **every decade adds another paradigm, and the newer ones always incorpo
 - **Self-supervised** = no human labels; the model invents labels from the data via a proxy task.
 - **Few-shot** = 1–5 labeled examples per class, usually leveraging a large pretrained model.
 - **The modern dominant pattern**: self-supervised pretraining → fine-tuning or few-shot prompting. Every major foundation model uses this.
-
-Next note: [quiz_5_08_self_supervised_tasks_catalog.md](quiz_5_08_self_supervised_tasks_catalog.md) — the catalog of specific SSL task types with inputs, outputs, and loss formulas.

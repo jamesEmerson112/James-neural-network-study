@@ -1,16 +1,11 @@
-# 09. GANs and VAEs — Training, Objectives, and the Reparameterization Trick
+# GANs and VAEs — Training, Objectives, and the Reparameterization Trick
 
-## What this note unpacks
+## What this note covers
 
-Quiz topic 9 asks: "**How do GANs and VAEs work? What are their objectives, training procedures, and losses?**" Plus: "what is the reparameterization trick?"
-
-This note is self-contained (no need to flip to other files during the quiz) and covers:
 - **GAN**: minimax objective, generator vs discriminator, training loop, mode collapse, why the minimax game converges in theory
 - **VAE**: the ELBO, encoder/decoder, reconstruction + KL losses, training loop
 - **The reparameterization trick**: the trick VAEs need so gradients can flow through sampling — with a full derivation
 - Comparison table and history
-
-For a deeper comparison that also includes DDPM (the third family), see [../ddpm/09_gan_vs_vae_vs_ddpm.md](../ddpm/09_gan_vs_vae_vs_ddpm.md). That file is out of quiz 5 scope (DDPM isn't tested) but it's the canonical source.
 
 ---
 
@@ -70,17 +65,17 @@ algorithm: GAN training
     sample mini-batch of real images {x_1, ..., x_m} from p_data
     sample mini-batch of noise {z_1, ..., z_m} from p_z
     compute fake images: g_i = G(z_i)
-    
+
     # gradient ASCENT on D
     update D to maximize:  (1/m) Σ_i [log D(x_i) + log(1 - D(g_i))]
-    
+
     # --- Generator step ---
     sample mini-batch of noise {z_1, ..., z_m} from p_z
     compute fake images: g_i = G(z_i)
-    
+
     # gradient DESCENT on G
     update G to minimize:  (1/m) Σ_i log(1 - D(G(z_i)))
-    
+
     # (in practice, often replace with maximizing log D(G(z_i)) — same fixed point, better gradients early in training)
 ```
 
@@ -238,7 +233,7 @@ $$
 
 The left side is intractable; the right side is estimable by sampling $\varepsilon$ and applying standard backprop.
 
-This is Kingma and Welling's main contribution in the 2013 VAE paper, and it's the single idea that makes VAE training work. DDPM ([../ddpm/09_gan_vs_vae_vs_ddpm.md](../ddpm/09_gan_vs_vae_vs_ddpm.md)) inherits this trick wholesale: every time DDPM writes $x_t = \sqrt{\bar{\alpha}_t} x_0 + \sqrt{1 - \bar{\alpha}_t} \varepsilon$, that's the reparameterization trick, with the "encoder" being a fixed noise schedule instead of a learned network.
+This is Kingma and Welling's main contribution in the 2013 VAE paper, and it's the single idea that makes VAE training work. DDPM inherits this trick wholesale: every time DDPM writes $x_t = \sqrt{\bar{\alpha}_t} x_0 + \sqrt{1 - \bar{\alpha}_t} \varepsilon$, that's the reparameterization trick, with the "encoder" being a fixed noise schedule instead of a learned network.
 
 ### The KL term in closed form
 
@@ -260,19 +255,19 @@ algorithm: VAE training
     for each x_i:
       # encoder produces (μ, σ)
       μ_i, σ_i ← q_φ(x_i)
-      
+
       # reparameterize
       ε_i ← sample from N(0, I)
       z_i ← μ_i + σ_i · ε_i
-      
+
       # decoder reconstructs
       x̂_i ← p_θ(z_i)
-      
+
       # compute ELBO
       recon_loss_i ← −log p_θ(x_i | z_i)      # usually MSE or BCE
       kl_loss_i    ← KL(N(μ_i, σ_i²) ‖ N(0, I))   # closed form
       loss_i       ← recon_loss_i + kl_loss_i
-    
+
     total_loss ← (1/m) Σ_i loss_i
     update (θ, φ) via gradient descent on total_loss
 ```
@@ -303,7 +298,7 @@ That's the entire VAE training loop. Just backprop on a sum of reconstruction an
 | Typical failure | Mode collapse | Posterior collapse, blur |
 | Invented | 2014 (Goodfellow) | 2013/2014 (Kingma & Welling) |
 
-**Pedagogical summary:**
+**Summary:**
 - **VAE**: "compress and uncompress, plus force the compressed codes to be Gaussian" — easier training, blurrier output
 - **GAN**: "two networks play a game where one makes fakes and the other catches them" — harder training, sharper output
 
@@ -312,7 +307,7 @@ That's the entire VAE training loop. Just backprop on a sum of reconstruction an
 ## History/lore
 
 - **2013 — Diederik Kingma & Max Welling** (University of Amsterdam) post *Auto-Encoding Variational Bayes* on arXiv in December; it appears at ICLR 2014. The paper introduces the VAE and the **reparameterization trick**. Kingma's PhD at Amsterdam was built around this work.
-- **2014 — Ian Goodfellow** (Bengio's lab at Université de Montréal) publishes *Generative Adversarial Networks* at NeurIPS 2014. The origin story: during a beer-fueled argument with labmates at **Les Trois Brasseurs** (a Montreal brewpub), Goodfellow conceived the adversarial training idea, went home, prototyped it that night, and had it working by morning. GANs dominated generative modeling from 2014 to 2020.
+- **2014 — Ian Goodfellow** (Bengio's lab at Universite de Montreal) publishes *Generative Adversarial Networks* at NeurIPS 2014. The origin story: during a beer-fueled argument with labmates at **Les Trois Brasseurs** (a Montreal brewpub), Goodfellow conceived the adversarial training idea, went home, prototyped it that night, and had it working by morning. GANs dominated generative modeling from 2014 to 2020.
 - **2015 — DCGAN** (Radford, Metz, Chintala) is the first GAN architecture that reliably generates high-quality images. Alec Radford (then 24) later co-authored GPT-1.
 - **2016 — Pixel-RNN, Pixel-CNN** (van den Oord et al.) introduce autoregressive image generation as a third alternative.
 - **2017 — WGAN** (Arjovsky, Chintala, Bottou) replaces the Jensen-Shannon divergence with Wasserstein distance, fixing many of the stability issues of vanilla GANs. Arjovsky was a math PhD student at NYU Courant, and the mathematical rigor shows.
@@ -333,5 +328,3 @@ That's the entire VAE training loop. Just backprop on a sum of reconstruction an
 - **Reparameterization trick**: $z = \mu_\phi(x) + \sigma_\phi(x) \cdot \varepsilon$ where $\varepsilon \sim \mathcal{N}(0, \mathbf{I})$. Pushes randomness outside the differentiable path so gradients can flow through $\mu_\phi$ and $\sigma_\phi$.
 - **GAN failure modes**: mode collapse, training instability, no likelihood
 - **VAE failure modes**: blurry samples, posterior collapse
-
-Next note: [10_word2vec_deep_dive.md](10_word2vec_deep_dive.md) — the last quiz topic: Skip-gram, CBOW, and negative sampling.

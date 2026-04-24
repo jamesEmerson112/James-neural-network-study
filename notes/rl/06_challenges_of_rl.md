@@ -1,10 +1,10 @@
-# 04. Challenges of Reinforcement Learning
+# 06. Challenges of Reinforcement Learning
 
 ## What this note unpacks
 
-Quiz topic 4 is qualitative: "**Why is RL harder than supervised learning?**" You need to be able to name at least four specific reasons and explain each in a sentence. This note gives you a clean list of the canonical challenges — the ones every RL textbook names — with enough depth to explain them to someone else.
+**Why is RL harder than supervised learning?** There are at least six specific reasons, each explained below with enough depth to articulate to someone else.
 
-None of these are problems the algorithms of notes 01–06 fully solve. They're the reasons RL research is still very much ongoing.
+None of these are problems the algorithms in notes 01–04 fully solve. They're the reasons RL research is still very much ongoing.
 
 ---
 
@@ -79,7 +79,7 @@ The Bellman equation and TD learning are the *canonical solution* to credit assi
 
 This is fundamentally different from supervised learning. Every improvement changes the training set. That's why RL is sometimes described as "chasing a moving target."
 
-**In deep RL**, this is compounded by the fact that the value function (e.g., $Q_\theta$) is also used to compute its own training targets (via the Bellman equation). As $\theta$ changes, the target changes too. This is why DQN uses a **target network** — a lagging copy that holds the target fixed for a while. See [quiz_5_05_dqn_deep_dive.md](quiz_5_05_dqn_deep_dive.md).
+**In deep RL**, this is compounded by the fact that the value function (e.g., $Q_\theta$) is also used to compute its own training targets (via the Bellman equation). As $\theta$ changes, the target changes too. This is why DQN uses a **target network** — a lagging copy that holds the target fixed for a while.
 
 ## Challenge 5: Sample inefficiency
 
@@ -95,13 +95,13 @@ This is fundamentally different from supervised learning. Every improvement chan
 
 ## Challenge 6: Exploration vs exploitation
 
-**The problem:** covered in depth in [quiz_5_03_exploration_vs_exploitation.md](quiz_5_03_exploration_vs_exploitation.md). Every step, the agent must decide: try something new (might discover a better strategy) or stick with what works (guaranteed return). Too much of either is fatal — pure exploitation gets stuck in local optima; pure exploration never cashes in.
+**The problem:** every step, the agent must decide: try something new (might discover a better strategy) or stick with what works (guaranteed return). Too much of either is fatal — pure exploitation gets stuck in local optima; pure exploration never cashes in.
 
 **Why it's uniquely an RL problem:** in supervised learning there's no choice to make. The dataset is given. In RL, the agent's own action choices determine which data it collects, so exploration *is* the data collection strategy. A poorly-exploring agent simply never sees the training signal it needs.
 
 ---
 
-## Bonus challenges (nice to mention if the quiz asks for more than four)
+## Bonus challenges
 
 **Instability and divergence.** Function approximation + off-policy learning + bootstrapping is called "the deadly triad" (Sutton & Barto). Together they can cause value estimates to diverge to infinity rather than converge. DQN partially fixes this with experience replay and target networks, but instability is still common in deep RL.
 
@@ -126,7 +126,7 @@ This is fundamentally different from supervised learning. Every improvement chan
 | Sample inefficiency | Millions of interactions needed vs thousands for supervised |
 | Exploration | Agent chooses its own training data via action selection |
 
-**Minimum quiz answer** for "name four challenges of RL": sparse/delayed rewards, credit assignment, non-stationarity, sample inefficiency. Bonus points for mentioning exploration, the deadly triad, or partial observability.
+**Core four to remember**: sparse/delayed rewards, credit assignment, non-stationarity, sample inefficiency. The deadly triad and partial observability are strong follow-ups.
 
 ---
 
@@ -153,5 +153,3 @@ Games are the RL equivalent of ImageNet — a clean, reproducible testbed where 
 - **Sample inefficiency**: RL needs millions of interactions for problems supervised learning solves with thousands.
 - **Exploration vs exploitation**: the agent chooses its own training data via action selection.
 - **Games became the default testbed** because they eliminate the practical difficulties (speed, cost, reward clarity) and leave only the algorithmic challenges.
-
-Next note: [quiz_5_05_dqn_deep_dive.md](quiz_5_05_dqn_deep_dive.md) — DQN's specific fixes for the instability caused by deep function approximation + bootstrapping.
