@@ -1,0 +1,360 @@
+================================================================================
+                     DRONE SYSTEM DESIGN - INTERVIEW REFERENCE
+================================================================================
+
+
+================================================================================
+1. FULL SYSTEM ARCHITECTURE
+================================================================================
+
+  +---------------------------------------------------------------------+
+  |                     GROUND CONTROL STATION                          |
+  |  +----------+  +--------------+  +-----------+  +--------------+   |
+  |  | Mission  |  |  Telemetry   |  |   Video   |  |   Manual     |   |
+  |  | Planner  |  |  Dashboard   |  |  Display  |  |  RC Control  |   |
+  |  +----------+  +--------------+  +-----------+  +--------------+   |
+  +----------------------------+----------------------------------------+
+                               |
+          +--------------------+------------------+
+          | 433/915 MHz        | 2.4 GHz          | 5.8 GHz / Digital
+          | MAVLink            | RC               | Video
+          v                    v                  v
++=========================================================================+
+|                          AIRBORNE SYSTEM                                |
+|                                                                         |
+|  +---------------------------------------------------------------+     |
+|  |              APPLICATION / MISSION LAYER                       |     |
+|  |  +------------+  +--------------+  +---------------------+    |     |
+|  |  | Path       |  | Computer     |  | Mission Logic       |    |     |
+|  |  | Planning   |  | Vision / ML  |  | (delivery, survey,  |    |     |
+|  |  | (A*, RRT)  |  | (detection,  |  |  inspect, SAR)      |    |     |
+|  |  |            |  |  tracking)   |  |                     |    |     |
+|  |  +-----+------+  +------+------+  +----------+----------+    |     |
+|  +--------|-----------------|-----------------------|------------+     |
+|           |                 |                        |                  |
+|  +--------|-----------------|-----------------------|------------+     |
+|  |        v    AUTONOMY / NAVIGATION LAYER          v            |     |
+|  |  +------------+  +--------------+  +-------------------+      |     |
+|  |  | Waypoint   |  |    SLAM      |  |    Obstacle       |      |     |
+|  |  | Following  |  | (mapping +   |  |    Avoidance      |      |     |
+|  |  |            |  |  localize)   |  |                   |      |     |
+|  |  +-----+------+  +------+------+  +--------+----------+      |     |
+|  +--------|-----------------|-------------------|----------------+     |
+|           |                 |                    |                      |
+|  +--------|-----------------|-------------------|----------------+     |
+|  |        v    STATE ESTIMATION LAYER            v               |     |
+|  |  +--------------------------------------------------------+  |     |
+|  |  |         Extended Kalman Filter (EKF)                    |  |     |
+|  |  |                                                         |  |     |
+|  |  |   IMU ---+                                              |  |     |
+|  |  |   GPS ---+--> Fused State Estimate --> [x,y,z,          |  |     |
+|  |  |   Baro --+    (position, velocity,     vx,vy,vz,       |  |     |
+|  |  |   Mag ---+     attitude)               roll,pitch,      |  |     |
+|  |  |   OptFl--+                             yaw]             |  |     |
+|  |  +----------------------------+----------------------------+  |     |
+|  +-------------------------------|-------------------------------+     |
+|                                  |                                     |
+|  +-------------------------------|--------------------------+          |
+|  |              CONTROL LAYER    v  (PID @ 1-8 kHz)        |          |
+|  |                                                          |          |
+|  |  Desired -->[Position]-->[Velocity]-->[Attitude]-->[Rate]|          |
+|  |  State       PID          PID          PID          PID  |          |
+|  |                                                     |    |          |
+|  |                                          Motor Mix <-+   |          |
+|  +----------------------------------------------+----------+          |
+|                                                  |                     |
+|  +-----------------------------------------------|--------------+     |
+|  |              HARDWARE LAYER                    v              |     |
+|  |                                                               |     |
+|  |  +-----+ +-----+ +-----+ +-----+                             |     |
+|  |  |ESC 1| |ESC 2| |ESC 3| |ESC 4|    (one per motor)         |     |
+|  |  +--+--+ +--+--+ +--+--+ +--+--+                             |     |
+|  |     v       v       v       v                                 |     |
+|  |  +-----+ +-----+ +-----+ +-----+                             |     |
+|  |  | M1  | | M2  | | M3  | | M4  |    BLDC Motors              |     |
+|  |  | CW  | | CCW | | CW  | | CCW |                             |     |
+|  |  +-----+ +-----+ +-----+ +-----+                             |     |
+|  +---------------------------------------------------------------+     |
+|                                                                         |
+|  +---------------------------------------------------------------+     |
+|  |                     POWER SYSTEM                               |     |
+|  |                                                                |     |
+|  |  +----------+    +-------+    +------+    +--------------+     |     |
+|  |  |  LiPo    |--->|  PDB  |--->| BEC  |--->| 5V / 3.3V   |     |     |
+|  |  | Battery  |    |       |    |      |    | Logic Power  |     |     |
+|  |  | (3-6S)   |    |       |--->| ESCs |    +--------------+     |     |
+|  |  +----------+    +-------+    +------+                         |     |
+|  +---------------------------------------------------------------+     |
++=========================================================================+
+
+
+================================================================================
+2. PID CONTROL LOOP (CASCADED)
+================================================================================
+
+                     CASCADED PID CONTROL
+
+  Desired     +------+  Desired  +------+  Desired  +------+  Desired  +------+
+  Position -->| Pos  |-> Vel --->| Vel  |-> Att --->| Att  |-> Rate -->| Rate |--> Motor
+              | PID  |           | PID  |           | PID  |           | PID  |    Commands
+              +--+---+           +--+---+           +--+---+           +--+---+
+                 |                  |                  |                  |
+                 |<-- GPS/OptFl ---<|<-- IMU+GPS -----<|<-- Gyro -------<|<-- Gyro
+                      ~10 Hz           ~100 Hz            ~1 kHz            ~4 kHz
+
+  Outer loops (slow, accurate)  <------------------------------>  Inner loops (fast, reactive)
+
+
+================================================================================
+3. MOTOR MIXING (QUADROTOR X-CONFIG)
+================================================================================
+
+        FRONT
+    M1 (CW)    M2 (CCW)
+        \      /
+         \    /
+          \  /
+           \/
+           /\
+          /  \
+         /    \
+        /      \
+    M4 (CCW)   M3 (CW)
+        REAR
+
+  Thrust = M1 + M2 + M3 + M4        (altitude)
+  Roll   = (M1 + M4) - (M2 + M3)    (left/right tilt)
+  Pitch  = (M1 + M2) - (M3 + M4)    (front/back tilt)
+  Yaw    = (M1 + M3) - (M2 + M4)    (CW vs CCW torque)
+
+
+================================================================================
+4. SENSOR FUSION (EKF)
+================================================================================
+
+                  +----------------------------------+
+                  |     EXTENDED KALMAN FILTER        |
+                  |                                   |
+  IMU (fast)      |  +----------+                     |
+  accel + gyro -->|  | PREDICT  | <-- Motion Model    |
+  @ 400 Hz        |  | (fast)   |     x' = f(x,u)    |
+                  |  +----+-----+                     |
+                  |       |                           |
+                  |       v                           |
+  GPS (slow)      |  +----------+                     |    +--------------+
+  lat/lon/alt --->|  | UPDATE   | <-- Measurement     |--->| Fused State  |
+  @ 10 Hz         |  | (correct)|     Model           |    | pos, vel,    |
+                  |  +----+-----+     z = h(x)        |    | attitude,    |
+  Baro            |       |                           |    | bias         |
+  altitude ------>|       |                           |    +--------------+
+  @ 50 Hz         |       v                           |
+                  |  +----------+                     |
+  Mag             |  |Covariance| --> Confidence      |
+  heading ------->|  | P matrix |     estimate        |
+  @ 100 Hz        |  +----------+                     |
+                  +-----------------------------------+
+
+  Key insight: IMU drifts long-term, GPS is noisy short-term
+               EKF combines both = accurate at ALL timescales
+
+
+================================================================================
+5. COMMUNICATION PROTOCOL STACK (MAVLink)
+================================================================================
+
+  +--------------------------------------------+
+  |            MAVLink Protocol                 |
+  |                                             |
+  |  Ground Station <----------> Flight Ctrl    |
+  |                                             |
+  |  Message Types:                             |
+  |  +----------+-----------------------------+ |
+  |  | HEARTBEAT| alive signal, 1 Hz          | |
+  |  | GPS_RAW  | lat, lon, alt, fix type     | |
+  |  | ATTITUDE | roll, pitch, yaw            | |
+  |  | RC_CHAN  | stick positions              | |
+  |  | COMMAND  | arm, takeoff, land, goto    | |
+  |  | MISSION  | waypoint upload/download    | |
+  |  | STATUSTEXT| human-readable alerts      | |
+  |  +----------+-----------------------------+ |
+  |                                             |
+  |  Packet: [STX][LEN][SEQ][SYS][COMP][MSG]   |
+  |          [PAYLOAD...][CRC]                  |
+  +---------------------------------------------+
+
+
+================================================================================
+6. CLOUD-BASED PATH PLANNING (3-TIER ARCHITECTURE)
+================================================================================
+
+  TRADITIONAL (all onboard)          CLOUD-OFFLOADED
+  +----------+                       +----------+
+  |  Drone   |                       |  Drone   |
+  | +------+ |                       | +------+ |
+  | |Sense | |                       | |Sense | |
+  | |Plan  | |  <-- everything       | |Act   | |  <-- lightweight
+  | |Act   | |      onboard          | +------+ |
+  | +------+ |                       +----+-----+
+  +----------+                            | 4G/5G/WiFi
+                                          v
+                                     +----------+
+                                     |  Cloud   |
+                                     | +------+ |
+                                     | |Plan  | |  <-- heavy compute
+                                     | |ML/CV | |      (path planning,
+                                     | |SLAM  | |       SLAM, detection)
+                                     | +------+ |
+                                     +----------+
+
+
+  +-----------------------------------------------------+
+  |                    CLOUD TIER                         |
+  |  Global path planning, fleet coordination,            |
+  |  ML model training, historical data, heavy SLAM       |
+  |  Latency: 50-200ms                                    |
+  +------------------------+------------------------------+
+                           |
+  +------------------------+------------------------------+
+  |                 EDGE TIER (MEC)                        |
+  |  Cell tower / local server, 5-20ms latency             |
+  |  Real-time CV inference, local replanning,              |
+  |  obstacle avoidance with tight deadlines                |
+  +------------------------+-------------------------------+
+                           |
+  +------------------------+-------------------------------+
+  |               DRONE TIER (onboard)                      |
+  |  Sensor fusion, PID control, emergency stop              |
+  |  Only safety-critical, sub-millisecond stuff             |
+  +--------------------------------------------------------+
+
+
+  What Gets Offloaded vs. What Stays Onboard:
+
+  ONBOARD (can't tolerate latency)     CLOUD/EDGE (latency-tolerant)
+  ---------------------------------    ------------------------------
+  PID control loop (1-8 kHz)           Global path planning (A*, RRT*)
+  IMU sensor fusion (400 Hz)           ML object detection / SLAM
+  Emergency stop / failsafe            Fleet coordination / deconfliction
+  Motor commands                       Mission replanning
+  Basic obstacle reflex                3D map construction
+  RC override                          LLM-based mission interpretation
+                                       Energy-optimal route optimization
+
+
+  Latency vs. Compute Tradeoff:
+
+  Latency --------------------------------------------> Compute Power
+
+  Onboard         Edge (MEC)           Cloud
+  < 1ms           5-20ms               50-200ms
+  +-----+         +-----+              +-----+
+  |Tiny |         |Med  |              |Huge |
+  |ARM  |         |GPU  |              |GPU  |
+  |MCU  |         |box  |              |farm |
+  +-----+         +-----+              +-----+
+
+  Safety-         Tactical             Strategic
+  critical        decisions            planning
+
+
+================================================================================
+7. FAILURE MODES
+================================================================================
+
+  FAILURE MODE              DETECTION                RESPONSE
+  ---------------------------------------------------------------------------
+  GPS loss                  fix_type == 0            Switch to optical flow /
+                                                     barometer hold
+  Motor failure             ESC current spike /      Hex/Octo: redistribute
+                            RPM mismatch             Quad: controlled descent
+  Low battery               Voltage monitor          RTL (Return to Launch)
+                            < 3.5V/cell              or emergency land
+  Comm link lost            Heartbeat timeout        Configurable failsafe:
+                            > 3 sec                  RTL / hold / land
+  IMU drift                 EKF innovation check     Reject bad sensor,
+                                                     rely on remaining
+  Compass interference      Mag field strength       Use gyro-only heading
+                            deviation                + GPS course-over-ground
+  Geofence breach           Position vs boundary     Hard stop / RTL
+
+
+================================================================================
+8. KEY NUMBERS TO KNOW
+================================================================================
+
+  TOPIC              KEY NUMBERS
+  -----------------------------------------------
+  IMU rate           400-1000 Hz
+  PID inner loop     1-8 kHz
+  GPS update         5-10 Hz, ~2m accuracy
+  RTK GPS            ~2cm accuracy
+  Battery            3.7V nominal/cell, 4.2V full, 3.5V cutoff
+  Optimal batt mass  ~66% of total vehicle mass
+  LiPo C-rating      C x Ah = max continuous amps
+  MAVLink            v2, 263 byte max packet
+  Hover efficiency   ~150-200 W/kg for multirotors
+  Max legal altitude 400 ft AGL (FAA Part 107)
+
+
+================================================================================
+9. HIPERLAB (UC BERKELEY) - FLYING BATTERIES
+================================================================================
+
+  Problem: Adding more battery hits diminishing returns at ~66% of total mass
+           (battery-to-frame ratio ~2.5:1)
+
+  Solution: Small "flying battery" drones dock mid-flight and swap power
+
+  +--------+                +--------+
+  | Main   |  <-- docks --> | Flying |
+  | Quad   |                | Battery|
+  | (820g) |                | (320g) |
+  +--------+                +--------+
+
+  Results:
+  - Flight time extended from ~12 min to ~1 hour
+  - Each flying battery provides ~5 min of power
+  - Avoids the mass penalty of carrying all batteries at once
+
+  Paper: "Flying batteries: In-flight battery switching to increase
+          multirotor flight time" (HiPeRLab, UC Berkeley, 2020)
+
+
+================================================================================
+10. LLMs FOR DRONE PLANNING (EMERGING RESEARCH)
+================================================================================
+
+  Natural Language --> LLM Parser --> Route Planner --> Path Planner --> Control
+
+  Key Systems:
+  - NeLV: Natural language to UAV mission orchestration
+  - LEMUR: LLM + vision for search & rescue
+  - DGSPEF: Structured prompts to mitigate LLM hallucinations in flight cmds
+
+  Current Limitation: Most work is small-scale / lab drones only.
+  Real-world medium/long-range LLM-driven flight is still early stage.
+
+  Cloud AirNav System Results:
+  - 60% faster response time vs pure onboard
+  - 37.5% less energy consumed on drone
+  - 16.7% less data transferred (smart compression)
+
+
+================================================================================
+REFERENCES
+================================================================================
+
+  HiPeRLab Flying Batteries:
+    https://hiperlab.berkeley.edu/wp-content/uploads/2020/06/2020_FlyingBatteries.pdf
+
+  AirNav (Cloud Path Planning):
+    https://www.sciencedirect.com/science/article/pii/S1877050925015248
+
+  UAVs Meet LLMs Survey:
+    https://arxiv.org/html/2501.02341v1
+
+  Next-Gen LLM for UAV:
+    https://arxiv.org/html/2510.21739v1
+
+  DeepBrain (Cloud Offloading):
+    https://pmc.ncbi.nlm.nih.gov/articles/PMC7570899/
