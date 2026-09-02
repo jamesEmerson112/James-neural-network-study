@@ -1,0 +1,2566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One City, Three Questions — Shortest Path, MST, Max Flow</title>
+<style>
+/* ============================================================
+   Theme. One dark palette; each problem owns one accent so the
+   eye can carry a colour across four sections:
+     cyan   = shortest path        amber = minimum spanning tree
+     violet = maximum flow         pink  = the reductions
+   green = "this improved", red = "this saturated / this is the cut"
+   ============================================================ */
+:root{
+  --bg:        #090d15;
+  --bg-soft:   #0e1420;
+  --panel:     #111926;
+  --panel-2:   #16202f;
+  --line:      #22304a;
+  --ink:       #e9eefb;
+  --ink-dim:   #94a4bd;
+  --ink-faint: #64748b;
+
+  --sp:    #22d3ee;
+  --mst:   #fbbf24;
+  --flow:  #a78bfa;
+  --conn:  #f472b6;
+  --good:  #4ade80;
+  --bad:   #fb7185;
+
+  --edge:  #2b3a56;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+
+  --panelw: 384px;
+
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+*{ box-sizing: border-box; }
+html, body{ height: 100%; }
+body{
+  margin: 0;
+  background:
+    radial-gradient(1100px 700px at 10% -12%, #13203a 0%, transparent 60%),
+    radial-gradient(900px 640px at 106% 112%, #1b1330 0%, transparent 56%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.app{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 13px 18px 15px;
+  gap: 10px;
+}
+
+/* ---------------- header ---------------- */
+header{ display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; flex: 0 0 auto; }
+h1{ margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+h1 .accent{
+  background: linear-gradient(94deg, var(--sp), var(--mst) 42%, var(--flow) 74%, var(--conn));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sub{ color: var(--ink-faint); font-size: 12.5px; }
+.hint{ margin-left: auto; font-size: 11.5px; color: var(--ink-faint); }
+kbd{
+  font: 600 10.5px var(--sans);
+  background: var(--panel-2); border: 1px solid var(--line); border-bottom-width: 2px;
+  border-radius: 5px; padding: 1px 5px; color: var(--ink-dim);
+}
+
+/* ---------------- reduction map (always visible) ---------------- */
+.redmap{
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  background: linear-gradient(180deg, rgba(22,32,47,.5), rgba(14,20,32,.5));
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 11px;
+}
+.rm-tag{
+  font: 700 9.5px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-faint); margin-right: 4px;
+}
+.rm-chip{
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 11px; color: var(--ink-dim);
+  font: 600 11px/1 var(--sans); white-space: nowrap;
+  transition: color .3s ease, border-color .3s ease, background .3s ease, box-shadow .3s ease;
+}
+.rm-chip.ghost{ border-style: dashed; color: var(--ink-faint); font-weight: 500; }
+.rm-chip.lit{ color: #08121a; font-weight: 700; }
+.rm-chip[data-k="sp"].lit  { background: var(--sp);   border-color: var(--sp);   box-shadow: 0 0 14px rgba(34,211,238,.35); }
+.rm-chip[data-k="mst"].lit { background: var(--mst);  border-color: var(--mst);  box-shadow: 0 0 14px rgba(251,191,36,.32); }
+.rm-chip[data-k="flow"].lit{ background: var(--flow); border-color: var(--flow); box-shadow: 0 0 14px rgba(167,139,250,.32); }
+.rm-chip.ghost.lit{ background: transparent; border-style: solid; border-color: var(--conn); color: var(--conn); box-shadow: none; }
+.rm-arr{
+  display: inline-flex; flex-direction: column; align-items: center; line-height: 1;
+  color: var(--ink-faint); transition: color .3s ease;
+  padding: 0 2px;
+}
+.rm-arr .sym{ font-size: 13px; }
+.rm-arr .lbl{ font-size: 8.5px; letter-spacing: .06em; text-transform: uppercase; margin-top: 2px; white-space: nowrap; }
+.rm-arr.lit{ color: var(--conn); }
+.rm-arr.lit .lbl{ color: var(--conn); }
+.rm-div{ width: 1px; align-self: stretch; background: var(--line); margin: 0 6px; }
+
+/* ---------------- tabs ---------------- */
+.tabs{ flex: 0 0 auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.tab{
+  appearance: none; border: 1px solid var(--line); background: var(--bg-soft);
+  color: var(--ink-dim); font: 650 12.5px/1 var(--sans);
+  padding: 9px 16px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  transition: color .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.tab:hover{ color: var(--ink); border-color: #3a4d72; }
+.tab:focus-visible{ outline: 2px solid var(--conn); outline-offset: 2px; }
+.tab .num{ opacity: .5; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.tab[aria-selected="true"]{ color: #08121a; border-color: transparent; }
+.tab[data-t="sp"][aria-selected="true"]  { background: linear-gradient(180deg,#7fe6f6,var(--sp));   box-shadow: 0 2px 14px rgba(34,211,238,.28); }
+.tab[data-t="mst"][aria-selected="true"] { background: linear-gradient(180deg,#fddc8a,var(--mst));  box-shadow: 0 2px 14px rgba(251,191,36,.26); }
+.tab[data-t="flow"][aria-selected="true"]{ background: linear-gradient(180deg,#cbb8ff,var(--flow)); box-shadow: 0 2px 14px rgba(167,139,250,.26); }
+.tab[data-t="conn"][aria-selected="true"]{ background: linear-gradient(180deg,#fbb2d1,var(--conn)); box-shadow: 0 2px 14px rgba(244,114,182,.26); }
+
+/* ---------------- section / pane layout ---------------- */
+main{ flex: 1 1 auto; min-height: 0; display: flex; }
+.sec{ flex: 1 1 auto; min-height: 0; min-width: 0; display: none; flex-direction: column; gap: 9px; }
+.sec.active{ display: flex; }
+.pane{
+  flex: 1 1 auto; min-height: 0; min-width: 0;
+  display: grid; grid-template-columns: minmax(0,1fr) var(--panelw); gap: 14px;
+}
+.sec-conn .pane{ display: none; }
+.sec-conn .pane.active{ display: grid; }
+
+/* ---------------- stage ---------------- */
+.stage{
+  min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; gap: 9px;
+  background: linear-gradient(180deg, rgba(22,32,47,.55), rgba(14,20,32,.55));
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 11px 13px 12px;
+}
+.toolbar{ flex: 0 0 auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tool-label{
+  font: 700 10px/1 var(--sans); letter-spacing: .11em; text-transform: uppercase;
+  color: var(--ink-faint); margin-right: 2px;
+}
+.spacer{ flex: 1 1 auto; }
+.btn{
+  appearance: none; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+  font: 600 12px/1 var(--sans); padding: 8px 12px; border-radius: 999px; cursor: pointer;
+  transition: background .2s, border-color .2s, transform .12s, opacity .2s;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled){ background: #1d2a3d; border-color: #3a4d72; }
+.btn:active:not(:disabled){ transform: translateY(1px); }
+.btn:disabled{ opacity: .34; cursor: default; }
+.btn:focus-visible{ outline: 2px solid var(--conn); outline-offset: 2px; }
+.btn.icon{ padding: 8px 11px; font-size: 12px; min-width: 34px; }
+.btn.primary{ border-color: transparent; color: #08121a; font-weight: 700; }
+.sec-sp   .btn.primary{ background: linear-gradient(180deg,#7fe6f6,var(--sp)); }
+.sec-mst  .btn.primary{ background: linear-gradient(180deg,#fddc8a,var(--mst)); }
+.sec-flow .btn.primary{ background: linear-gradient(180deg,#cbb8ff,var(--flow)); }
+.sec-conn .btn.primary{ background: linear-gradient(180deg,#fbb2d1,var(--conn)); }
+
+.seg{ display: inline-flex; background: var(--bg-soft); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.seg button{
+  appearance: none; border: 0; background: transparent; color: var(--ink-dim);
+  font: 650 11.5px/1 var(--sans); padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  transition: color .22s, background .22s; white-space: nowrap;
+}
+.seg button[aria-pressed="true"]{ color: #08121a; background: var(--ink-dim); }
+.sec-conn .seg button[aria-pressed="true"]{ background: linear-gradient(180deg,#fbb2d1,var(--conn)); }
+.sec-mst  .seg button[aria-pressed="true"]{ background: linear-gradient(180deg,#fddc8a,var(--mst)); }
+.seg button:focus-visible{ outline: 2px solid var(--conn); outline-offset: 2px; }
+
+.speed{ display: inline-flex; align-items: center; gap: 6px; color: var(--ink-faint); font-size: 11px; }
+.speed input{ width: 84px; accent-color: var(--ink-dim); cursor: pointer; }
+
+.canvas{ flex: 1 1 auto; min-height: 0; display: flex; }
+svg.gv{ width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* ---------------- caption ---------------- */
+.caption{
+  flex: 0 0 auto; min-height: 82px;
+  display: flex; gap: 11px; align-items: flex-start;
+  background: var(--bg-soft); border: 1px solid var(--line); border-left: 3px solid var(--line);
+  border-radius: var(--r-md); padding: 10px 13px;
+  transition: border-color .3s ease;
+}
+.sec-sp   .caption{ border-left-color: rgba(34,211,238,.55); }
+.sec-mst  .caption{ border-left-color: rgba(251,191,36,.5); }
+.sec-flow .caption{ border-left-color: rgba(167,139,250,.5); }
+.sec-conn .caption{ border-left-color: rgba(244,114,182,.5); }
+.step-pill{
+  flex: 0 0 auto; font: 700 10px/1 var(--sans); letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-faint); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 8px; margin-top: 1px; font-variant-numeric: tabular-nums;
+}
+.cap-body{ min-width: 0; }
+.cap-title{ font-weight: 650; font-size: 13px; margin-bottom: 2px; }
+.cap-text{ color: var(--ink-dim); font-size: 12.4px; }
+.cap-text b{ color: var(--ink); font-weight: 600; }
+.cap-text .n{ font-family: var(--mono); font-size: 12px; color: var(--ink); }
+.cap-text .up{ color: var(--good); font-weight: 600; }
+.cap-text .no{ color: var(--ink-faint); }
+.cap-text .hot{ color: var(--bad); font-weight: 600; }
+
+/* ============================================================
+   Graph SVG. Every view sets --accent on the <svg> so the same
+   state classes recolour themselves per problem.
+   ============================================================ */
+svg.gv{ --accent:#22d3ee; --accent-soft:rgba(34,211,238,.16); --accent-glow:rgba(34,211,238,.5); }
+svg.gv.a-mst { --accent:#fbbf24; --accent-soft:rgba(251,191,36,.16); --accent-glow:rgba(251,191,36,.5); }
+svg.gv.a-flow{ --accent:#a78bfa; --accent-soft:rgba(167,139,250,.18); --accent-glow:rgba(167,139,250,.5); }
+svg.gv.a-conn{ --accent:#f472b6; --accent-soft:rgba(244,114,182,.16); --accent-glow:rgba(244,114,182,.5); }
+
+/* only the invisible hit strips take clicks; everything else stays inert */
+.e-base, .e-hl, .e-arrow, .e-lab, .nd, .bd, .cutline, .cut-tag{ pointer-events: none; }
+
+/* the dim road that is always there */
+.e-base{
+  fill: none; stroke: var(--edge); stroke-width: 2; stroke-linecap: round;
+  transition: opacity .35s ease, stroke .3s ease;
+}
+.e-base.faded{ opacity: .3; }
+.e-base.gone { opacity: .12; }
+
+/* the overlay that draws itself; --len is set per edge in JS */
+.e-hl{
+  fill: none; stroke-width: 3.4; stroke-linecap: round;
+  stroke-dasharray: var(--len); stroke-dashoffset: var(--len); opacity: 0;
+  transition: stroke-dashoffset .5s cubic-bezier(.33,.02,.2,1), opacity .2s ease,
+              stroke .25s ease, stroke-width .25s ease;
+}
+.e-hl.rev{ stroke-dashoffset: calc(var(--len) * -1); }   /* draw from the far end */
+.e-hl.on { stroke-dashoffset: 0; opacity: 1; }
+.e-hl.k-acc  { stroke: var(--accent); filter: drop-shadow(0 0 5px var(--accent-glow)); }
+.e-hl.k-good { stroke: var(--good);   filter: drop-shadow(0 0 5px rgba(74,222,128,.45)); }
+.e-hl.k-bad  { stroke: var(--bad);    filter: drop-shadow(0 0 6px rgba(251,113,133,.5)); }
+.e-hl.k-ghost{ stroke: #7b8cab; stroke-width: 2.4; opacity: .5; }
+.e-hl.k-r1   { stroke: #22d3ee; filter: drop-shadow(0 0 5px rgba(34,211,238,.45)); }
+.e-hl.k-r2   { stroke: #fbbf24; filter: drop-shadow(0 0 5px rgba(251,191,36,.45)); }
+.e-hl.k-r3   { stroke: #4ade80; filter: drop-shadow(0 0 5px rgba(74,222,128,.45)); }
+.e-hl.fat    { stroke-width: 5; }
+.e-hl.thin   { stroke-width: 2.6; }
+.e-hl.dash   { stroke-dasharray: 7 6; stroke-dashoffset: 0; }
+.e-hl.k-bad.on.dash{ animation: crawl 1.1s linear infinite; }
+@keyframes crawl{ to{ stroke-dashoffset: -26; } }
+
+/* arrowheads: only the flow views build them */
+.e-arrow{ fill: var(--edge); transition: fill .3s ease, opacity .3s ease; }
+.e-arrow.a-on{ fill: var(--accent); }
+.e-arrow.a-bad{ fill: var(--bad); }
+.e-arrow.a-faded{ opacity: .3; }
+.e-arrow.a-r1{ fill:#22d3ee; } .e-arrow.a-r2{ fill:#fbbf24; } .e-arrow.a-r3{ fill:#4ade80; }
+
+/* edge weight chip */
+.e-lab{ transition: opacity .3s ease; }
+.e-lab rect{
+  fill: #0d1522; stroke: #26344d; stroke-width: 1;
+  transition: fill .3s ease, stroke .3s ease;
+}
+.e-lab text{
+  font: 600 10.5px var(--mono); fill: var(--ink-faint);
+  text-anchor: middle; dominant-baseline: central; user-select: none;
+  transition: fill .3s ease;
+}
+.e-lab.lit rect{ fill: #16283a; stroke: var(--accent); }
+.e-lab.lit text{ fill: var(--ink); }
+.e-lab.hot rect{ fill: #2b1420; stroke: var(--bad); }
+.e-lab.hot text{ fill: #ffd9df; }
+.e-lab.up rect { fill: #122b1e; stroke: var(--good); }
+.e-lab.up text { fill: #d7ffe6; }
+.e-lab.mute{ opacity: .35; }
+
+/* sites */
+.nd{ transition: opacity .3s ease; }
+.nd-box, .nd-txt{ transform-box: fill-box; transform-origin: center; }
+.nd-box{
+  fill: #101927; stroke: #33456a; stroke-width: 1.5;
+  transition: fill .3s ease, stroke .3s ease, stroke-width .3s ease,
+              transform .42s cubic-bezier(.34,1.5,.64,1);
+}
+.nd-txt{
+  font: 700 11.5px var(--sans); letter-spacing: .055em; fill: var(--ink-dim);
+  text-anchor: middle; dominant-baseline: central; pointer-events: none; user-select: none;
+  transition: fill .3s ease;
+}
+.nd.idle{ opacity: .5; }
+.nd.on .nd-box{ fill: var(--accent-soft); stroke: var(--accent); }
+.nd.on .nd-txt{ fill: var(--ink); }
+.nd.cur .nd-box{ stroke-width: 2.6; transform: scale(1.1); filter: drop-shadow(0 0 9px var(--accent-glow)); }
+.nd.cur .nd-txt{ fill: #ffffff; }
+.nd.term .nd-box{ stroke: #dbe6ff; stroke-width: 2.2; stroke-dasharray: 5 3.5; }
+.nd.term .nd-txt{ fill: #ffffff; }
+.nd.inT .nd-box{ fill: rgba(251,113,133,.13); stroke: rgba(251,113,133,.6); }
+.nd.pick{ cursor: pointer; }
+
+/* endpoint tags (SOURCE / SINK etc.) */
+.nd-tag{ font: 700 8px var(--sans); letter-spacing: .14em; fill: var(--ink-faint);
+         text-anchor: middle; dominant-baseline: central; user-select: none; }
+
+/* distance / key badge above a site */
+.bd{ transform-box: fill-box; transform-origin: center;
+     opacity: 0; transform: scale(.55);
+     transition: opacity .26s ease, transform .38s cubic-bezier(.34,1.5,.64,1); }
+.bd.show{ opacity: 1; transform: scale(1); }
+.bd rect{ fill: #0b1220; stroke: #34486d; stroke-width: 1.2; transition: fill .3s ease, stroke .3s ease; }
+.bd text{ font: 700 11px var(--mono); fill: var(--ink-dim); text-anchor: middle; dominant-baseline: central;
+          user-select: none; transition: fill .3s ease; }
+.bd.set  rect{ fill: var(--accent-soft); stroke: var(--accent); }
+.bd.set  text{ fill: var(--ink); }
+.bd.fresh rect{ fill: #122b1e; stroke: var(--good); }
+.bd.fresh text{ fill: #d7ffe6; }
+.bd.bump{ animation: bump .45s cubic-bezier(.34,1.6,.64,1); }
+@keyframes bump{ 0%{ transform: scale(1);} 38%{ transform: scale(1.28);} 100%{ transform: scale(1);} }
+
+/* the min-cut curve */
+.cutline{
+  fill: none; stroke: var(--bad); stroke-width: 2.2; stroke-dasharray: 9 7;
+  opacity: 0; transition: opacity .5s ease;
+  filter: drop-shadow(0 0 7px rgba(251,113,133,.4));
+}
+.cutline.show{ opacity: .95; }
+.cut-tag{ font: 700 13px var(--sans); letter-spacing: .1em; fill: var(--bad);
+          text-anchor: middle; dominant-baseline: central; opacity: 0; transition: opacity .5s ease; }
+.cut-tag.show{ opacity: .85; }
+
+/* ============================================================
+   Right-hand panel
+   ============================================================ */
+.panel{
+  min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; overflow-x: hidden; padding-right: 3px;
+}
+.panel::-webkit-scrollbar{ width: 8px; }
+.panel::-webkit-scrollbar-thumb{ background: #22304a; border-radius: 4px; }
+.panel::-webkit-scrollbar-track{ background: transparent; }
+
+.card{
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 9px 12px 10px; flex: 0 0 auto;
+  transition: border-color .3s ease, box-shadow .3s ease, opacity .3s ease;
+}
+.card.emph{ box-shadow: 0 0 0 1px var(--accent-ring, rgba(244,114,182,.3)); }
+.card-head{
+  display: flex; align-items: center; gap: 7px;
+  font: 700 10px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint); margin-bottom: 7px;
+}
+.card-head .rt{ margin-left: auto; letter-spacing: .04em; text-transform: none; font-weight: 600; font-size: 10.5px; }
+.dot{ width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.d-sp  { background: var(--sp);   box-shadow: 0 0 8px rgba(34,211,238,.6); }
+.d-mst { background: var(--mst);  box-shadow: 0 0 8px rgba(251,191,36,.55); }
+.d-flow{ background: var(--flow); box-shadow: 0 0 8px rgba(167,139,250,.55); }
+.d-conn{ background: var(--conn); box-shadow: 0 0 8px rgba(244,114,182,.55); }
+.d-good{ background: var(--good); }
+.d-bad { background: var(--bad); }
+.d-grey{ background: #475569; }
+
+.q{ font-size: 12.6px; color: var(--ink-dim); }
+.q b{ color: var(--ink); font-weight: 600; }
+.q .n{ font-family: var(--mono); color: var(--ink); font-size: 12px; }
+.note{ margin-top: 6px; font-size: 11.4px; color: var(--ink-faint); line-height: 1.45; }
+.note b{ color: var(--ink-dim); font-weight: 600; }
+.note .n{ font-family: var(--mono); color: var(--ink-dim); }
+
+/* live key / distance table — two columns of chips */
+.keys{ display: grid; grid-template-columns: 1fr 1fr; gap: 4px 6px; }
+.kchip{
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 7px; padding: 3px 7px;
+  background: #0c1421; transition: all .28s ease;
+  min-width: 0;
+}
+.kchip .kn{ font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kchip .kv{ margin-left: auto; font: 700 11.5px var(--mono); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.kchip.far  { opacity: .55; }
+.kchip.fr   { border-color: #3a4d72; }
+.kchip.fr .kn{ color: var(--ink-dim); } .kchip.fr .kv{ color: var(--ink); }
+.kchip.next { border-color: var(--accent2); background: var(--accent2-soft); box-shadow: 0 0 0 1px var(--accent2); }
+.kchip.next .kn{ color: var(--ink); } .kchip.next .kv{ color: #fff; }
+.kchip.done { border-color: rgba(148,164,189,.3); background: #0e1826; }
+.kchip.done .kn{ color: var(--ink-dim); } .kchip.done .kv{ color: var(--ink-dim); }
+.kchip.grew { border-color: var(--good); background: rgba(74,222,128,.1); }
+.kchip.grew .kv{ color: var(--good); }
+.panel{ --accent2: var(--sp); --accent2-soft: rgba(34,211,238,.14); }
+.sec-mst  .panel{ --accent2: var(--mst);  --accent2-soft: rgba(251,191,36,.14); }
+.sec-flow .panel{ --accent2: var(--flow); --accent2-soft: rgba(167,139,250,.16); }
+.sec-conn .panel{ --accent2: var(--conn); --accent2-soft: rgba(244,114,182,.14); }
+
+.popline{
+  margin-top: 7px; font-size: 11.6px; color: var(--ink-dim);
+  border-top: 1px dashed var(--line); padding-top: 6px;
+}
+.popline b{ color: var(--ink); font-weight: 650; }
+.popline .n{ font-family: var(--mono); color: var(--accent2); font-weight: 700; }
+
+/* relaxation log rows */
+.rows{ display: flex; flex-direction: column; gap: 3px; min-height: 20px; }
+.row{
+  display: flex; align-items: center; gap: 7px; font-size: 11.4px;
+  padding: 3px 7px; border-radius: 6px; background: #0c1421; border: 1px solid transparent;
+}
+.row .mark{ font: 700 11px var(--mono); width: 11px; text-align: center; flex: 0 0 auto; }
+.row.ok  { border-color: rgba(74,222,128,.35); }
+.row.ok  .mark{ color: var(--good); }
+.row.no  { opacity: .62; }
+.row.no  .mark{ color: var(--ink-faint); }
+.row .txt{ color: var(--ink-dim); min-width: 0; }
+.row .txt b{ color: var(--ink); font-weight: 600; }
+.row .txt .n{ font-family: var(--mono); }
+.row .txt .was{ color: var(--ink-faint); text-decoration: line-through; }
+.row .txt .now{ color: var(--good); font-weight: 700; }
+.row.empty{ background: transparent; color: var(--ink-faint); font-style: italic; }
+
+/* result / totals */
+.result{
+  display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+  border-radius: var(--r-md); padding: 8px 12px;
+  background: linear-gradient(180deg, var(--accent2-soft), rgba(0,0,0,0));
+  border: 1px solid var(--accent2); flex: 0 0 auto;
+}
+.result .big{ font: 700 25px/1 var(--mono); color: #fff; font-variant-numeric: tabular-nums; }
+.result .unit{ font-size: 11.5px; color: var(--ink-dim); }
+.result .tag{ margin-left: auto; font-size: 11px; color: var(--ink-faint); text-align: right; }
+
+.route{ display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin-top: 2px; }
+.route .hop{
+  font: 600 11px var(--sans); color: var(--ink); background: #16202f;
+  border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px;
+}
+.route .via{ font: 700 10px var(--mono); color: var(--accent2); padding: 0 1px; }
+.route .arr{ color: var(--ink-faint); font-size: 10px; }
+
+/* comparison bars */
+.bars{ display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.bar{ display: grid; grid-template-columns: 128px 1fr 42px; align-items: center; gap: 8px; font-size: 11.2px; }
+.bar .bl{ color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .bt{ height: 9px; border-radius: 5px; background: #16202f; overflow: hidden; }
+.bar .bf{ height: 100%; border-radius: 5px; transition: width .6s cubic-bezier(.22,.7,.3,1); }
+.bar .bv{ font: 700 11.5px var(--mono); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.bar.win .bl{ color: var(--ink); font-weight: 650; }
+.bar.win .bf{ background: linear-gradient(90deg,#fddc8a,var(--mst)); }
+.bar.mid .bf{ background: #4c5f80; }
+.bar.lose .bf{ background: #33445f; }
+
+/* augmenting path list */
+.paths{ display: flex; flex-direction: column; gap: 4px; }
+.pth{
+  display: flex; align-items: baseline; gap: 7px; font-size: 11.2px;
+  padding: 4px 8px; border-radius: 7px; background: #0c1421; border: 1px solid var(--line);
+  transition: border-color .3s ease, background .3s ease, opacity .3s ease;
+}
+.pth .idx{ font: 700 10px var(--mono); color: var(--ink-faint); flex: 0 0 auto; }
+.pth .seq{ color: var(--ink-dim); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pth .bn{ margin-left: auto; font: 700 11.5px var(--mono); color: var(--flow); flex: 0 0 auto; }
+.pth.now{ border-color: var(--flow); background: rgba(167,139,250,.12); }
+.pth.now .seq{ color: var(--ink); }
+.pth.r1 .bn{ color:#22d3ee; } .pth.r2 .bn{ color:#fbbf24; } .pth.r3 .bn{ color:#4ade80; }
+.pth.pend{ opacity: .3; }
+
+/* code snippet */
+.code{
+  font: 500 11.4px/1.62 var(--mono); color: var(--ink-dim);
+  background: #0a1120; border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 9px 11px; white-space: pre; overflow-x: auto;
+}
+.code .kw{ color: #7dd3fc; }
+.code .cm{ color: var(--ink-faint); font-style: italic; }
+.code .hl{
+  display: inline-block; padding: 0 5px; border-radius: 5px;
+  background: rgba(244,114,182,.2); color: #ffd6ea; font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(244,114,182,.5);
+  transition: background .3s ease, color .3s ease;
+}
+.code .hl.flip{ animation: flip .55s ease; }
+@keyframes flip{
+  0%  { background: rgba(244,114,182,.75); color:#fff; transform: scale(1.12); }
+  100%{ background: rgba(244,114,182,.2);  color:#ffd6ea; transform: scale(1); }
+}
+
+/* pill row of small facts */
+.facts{ display: flex; flex-wrap: wrap; gap: 5px; }
+.fact{
+  font: 600 10.8px var(--sans); color: var(--ink-dim);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; background: #0c1421;
+}
+.fact .n{ font-family: var(--mono); color: var(--ink); }
+.fact.hot{ border-color: rgba(251,113,133,.45); color: #ffd9df; }
+.fact.good{ border-color: rgba(74,222,128,.4); color: #d7ffe6; }
+
+.mini{
+  appearance: none; margin-top: 7px; background: transparent; border: 1px dashed #3a4a68;
+  color: var(--ink-dim); border-radius: 999px; font: 600 11.2px/1 var(--sans);
+  padding: 6px 11px; cursor: pointer; transition: color .2s, border-color .2s, background .2s;
+}
+.mini:hover{ color: var(--conn); border-color: var(--conn); background: rgba(244,114,182,.08); }
+.mini:focus-visible{ outline: 2px solid var(--conn); outline-offset: 2px; }
+
+/* ---------------- responsive ---------------- */
+@media (min-width: 1101px) and (max-height: 760px){
+  .app{ padding: 10px 16px 12px; gap: 8px; }
+  h1{ font-size: 20px; }
+  .redmap{ padding: 5px 12px; }
+  .tab{ padding: 7px 14px; }
+  .card{ padding: 7px 11px 8px; }
+  .card-head{ margin-bottom: 5px; }
+  .caption{ min-height: 74px; padding: 8px 12px; }
+  .result{ padding: 6px 11px; }
+  .result .big{ font-size: 22px; }
+  .panel{ gap: 6px; }
+}
+@media (max-width: 1240px){ :root{ --panelw: 342px; } }
+@media (max-width: 1100px){
+  body{ overflow: auto; }
+  .app{ height: auto; min-height: 100%; }
+  .pane, .sec-conn .pane.active{ grid-template-columns: minmax(0,1fr); }
+  .stage{ min-height: 66vh; }
+  .hint{ margin-left: 0; width: 100%; }
+  .panel{ overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+     transition-duration: .001ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>One city, <span class="accent">three questions</span></h1>
+    <span class="sub">Ten sites, twenty links, one map &mdash; re-labelled three ways, then reduced into each other.</span>
+    <span class="hint"><kbd>1</kbd>&ndash;<kbd>4</kbd> sections &middot; <kbd>&larr;</kbd><kbd>&rarr;</kbd> step &middot; <kbd>space</kbd> play</span>
+  </header>
+
+  <!-- ===== always-visible reduction map ===== -->
+  <div class="redmap" id="redmap">
+    <span class="rm-tag">reductions</span>
+    <span class="rm-chip ghost" data-k="wide">Widest path</span>
+    <span class="rm-arr" data-k="r-wide"><span class="sym">&rarr;</span><span class="lbl">max-ST</span></span>
+    <span class="rm-chip" data-k="mst">Minimum spanning tree</span>
+    <span class="rm-arr" data-k="r-key"><span class="sym">&#8646;</span><span class="lbl">swap the key</span></span>
+    <span class="rm-chip" data-k="sp">Shortest path</span>
+    <span class="rm-div"></span>
+    <span class="rm-chip ghost" data-k="disj">Disjoint routes &middot; matching</span>
+    <span class="rm-arr" data-k="r-unit"><span class="sym">&rarr;</span><span class="lbl">unit capacities</span></span>
+    <span class="rm-chip" data-k="flow">Maximum flow</span>
+  </div>
+
+  <!-- ===== tabs ===== -->
+  <div class="tabs" role="tablist">
+    <button class="tab" data-t="sp"   role="tab" aria-selected="true"><span class="num">1</span>Shortest path</button>
+    <button class="tab" data-t="mst"  role="tab" aria-selected="false"><span class="num">2</span>Minimum spanning tree</button>
+    <button class="tab" data-t="flow" role="tab" aria-selected="false"><span class="num">3</span>Maximum flow</button>
+    <button class="tab" data-t="conn" role="tab" aria-selected="false"><span class="num">4</span>One problem in another&rsquo;s clothing</button>
+  </div>
+
+  <main>
+
+  <!-- ================= 1. SHORTEST PATH ================= -->
+  <section class="sec sec-sp active" id="sec-sp" role="tabpanel">
+    <div class="pane">
+      <div class="stage">
+        <div class="toolbar">
+          <span class="tool-label">Dijkstra</span>
+          <button class="btn icon" id="sp-reset" title="Reset">&#8635;</button>
+          <button class="btn icon" id="sp-prev"  title="Step back">&#8249;</button>
+          <button class="btn primary" id="sp-play">&#9654;&nbsp; Play</button>
+          <button class="btn icon" id="sp-next"  title="Step forward">&#8250;</button>
+          <label class="speed">speed<input type="range" id="sp-speed" min="0" max="3" step="1" value="1"><span id="sp-speedv">1&times;</span></label>
+          <span class="spacer"></span>
+          <span class="tool-label" style="margin:0">roads labelled in minutes</span>
+        </div>
+        <div class="canvas"><svg class="gv" id="svg-sp" viewBox="-8 -8 816 436" preserveAspectRatio="xMidYMid meet" role="img" aria-label="City map with travel times"></svg></div>
+        <div class="caption">
+          <span class="step-pill" id="sp-pill">1 / 1</span>
+          <div class="cap-body"><div class="cap-title" id="sp-capT"></div><div class="cap-text" id="sp-capB"></div></div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="card">
+          <div class="card-head"><span class="dot d-sp"></span> The question</div>
+          <div class="q">You are at <b>Home</b> and the ferry leaves from <b>Harbor</b>. Which sequence of roads gets you there in the fewest minutes? This is what a routing engine answers, several million times a second.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="dot d-sp"></span> Priority queue <span class="rt" id="sp-qcount"></span></div>
+          <div class="keys" id="sp-keys"></div>
+          <div class="popline" id="sp-pop"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="dot d-good"></span> Relaxation <span class="rt" id="sp-relhead"></span></div>
+          <div class="rows" id="sp-rows"></div>
+          <div class="note">A road is <b>relaxed</b> when <span class="n">dist[u] + w(u,v)</span> beats the value <span class="n">v</span> is currently holding. Nothing else about the graph matters at that moment.</div>
+        </div>
+
+        <div class="result">
+          <span class="big" id="sp-total">&mdash;</span><span class="unit">minutes</span>
+          <span class="tag" id="sp-tag">Home &rarr; Harbor</span>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-sp"></span> Chosen route</div>
+          <div class="route" id="sp-route"></div>
+          <div class="note" id="sp-compare"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 2. MST ================= -->
+  <section class="sec sec-mst" id="sec-mst" role="tabpanel">
+    <div class="pane">
+      <div class="stage">
+        <div class="toolbar">
+          <span class="tool-label">Prim</span>
+          <button class="btn icon" id="ms-reset" title="Reset">&#8635;</button>
+          <button class="btn icon" id="ms-prev"  title="Step back">&#8249;</button>
+          <button class="btn primary" id="ms-play">&#9654;&nbsp; Play</button>
+          <button class="btn icon" id="ms-next"  title="Step forward">&#8250;</button>
+          <label class="speed">speed<input type="range" id="ms-speed" min="0" max="3" step="1" value="1"><span id="ms-speedv">1&times;</span></label>
+          <span class="spacer"></span>
+          <span class="tool-label" style="margin:0">links labelled in &pound;10k of cable</span>
+        </div>
+        <div class="canvas"><svg class="gv a-mst" id="svg-mst" viewBox="-8 -8 816 436" preserveAspectRatio="xMidYMid meet" role="img" aria-label="City map with cable costs"></svg></div>
+        <div class="caption">
+          <span class="step-pill" id="ms-pill">1 / 1</span>
+          <div class="cap-body"><div class="cap-title" id="ms-capT"></div><div class="cap-text" id="ms-capB"></div></div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="card">
+          <div class="card-head"><span class="dot d-mst"></span> The question changed</div>
+          <div class="q">Nobody is travelling now. You are <b>laying fibre</b>, and every site has to end up connected to every other. Which links do you dig, to spend the least in total? Shortest path optimises one journey; this optimises the network itself.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="dot d-mst"></span> Cheapest link out of each outside site</div>
+          <div class="keys" id="ms-keys"></div>
+          <div class="popline" id="ms-pop"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="dot d-good"></span> Keys updated by the new site</div>
+          <div class="rows" id="ms-rows"></div>
+          <div class="note"><b>Cut property:</b> take any split of the sites into &ldquo;in the tree&rdquo; and &ldquo;not yet&rdquo;. The cheapest link crossing that split is in some minimum spanning tree. Prim just keeps applying it, so every edge it adds is safe forever.</div>
+        </div>
+
+        <div class="result">
+          <span class="big" id="ms-total">0</span><span class="unit">&pound;10k of cable</span>
+          <span class="tag" id="ms-tag">9 links, 10 sites</span>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="dot d-grey"></span> Against the naive plans</div>
+          <div class="bars" id="ms-bars"></div>
+          <div class="note" id="ms-barnote"></div>
+        </div>
+
+        <div class="card" id="ms-div-card">
+          <div class="card-head"><span class="dot d-bad"></span> MST &ne; shortest paths</div>
+          <div class="q" id="ms-div"></div>
+          <div class="note">Kruskal sorts every link and adds any that joins two different components &mdash; different bookkeeping, same tree. With all twenty costs distinct, that tree is <b>unique</b>, so both algorithms are forced to the same answer.</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 3. MAX FLOW ================= -->
+  <section class="sec sec-flow" id="sec-flow" role="tabpanel">
+    <div class="pane">
+      <div class="stage">
+        <div class="toolbar">
+          <span class="tool-label">Edmonds&ndash;Karp</span>
+          <button class="btn icon" id="fl-reset" title="Reset">&#8635;</button>
+          <button class="btn icon" id="fl-prev"  title="Step back">&#8249;</button>
+          <button class="btn primary" id="fl-play">&#9654;&nbsp; Play</button>
+          <button class="btn icon" id="fl-next"  title="Step forward">&#8250;</button>
+          <label class="speed">speed<input type="range" id="fl-speed" min="0" max="3" step="1" value="1"><span id="fl-speedv">1&times;</span></label>
+          <span class="spacer"></span>
+          <span class="tool-label" style="margin:0">flow / capacity, kL per minute</span>
+        </div>
+        <div class="canvas"><svg class="gv a-flow" id="svg-flow" viewBox="-8 -8 816 436" preserveAspectRatio="xMidYMid meet" role="img" aria-label="City water mains with capacities"></svg></div>
+        <div class="caption">
+          <span class="step-pill" id="fl-pill">1 / 1</span>
+          <div class="cap-body"><div class="cap-title" id="fl-capT"></div><div class="cap-text" id="fl-capB"></div></div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="card">
+          <div class="card-head"><span class="dot d-flow"></span> The question changed again</div>
+          <div class="q">Same map, now water mains. Each pipe has a <b>capacity</b> and the pumps make it one-way. How many kL per minute can the <b>Plant</b> deliver to the <b>Harbor</b> at once, using every pipe in parallel? Swap water for people and it is an evacuation plan.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="dot d-flow"></span> Augmenting paths</div>
+          <div class="paths" id="fl-paths"></div>
+          <div class="note">Edmonds&ndash;Karp is Ford&ndash;Fulkerson with one rule added: always take the <b>fewest-pipe</b> augmenting path, found by BFS on the residual graph. That rule is what stops it looping forever on awkward capacities.</div>
+        </div>
+
+        <div class="result">
+          <span class="big" id="fl-total">0</span><span class="unit">kL / min</span>
+          <span class="tag" id="fl-tag">Plant &rarr; Harbor</span>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="dot d-bad"></span> Max-flow min-cut</div>
+          <div class="q" id="fl-cut"></div>
+          <div class="facts" id="fl-facts" style="margin-top:8px"></div>
+          <div class="note">Every unit of water must cross that line, so no flow can beat the cut&rsquo;s capacity. Finding one flow that equals it proves both numbers optimal at once &mdash; a certificate you can check by hand in ten seconds.</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 4. CONNECTIONS ================= -->
+  <section class="sec sec-conn" id="sec-conn" role="tabpanel">
+    <div class="seg" role="group" aria-label="Which reduction" style="align-self:flex-start">
+      <button id="cn-a" aria-pressed="true">Prim = Dijkstra, one line changed</button>
+      <button id="cn-b" aria-pressed="false">Heaviest truck &rarr; spanning tree</button>
+      <button id="cn-c" aria-pressed="false">Independent routes &rarr; max flow</button>
+    </div>
+
+    <!-- ---- A: Prim vs Dijkstra ---- -->
+    <div class="pane active" id="pane-a">
+      <div class="stage">
+        <div class="toolbar">
+          <div class="seg" role="group" aria-label="Algorithm">
+            <button id="ca-dij" aria-pressed="false">Dijkstra</button>
+            <button id="ca-pri" aria-pressed="true">Prim</button>
+          </div>
+          <button class="btn icon" id="ca-reset" title="Reset">&#8635;</button>
+          <button class="btn icon" id="ca-prev"  title="Step back">&#8249;</button>
+          <button class="btn primary" id="ca-play">&#9654;&nbsp; Play</button>
+          <button class="btn icon" id="ca-next"  title="Step forward">&#8250;</button>
+          <label class="speed">speed<input type="range" id="ca-speed" min="0" max="3" step="1" value="1"><span id="ca-speedv">1&times;</span></label>
+          <span class="spacer"></span>
+          <span class="tool-label" style="margin:0">same graph, same costs, root = Depot</span>
+        </div>
+        <div class="canvas"><svg class="gv a-conn" id="svg-ca" viewBox="-8 -8 816 436" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Prim versus Dijkstra on the same graph"></svg></div>
+        <div class="caption">
+          <span class="step-pill" id="ca-pill">1 / 1</span>
+          <div class="cap-body"><div class="cap-title" id="ca-capT"></div><div class="cap-text" id="ca-capB"></div></div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="card">
+          <div class="card-head"><span class="dot d-conn"></span> The same loop <span class="rt" id="ca-who"></span></div>
+          <div class="code" id="ca-code"></div>
+          <div class="note" id="ca-codenote"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-conn"></span> Keys in the queue</div>
+          <div class="keys" id="ca-keys"></div>
+          <div class="popline" id="ca-pop"></div>
+        </div>
+        <div class="result">
+          <span class="big" id="ca-total">0</span><span class="unit" id="ca-unit">&pound;10k of cable in the tree</span>
+          <span class="tag" id="ca-tag"></span>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-grey"></span> Where the two trees part</div>
+          <div class="q" id="ca-diff"></div>
+          <div class="note">Both grow a tree outward from one root, both pop the smallest key, both relax every edge of the site they just took. Dijkstra measures <b>distance from the root</b>; Prim measures <b>the edge in front of it</b>. Nine of the eleven lines are identical.</div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ---- B: widest path ---- -->
+    <div class="pane" id="pane-b">
+      <div class="stage">
+        <div class="toolbar">
+          <div class="seg" role="group" aria-label="Mode">
+            <button id="cb-run" aria-pressed="true">Run max-ST</button>
+            <button id="cb-build" aria-pressed="false">Build a route</button>
+          </div>
+          <button class="btn icon" id="cb-reset" title="Reset">&#8635;</button>
+          <button class="btn icon" id="cb-prev"  title="Step back">&#8249;</button>
+          <button class="btn primary" id="cb-play">&#9654;&nbsp; Play</button>
+          <button class="btn icon" id="cb-next"  title="Step forward">&#8250;</button>
+          <label class="speed">speed<input type="range" id="cb-speed" min="0" max="3" step="1" value="1"><span id="cb-speedv">1&times;</span></label>
+          <span class="spacer"></span>
+          <span class="tool-label" style="margin:0">limits in tonnes</span>
+        </div>
+        <div class="canvas"><svg class="gv a-conn" id="svg-cb" viewBox="-8 -8 816 436" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Weight limits and the maximum spanning tree"></svg></div>
+        <div class="caption">
+          <span class="step-pill" id="cb-pill">1 / 1</span>
+          <div class="cap-body"><div class="cap-title" id="cb-capT"></div><div class="cap-text" id="cb-capB"></div></div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="card">
+          <div class="card-head"><span class="dot d-conn"></span> The question</div>
+          <div class="q">A haulier wants to move <b>one very heavy load</b> from Home to Harbor. Every road and bridge has a weight limit. How heavy can the truck be? You are not minimising a sum &mdash; you are <b>maximising a minimum</b>, which is a different objective entirely.</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-conn"></span> Keys in the queue <span class="rt">max, not min</span></div>
+          <div class="keys" id="cb-keys"></div>
+          <div class="popline" id="cb-pop"></div>
+        </div>
+        <div class="result">
+          <span class="big" id="cb-total">&mdash;</span><span class="unit">tonnes, via the tree</span>
+          <span class="tag" id="cb-tag">Home &rarr; Harbor</span>
+        </div>
+        <div class="card" id="cb-yours">
+          <div class="card-head"><span class="dot d-grey"></span> Your route <span class="rt" id="cb-yourv"></span></div>
+          <div class="route" id="cb-route"></div>
+          <div class="note" id="cb-verdict"></div>
+          <button class="mini" id="cb-clear">clear route</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-grey"></span> Why the tree is enough</div>
+          <div class="q" style="font-size:12.2px">Run Prim but pop the <b>largest</b> key. Every site joins through the heaviest link that reaches it, so the unique tree path between any two sites is a <b>widest path</b>: no other route can beat its bottleneck. One tree answers the question for all 45 pairs at once.</div>
+          <div class="note" id="cb-decoy"></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ---- C: reductions to flow ---- -->
+    <div class="pane" id="pane-c">
+      <div class="stage">
+        <div class="toolbar">
+          <span class="tool-label">unit capacities</span>
+          <button class="btn icon" id="cc-reset" title="Reset">&#8635;</button>
+          <button class="btn icon" id="cc-prev"  title="Step back">&#8249;</button>
+          <button class="btn primary" id="cc-play">&#9654;&nbsp; Play</button>
+          <button class="btn icon" id="cc-next"  title="Step forward">&#8250;</button>
+          <label class="speed">speed<input type="range" id="cc-speed" min="0" max="3" step="1" value="1"><span id="cc-speedv">1&times;</span></label>
+          <span class="spacer"></span>
+          <span class="tool-label" style="margin:0">every pipe set to 1</span>
+        </div>
+        <div class="canvas"><svg class="gv a-conn" id="svg-cc" viewBox="-8 -8 816 436" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Edge-disjoint routes as unit-capacity flow"></svg></div>
+        <div class="caption">
+          <span class="step-pill" id="cc-pill">1 / 1</span>
+          <div class="cap-body"><div class="cap-title" id="cc-capT"></div><div class="cap-text" id="cc-capB"></div></div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="card">
+          <div class="card-head"><span class="dot d-conn"></span> The question</div>
+          <div class="q">A convoy must leave the <b>Plant</b> for the <b>Harbor</b> on <b>fully independent</b> routes &mdash; no two lorries on the same road, so one closure can never strand two of them. How many such routes exist? Nothing about this smells like water.</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-conn"></span> Routes extracted</div>
+          <div class="paths" id="cc-paths"></div>
+        </div>
+        <div class="result">
+          <span class="big" id="cc-total">0</span><span class="unit">independent routes</span>
+          <span class="tag">= max flow with every capacity 1</span>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-conn"></span> The trick</div>
+          <div class="q" style="font-size:12.2px">Set every capacity to <b>1</b>. A unit of flow can now only be a whole route, and two units can never share a pipe, so the max flow value <b>is</b> the number of edge-disjoint routes &mdash; and the min cut is the smallest set of roads that severs them all (Menger&rsquo;s theorem).</div>
+          <div class="note" id="cc-note"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="dot d-grey"></span> Same trick, different clothes</div>
+          <div class="q" style="font-size:12.2px"><b>Bipartite matching.</b> Workers on the left, jobs on the right, an edge where a worker can do a job. Add a source into every worker and a sink out of every job, give every edge capacity 1, and the maximum matching is the max flow. Scheduling, ad auctions and organ-exchange programs all arrive here.</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ==========================================================================
+   1. THE CITY — one layout, four numbers per link.
+   Nothing below is a stored answer: every route, tree, total and cut on this
+   page comes out of the algorithms in section 2 running on this table.
+   ========================================================================== */
+
+var SITES = [
+  { id:'plant',  name:'Plant',  x: 85,  y: 70  },
+  { id:'home',   name:'Home',   x: 70,  y: 215 },
+  { id:'market', name:'Market', x: 120, y: 360 },
+  { id:'school', name:'School', x: 265, y: 95  },
+  { id:'depot',  name:'Depot',  x: 315, y: 225 },
+  { id:'mill',   name:'Mill',   x: 440, y: 60  },
+  { id:'clinic', name:'Clinic', x: 420, y: 335 },
+  { id:'park',   name:'Park',   x: 575, y: 175 },
+  { id:'yard',   name:'Yard',   x: 610, y: 350 },
+  { id:'harbor', name:'Harbor', x: 735, y: 250 }
+];
+
+/* a -> b is only a direction for the water question; roads, cable and weight
+   limits all read both ways.
+     t   travel minutes      c   cable cost (10k)
+     lim weight limit (t)    cap pipe capacity (kL/min) */
+var LINKS = [
+  { a:'plant',  b:'home',   t: 4, c: 5, lim:12, cap: 9 },
+  { a:'plant',  b:'school', t: 9, c:11, lim: 9, cap: 5 },
+  { a:'plant',  b:'depot',  t:12, c:20, lim: 6, cap: 5 },
+  { a:'home',   b:'school', t: 7, c: 7, lim:10, cap: 2 },
+  { a:'home',   b:'market', t: 6, c: 3, lim:18, cap: 6 },
+  { a:'home',   b:'depot',  t: 9, c:13, lim: 7, cap: 6 },
+  { a:'market', b:'depot',  t: 5, c: 4, lim:16, cap: 2 },
+  { a:'market', b:'clinic', t: 9, c:15, lim: 4, cap: 3 },
+  { a:'school', b:'depot',  t: 4, c: 6, lim:11, cap: 2 },
+  { a:'school', b:'mill',   t: 8, c:12, lim: 8, cap: 5 },
+  { a:'depot',  b:'mill',   t: 7, c: 9, lim:14, cap: 3 },
+  { a:'depot',  b:'clinic', t: 5, c: 2, lim:15, cap: 5 },
+  { a:'depot',  b:'park',   t:14, c:16, lim: 3, cap: 4 },
+  { a:'mill',   b:'park',   t: 5, c: 8, lim:13, cap: 5 },
+  { a:'clinic', b:'park',   t: 7, c:14, lim: 5, cap: 2 },
+  { a:'clinic', b:'yard',   t: 7, c:10, lim:17, cap: 5 },
+  { a:'clinic', b:'harbor', t:12, c:21, lim: 2, cap: 5 },
+  { a:'park',   b:'harbor', t: 5, c:17, lim:20, cap:10 },
+  { a:'park',   b:'yard',   t: 4, c:18, lim: 1, cap: 3 },
+  { a:'yard',   b:'harbor', t: 3, c:19, lim:19, cap: 6 }
+];
+
+var IDS  = SITES.map(function(s){ return s.id; });
+var NAME = {}, SITE = {};
+SITES.forEach(function(s){ NAME[s.id] = s.name; SITE[s.id] = s; });
+
+/* undirected incidence — which links touch each site */
+var INC = {};
+IDS.forEach(function(id){ INC[id] = []; });
+LINKS.forEach(function(L,i){ INC[L.a].push(i); INC[L.b].push(i); });
+function other(i, id){ return LINKS[i].a === id ? LINKS[i].b : LINKS[i].a; }
+
+/* ==========================================================================
+   2. THE ALGORITHMS.
+   Each returns both the answer and a replayable log, because the animation
+   is nothing more than a rendering of what actually happened.
+   ========================================================================== */
+
+/* Dijkstra with a linear-scan priority queue. At n = 10 a heap would only
+   obscure the one thing worth watching: which key is smallest. */
+function dijkstra(src, w){
+  var dist = {}, prev = {}, done = {}, log = [];
+  IDS.forEach(function(id){ dist[id] = Infinity; prev[id] = null; });
+  dist[src] = 0;
+  for(;;){
+    var u = null;
+    IDS.forEach(function(id){
+      if(!done[id] && dist[id] < Infinity && (u === null || dist[id] < dist[u])) u = id;
+    });
+    if(u === null) break;
+    done[u] = true;
+    var rel = [];
+    INC[u].forEach(function(i){
+      var v = other(i, u), cand = dist[u] + LINKS[i][w];
+      if(done[v]){ rel.push({ v:v, i:i, ok:false, settled:true, cand:cand }); return; }
+      if(cand < dist[v]){ rel.push({ v:v, i:i, ok:true, from:dist[v], to:cand }); dist[v] = cand; prev[v] = i; }
+      else               { rel.push({ v:v, i:i, ok:false, from:dist[v], cand:cand }); }
+    });
+    log.push({ pop:u, d:dist[u], via:prev[u], rel:rel });
+  }
+  return { dist:dist, prev:prev, log:log };
+}
+
+/* Prim. `maximize` flips it into a maximum spanning tree, which is the only
+   change the widest-path reduction needs. */
+function prim(root, w, maximize){
+  var inT = {}, key = {}, via = {}, tree = [], log = [], total = 0;
+  var better = maximize ? function(a,b){ return a > b; } : function(a,b){ return a < b; };
+  var NONE   = maximize ? -Infinity : Infinity;
+  IDS.forEach(function(id){ key[id] = NONE; via[id] = null; });
+  inT[root] = true; key[root] = 0;
+  var seed = [];
+  INC[root].forEach(function(i){
+    var v = other(i, root), x = LINKS[i][w];
+    if(key[v] === NONE || better(x, key[v])){ seed.push({ v:v, i:i, from:key[v], to:x }); key[v] = x; via[v] = i; }
+  });
+  log.push({ add:root, edge:null, total:0, upd:seed });
+  while(tree.length < IDS.length - 1){
+    var u = null;
+    IDS.forEach(function(id){
+      if(!inT[id] && key[id] !== NONE && (u === null || better(key[id], key[u]))) u = id;
+    });
+    if(u === null) break;
+    inT[u] = true; tree.push(via[u]); total += LINKS[via[u]][w];
+    var upd = [];
+    INC[u].forEach(function(i){
+      var v = other(i, u);
+      if(inT[v]) return;
+      var x = LINKS[i][w];
+      if(key[v] === NONE || better(x, key[v])){ upd.push({ v:v, i:i, from:key[v], to:x }); key[v] = x; via[v] = i; }
+      else upd.push({ v:v, i:i, from:key[v], to:x, skip:true });
+    });
+    log.push({ add:u, edge:via[u], total:total, upd:upd });
+  }
+  return { tree:tree, total:total, log:log };
+}
+
+/* Edmonds-Karp: Ford-Fulkerson that always augments along the fewest-edge
+   path. Residual arcs run both ways so a bad early push can be undone. */
+function edmondsKarp(s, t, capOf){
+  var flow = LINKS.map(function(){ return 0; });
+  var adj = {};
+  IDS.forEach(function(id){ adj[id] = []; });
+  LINKS.forEach(function(L,i){
+    adj[L.a].push({ i:i, to:L.b, fwd:true });
+    adj[L.b].push({ i:i, to:L.a, fwd:false });
+  });
+  function res(a){ return a.fwd ? capOf(a.i) - flow[a.i] : flow[a.i]; }
+  var total = 0, aug = [];
+  for(;;){
+    var prev = {}, seen = {}, q = [s], found = false;
+    seen[s] = true;
+    while(q.length && !found){
+      var u = q.shift();
+      for(var k = 0; k < adj[u].length; k++){
+        var a = adj[u][k];
+        if(seen[a.to] || res(a) <= 0) continue;
+        seen[a.to] = true; prev[a.to] = { arc:a, from:u };
+        if(a.to === t){ found = true; break; }
+        q.push(a.to);
+      }
+    }
+    if(!found) break;
+    var arcs = [], node = t;
+    while(node !== s){ arcs.unshift(prev[node]); node = prev[node].from; }
+    var bn = Infinity, tight = null;
+    arcs.forEach(function(p){ if(res(p.arc) < bn){ bn = res(p.arc); tight = p.arc.i; } });
+    var before = flow.slice();
+    arcs.forEach(function(p){ flow[p.arc.i] += p.arc.fwd ? bn : -bn; });
+    total += bn;
+    aug.push({
+      nodes: [s].concat(arcs.map(function(p){ return p.arc.to; })),
+      arcs:  arcs.map(function(p){ return { i:p.arc.i, fwd:p.arc.fwd, to:p.arc.to, from:p.from }; }),
+      bottleneck: bn, tight: tight, total: total,
+      before: before, after: flow.slice()
+    });
+  }
+  /* the min cut falls out for free: whatever the source can still reach */
+  var seen2 = {}, q2 = [s];
+  seen2[s] = true;
+  while(q2.length){
+    var x = q2.shift();
+    adj[x].forEach(function(a){ if(!seen2[a.to] && res(a) > 0){ seen2[a.to] = true; q2.push(a.to); } });
+  }
+  var cut = [];
+  LINKS.forEach(function(L,i){ if(seen2[L.a] && !seen2[L.b]) cut.push(i); });
+  return {
+    flow: flow, total: total, aug: aug,
+    S: IDS.filter(function(id){ return seen2[id]; }),
+    cut: cut,
+    cutCap: cut.reduce(function(x,i){ return x + capOf(i); }, 0)
+  };
+}
+
+/* the unique path between two sites inside a tree given as link indices */
+function treePath(tree, u, v){
+  var adj = {}; IDS.forEach(function(id){ adj[id] = []; });
+  tree.forEach(function(i){ adj[LINKS[i].a].push(i); adj[LINKS[i].b].push(i); });
+  var prev = {}, seen = {}, q = [u];
+  seen[u] = true;
+  while(q.length){
+    var x = q.shift();
+    if(x === v) break;
+    adj[x].forEach(function(i){
+      var y = other(i, x);
+      if(!seen[y]){ seen[y] = true; prev[y] = i; q.push(y); }
+    });
+  }
+  var path = [], node = v;
+  while(node !== u){ path.unshift(prev[node]); node = other(prev[node], node); }
+  return path;
+}
+
+function pathFrom(prev, src, dst){
+  var path = [], node = dst;
+  while(node !== src){ path.unshift(prev[node]); node = other(prev[node], node); }
+  return path;
+}
+function nodesOf(path, src){
+  var seq = [src], cur = src;
+  path.forEach(function(i){ cur = other(i, cur); seq.push(cur); });
+  return seq;
+}
+function sumOf(path, w){ return path.reduce(function(s,i){ return s + LINKS[i][w]; }, 0); }
+function minOf(path, w){ return path.reduce(function(s,i){ return Math.min(s, LINKS[i][w]); }, Infinity); }
+function linkBetween(a, b){
+  for(var i = 0; i < LINKS.length; i++){
+    if((LINKS[i].a === a && LINKS[i].b === b) || (LINKS[i].b === a && LINKS[i].a === b)) return i;
+  }
+  return -1;
+}
+function routeSum(seq, w){
+  var t = 0;
+  for(var k = 0; k + 1 < seq.length; k++) t += LINKS[linkBetween(seq[k], seq[k+1])][w];
+  return t;
+}
+
+/* ==========================================================================
+   3. SVG PLUMBING
+   ========================================================================== */
+
+var NS = 'http://www.w3.org/2000/svg';
+function el(n, a){
+  var e = document.createElementNS(NS, n);
+  for(var k in a) e.setAttribute(k, a[k]);
+  return e;
+}
+function $(id){ return document.getElementById(id); }
+function names(list){ return list.map(function(id){ return NAME[id]; }); }
+function seqText(list){ return names(list).join(' → '); }
+
+/* re-trigger a CSS animation on an element that may already carry the class */
+function flash(node, cls){
+  node.classList.remove(cls);
+  void node.getBoundingClientRect();
+  node.classList.add(cls);
+}
+
+/* counting-up numbers; cancels its own previous run so scrubbing is clean */
+function countTo(node, val){
+  var from = parseFloat(node.getAttribute('data-v'));
+  if(isNaN(from)) from = 0;
+  node.setAttribute('data-v', val);
+  if(node._raf){ cancelAnimationFrame(node._raf); node._raf = 0; }
+  if(from === val){ node.textContent = String(val); return; }
+  var t0 = performance.now();
+  (function frame(t){
+    var k = Math.min(1, (t - t0) / 420), e = 1 - Math.pow(1 - k, 3);
+    node.textContent = String(Math.round(from + (val - from) * e));
+    node._raf = k < 1 ? requestAnimationFrame(frame) : 0;
+  })(t0);
+}
+
+/* --------------------------------------------------------------------------
+   GraphView — draws the city into one <svg> and exposes a tiny state API.
+   Every frame is painted from a full snapshot rather than by mutating what
+   was there before, so stepping backwards is exactly as correct as forwards.
+   -------------------------------------------------------------------------- */
+function GraphView(svg, opt){
+  opt = opt || {};
+  var self = this;
+  this.svg = svg;
+  this.directed = !!opt.directed;
+
+  var layers = {};
+  ['cut','edge','hl','arrow','lab','node','badge'].forEach(function(k){
+    layers[k] = el('g', {}); svg.appendChild(layers[k]);
+  });
+  this.layers = layers;
+
+  /* --- sites first, because the link endpoints depend on their box widths --- */
+  this.nodes = {};
+  SITES.forEach(function(s){
+    var g   = el('g', { 'class':'nd', transform:'translate(' + s.x + ',' + s.y + ')' });
+    var box = el('rect', { 'class':'nd-box', x:-34, y:-15, width:68, height:30, rx:9 });
+    var txt = el('text', { 'class':'nd-txt', x:0, y:1 });
+    txt.textContent = s.name.toUpperCase();
+    g.appendChild(box); g.appendChild(txt);
+    layers.node.appendChild(g);
+    self.nodes[s.id] = { id:s.id, s:s, g:g, box:box, txt:txt, hw:34, hh:15, tag:null };
+  });
+  /* measure the real glyph run so the box always fits the word */
+  IDS.forEach(function(id){
+    var n = self.nodes[id], w = 0;
+    try { w = n.txt.getComputedTextLength(); } catch(e){ w = 0; }
+    if(!w) w = n.s.name.length * 8.4;                 /* headless fallback */
+    var bw = Math.max(56, Math.round(w) + 26);
+    n.hw = bw / 2;
+    n.box.setAttribute('x', -n.hw);
+    n.box.setAttribute('width', bw);
+  });
+
+  /* where a straight line leaves a rounded box, plus a small breathing gap */
+  function exit(n, ux, uy, pad){
+    var tx = ux !== 0 ? n.hw / Math.abs(ux) : Infinity;
+    var ty = uy !== 0 ? n.hh / Math.abs(uy) : Infinity;
+    var t  = Math.min(tx, ty) + pad;
+    return { x: n.s.x + ux * t, y: n.s.y + uy * t };
+  }
+
+  var HEAD = 10;
+  this.edges = LINKS.map(function(L, i){
+    var A = self.nodes[L.a], B = self.nodes[L.b];
+    var dx = B.s.x - A.s.x, dy = B.s.y - A.s.y, len = Math.hypot(dx, dy);
+    var ux = dx / len, uy = dy / len;
+    var p1 = exit(A, ux, uy, 4);
+    var p2 = exit(B, -ux, -uy, self.directed ? 4 + HEAD : 4);
+    var d  = 'M ' + p1.x.toFixed(1) + ' ' + p1.y.toFixed(1) + ' L ' + p2.x.toFixed(1) + ' ' + p2.y.toFixed(1);
+    var drawn = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+    var base = el('path', { 'class':'e-base', d:d });
+    var hl   = el('path', { 'class':'e-hl',   d:d });
+    hl.style.setProperty('--len', drawn.toFixed(1));
+    layers.edge.appendChild(base);
+    layers.hl.appendChild(hl);
+
+    var head = null;
+    if(self.directed){
+      var bx = p2.x - ux * HEAD, by = p2.y - uy * HEAD, px = -uy, py = ux, W = 5;
+      head = el('polygon', { 'class':'e-arrow', points:
+        p2.x.toFixed(1) + ',' + p2.y.toFixed(1) + ' ' +
+        (bx + px*W).toFixed(1) + ',' + (by + py*W).toFixed(1) + ' ' +
+        (bx - px*W).toFixed(1) + ',' + (by - py*W).toFixed(1) });
+      layers.arrow.appendChild(head);
+    }
+
+    /* weight chip, sitting on the line so the line reads as broken by it */
+    var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+    var lg = el('g', { 'class':'e-lab', transform:'translate(' + mx.toFixed(1) + ',' + my.toFixed(1) + ')' });
+    var lr = el('rect', { x:-12, y:-9, width:24, height:18, rx:5 });
+    var lt = el('text', { x:0, y:0.5 });
+    lg.appendChild(lr); lg.appendChild(lt);
+    layers.lab.appendChild(lg);
+
+    /* clickable strip for the build-your-own-route demo */
+    var hit = el('path', { 'class':'e-hit', d:d, fill:'none', stroke:'transparent', 'stroke-width':16 });
+    hit.style.pointerEvents = 'none';
+    layers.hl.appendChild(hit);
+
+    return { i:i, base:base, hl:hl, head:head, lab:lg, labRect:lr, labText:lt, hit:hit,
+             ux:ux, uy:uy, mid:{ x:mx, y:my } };
+  });
+
+  /* distance / key badge above each site */
+  this.badges = {};
+  IDS.forEach(function(id){
+    var n = self.nodes[id];
+    var g = el('g', { transform:'translate(' + n.s.x + ',' + (n.s.y - n.hh - 15) + ')' });
+    var b = el('g', { 'class':'bd' });
+    var r = el('rect', { x:-17, y:-10, width:34, height:20, rx:6 });
+    var t = el('text', { x:0, y:0.5 });
+    b.appendChild(r); b.appendChild(t);
+    g.appendChild(b);
+    layers.badge.appendChild(g);
+    self.badges[id] = { g:b, rect:r, text:t, last:null };
+  });
+
+  /* the min-cut curve, drawn once and revealed when it is earned */
+  this.cutPath = el('path', { 'class':'cutline', d:
+    'M 498 -14 C 518 70 512 122 452 182 C 400 236 372 254 336 296 C 306 332 296 384 278 434' });
+  /* the two halves are labelled well clear of the drawing, on their own side */
+  this.cutS = el('text', { 'class':'cut-tag', x: 225, y: 414 });
+  this.cutT = el('text', { 'class':'cut-tag', x: 690, y: 58 });
+  this.cutS.textContent = 'S';
+  this.cutT.textContent = 'T';
+  layers.cut.appendChild(this.cutPath);
+  layers.cut.appendChild(this.cutS);
+  layers.cut.appendChild(this.cutT);
+}
+
+/* wipe every piece of per-step state; each apply() starts from here */
+GraphView.prototype.clear = function(){
+  var self = this;
+  this.edges.forEach(function(e){
+    e.base.setAttribute('class', 'e-base');
+    e.hl.setAttribute('class', 'e-hl');
+    if(e.head) e.head.setAttribute('class', 'e-arrow');
+    e.lab.setAttribute('class', 'e-lab');
+    e.hit.style.pointerEvents = 'none';
+    e.hit.style.cursor = 'default';
+  });
+  IDS.forEach(function(id){ self.nodes[id].g.setAttribute('class', 'nd'); });
+  this.cutPath.classList.remove('show');
+  this.cutS.classList.remove('show');
+  this.cutT.classList.remove('show');
+};
+
+GraphView.prototype.edge = function(i, hlCls, baseCls){
+  var e = this.edges[i];
+  e.hl.setAttribute('class', 'e-hl ' + (hlCls || ''));
+  if(baseCls !== undefined) e.base.setAttribute('class', 'e-base ' + baseCls);
+};
+GraphView.prototype.arrow = function(i, cls){
+  var e = this.edges[i];
+  if(e.head) e.head.setAttribute('class', 'e-arrow ' + (cls || ''));
+};
+GraphView.prototype.label = function(i, text, cls){
+  var e = this.edges[i];
+  if(text !== null && text !== undefined){
+    e.labText.textContent = text;
+    var w = Math.max(24, String(text).length * 6.9 + 11);
+    e.labRect.setAttribute('x', (-w/2).toFixed(1));
+    e.labRect.setAttribute('width', w.toFixed(1));
+  }
+  e.lab.setAttribute('class', 'e-lab ' + (cls || ''));
+};
+GraphView.prototype.node = function(id, cls){
+  this.nodes[id].g.setAttribute('class', 'nd ' + (cls || ''));
+};
+/* All badges in one pass. The single forced reflow needed to restart the
+   "value changed" bump happens once, after every other class on the frame is
+   already final — otherwise the flush would commit a half-painted frame and
+   the whole graph would strobe on each step. */
+GraphView.prototype.setBadges = function(map){
+  var self = this, bump = [];
+  IDS.forEach(function(id){
+    var b = self.badges[id], m = map[id];
+    if(!m){ b.g.setAttribute('class', 'bd'); b.last = null; return; }
+    var str = String(m.text);
+    var w = Math.max(30, str.length * 7.4 + 14);
+    b.rect.setAttribute('x', (-w/2).toFixed(1));
+    b.rect.setAttribute('width', w.toFixed(1));
+    b.text.textContent = str;
+    b.g.setAttribute('class', 'bd show ' + (m.cls || ''));
+    if(b.last !== null && b.last !== str) bump.push(b.g);
+    b.last = str;
+  });
+  if(bump.length){
+    void this.svg.getBoundingClientRect();
+    bump.forEach(function(g){ g.classList.add('bump'); });
+  }
+};
+/* a permanent little caption under a site, e.g. SOURCE / SINK */
+GraphView.prototype.tag = function(id, text){
+  var n = this.nodes[id];
+  if(!n.tag){
+    n.tag = el('text', { 'class':'nd-tag', x:n.s.x, y:n.s.y + n.hh + 11 });
+    this.layers.node.appendChild(n.tag);
+  }
+  n.tag.textContent = text;
+};
+GraphView.prototype.showCut = function(on){
+  this.cutPath.classList.toggle('show', !!on);
+  this.cutS.classList.toggle('show', !!on);
+  this.cutT.classList.toggle('show', !!on);
+};
+
+/* --------------------------------------------------------------------------
+   Runner — play / pause / step / reset / speed over a recorded step list.
+   -------------------------------------------------------------------------- */
+var RUNNERS = [];
+var SPEEDS = [0.5, 1, 1.6, 2.6];
+
+function Runner(cfg){
+  var self = this;
+  this.steps = cfg.steps;
+  this.apply = cfg.apply;
+  this.ui    = cfg.ui;
+  this.base  = cfg.base || 1000;
+  this.i = 0; this.playing = false; this.timer = null; this.speed = 1;
+
+  this.ui.play.addEventListener('click', function(){ self.playing ? self.pause() : self.play(); });
+  this.ui.next.addEventListener('click', function(){ self.pause(); self.go(self.i + 1); });
+  this.ui.prev.addEventListener('click', function(){ self.pause(); self.go(self.i - 1); });
+  this.ui.reset.addEventListener('click', function(){ self.reset(); });
+  this.ui.speed.addEventListener('input', function(){
+    self.speed = SPEEDS[+self.ui.speed.value] || 1;
+    self.ui.speedv.textContent = self.speed + '×';
+    if(self.playing) self.tick();            /* new dwell takes effect at once */
+  });
+  RUNNERS.push(this);
+}
+Runner.prototype.setSteps = function(steps, keepIndex){
+  this.pause();
+  this.steps = steps;
+  this.i = keepIndex ? Math.min(this.i, steps.length - 1) : 0;
+  this.render();
+};
+Runner.prototype.render = function(){
+  var st = this.steps[this.i], last = this.steps.length - 1;
+  this.apply(this.i, st);
+  this.ui.pill.textContent = (this.i + 1) + ' / ' + this.steps.length;
+  this.ui.capT.innerHTML = st.title;
+  this.ui.capB.innerHTML = st.text;
+  this.ui.play.innerHTML = this.playing ? '&#10073;&#10073;&nbsp; Pause'
+                         : (this.i >= last ? '&#8635;&nbsp; Replay' : '&#9654;&nbsp; Play');
+  this.ui.prev.disabled = this.i === 0;
+  this.ui.next.disabled = this.i === last;
+};
+Runner.prototype.go = function(i){
+  var n = this.steps.length;
+  this.i = i < 0 ? 0 : (i > n - 1 ? n - 1 : i);
+  this.render();
+};
+Runner.prototype.tick = function(){
+  var self = this;
+  clearTimeout(this.timer);
+  if(!this.playing) return;
+  this.timer = setTimeout(function(){
+    if(self.i >= self.steps.length - 1){ self.pause(); return; }
+    self.go(self.i + 1);
+    self.tick();
+  }, this.base / this.speed);
+};
+Runner.prototype.play = function(){
+  if(this.i >= this.steps.length - 1) this.go(0);
+  this.playing = true; this.render(); this.tick();
+};
+Runner.prototype.pause = function(){
+  if(!this.playing){ clearTimeout(this.timer); return; }
+  this.playing = false; clearTimeout(this.timer); this.render();
+};
+Runner.prototype.reset = function(){
+  this.playing = false; clearTimeout(this.timer); this.go(0);
+};
+
+/* --------------------------------------------------------------------------
+   Small shared panel widgets
+   -------------------------------------------------------------------------- */
+
+/* the live queue: one chip per site, coloured by its state this step */
+function renderKeys(host, entries){
+  var html = entries.map(function(e){
+    var v = e.val === Infinity ? '∞' : (e.val === -Infinity ? '–' : e.val);
+    return '<div class="kchip ' + e.state + '"><span class="kn">' + NAME[e.id] +
+           '</span><span class="kv">' + v + '</span></div>';
+  }).join('');
+  if(host.innerHTML !== html) host.innerHTML = html;
+}
+
+function routeHTML(seq, w, unitCls){
+  var out = [];
+  seq.forEach(function(id, k){
+    out.push('<span class="hop">' + NAME[id] + '</span>');
+    if(k + 1 < seq.length){
+      var i = linkBetween(id, seq[k+1]);
+      out.push('<span class="arr">&rarr;</span><span class="via ' + (unitCls||'') + '">' + LINKS[i][w] + '</span><span class="arr">&rarr;</span>');
+    }
+  });
+  return out.join('');
+}
+
+function clone(o){ var c = {}; for(var k in o) c[k] = o[k]; return c; }
+
+/* queue chips, ordered the way a real priority queue would hand them out */
+function keyEntries(dist, settled, popping, worse){
+  var next = null;
+  if(!popping){
+    IDS.forEach(function(id){
+      if(!settled[id] && dist[id] !== Infinity && dist[id] !== -Infinity &&
+         (next === null || (worse ? dist[id] > dist[next] : dist[id] < dist[next]))) next = id;
+    });
+  }
+  var live = [], far = [];
+  IDS.forEach(function(id){
+    var v = dist[id];
+    var state = id === popping ? 'next'
+              : settled[id]    ? 'done'
+              : id === next    ? 'next'
+              : 'fr';
+    if(v === Infinity || v === -Infinity){ far.push({ id:id, val:v, state:'far' }); }
+    else live.push({ id:id, val:v, state:state, rank:(settled[id] ? 0 : 1) });
+  });
+  live.sort(function(p,q){
+    if(p.rank !== q.rank) return p.rank - q.rank;
+    return worse ? q.val - p.val : p.val - q.val;
+  });
+  return live.concat(far);
+}
+
+/* ==========================================================================
+   4. SECTION ONE — Dijkstra, Home to Harbor
+   ========================================================================== */
+(function sectionShortestPath(){
+  var gv  = new GraphView($('svg-sp'), { directed:false });
+  var SRC = 'home', DST = 'harbor';
+  var run = dijkstra(SRC, 't');
+  var best = pathFrom(run.prev, SRC, DST);
+  var bestNodes = nodesOf(best, SRC);
+  var bestTotal = sumOf(best, 't');
+
+  /* three routes a person would guess, priced by the same table */
+  var straight = ['home','depot','park','harbor'];
+  var fewest   = ['home','depot','clinic','harbor'];
+  var northern = ['home','school','mill','park','harbor'];
+
+  /* ---- record the run as steps ---- */
+  var steps = [];
+  var dist = {}, prev = {}, settled = {};
+  IDS.forEach(function(id){ dist[id] = Infinity; prev[id] = null; });
+  dist[SRC] = 0;
+
+  steps.push({
+    kind:'init', dist:clone(dist), prev:clone(prev), settled:{}, pop:null, rel:null,
+    title:'Everything starts at infinity',
+    text:'<b>Home</b> gets <span class="n">0</span>; every other site holds <span class="n">∞</span>, meaning “no route found yet”. Each value is a <b>tentative</b> best — an upper bound that only ever falls.'
+  });
+
+  run.log.forEach(function(L){
+    steps.push({
+      kind:'pop', pop:L.pop, dist:clone(dist), prev:clone(prev), settled:clone(settled), rel:null,
+      title: L.pop === SRC ? 'Pop Home — the source' : 'Pop ' + NAME[L.pop] + ' at ' + L.d,
+      text: L.pop === SRC
+        ? 'The queue hands back the smallest key, and at the start that is <b>Home</b> at <span class="n">0</span>. Popped means <b>settled</b>: this value will never change again.'
+        : '<b>' + NAME[L.pop] + '</b> holds the smallest key left, <span class="n">' + L.d + '</span>. Any other route to it would have to leave the settled region through a key that is already ≥ <span class="n">' + L.d + '</span>, then keep adding non-negative minutes — so it cannot come back under. <span class="n">' + L.d + '</span> is final.'
+    });
+    settled[L.pop] = true;
+    L.rel.forEach(function(r){ if(r.ok){ dist[r.v] = r.to; prev[r.v] = r.i; } });
+    var ups = L.rel.filter(function(r){ return r.ok; });
+    var live = L.rel.filter(function(r){ return !r.settled; });
+    steps.push({
+      kind:'relax', pop:L.pop, dist:clone(dist), prev:clone(prev), settled:clone(settled), rel:L.rel,
+      title:'Relax ' + NAME[L.pop] + '’s ' + live.length + (live.length === 1 ? ' open road' : ' open roads'),
+      text: ups.length
+        ? ups.map(function(r){
+            return '<b>' + NAME[r.v] + '</b> ' + (r.from === Infinity ? '<span class="n">∞</span>' : '<span class="n">' + r.from + '</span>') +
+                   ' → <span class="up">' + r.to + '</span>';
+          }).join(', ') + ' — each is <span class="n">' + L.d + ' + w</span> beating what that site was holding. ' +
+          (live.length - ups.length > 0 ? '<span class="no">The other ' + (live.length - ups.length) + ' kept their value.</span>' : '')
+        : '<span class="no">Nothing improved.</span> Every road out of ' + NAME[L.pop] + ' leads somewhere already settled, or offers a total no better than the value already stored there.'
+    });
+  });
+
+  var treePrev = clone(prev);
+  steps.push({
+    kind:'tree', dist:clone(dist), prev:treePrev, settled:clone(settled), pop:null, rel:null,
+    title:'The shortest-path tree',
+    text:'One parent edge per site, nine edges in total. This single tree holds the fastest route from Home to <b>every</b> site at once — Dijkstra never solved just the Harbor question.'
+  });
+  steps.push({
+    kind:'route', dist:clone(dist), prev:treePrev, settled:clone(settled), pop:null, rel:null,
+    title:'Home → Harbor in ' + bestTotal + ' minutes',
+    text:'Walk parent pointers back from Harbor: <b>' + seqText(bestNodes) + '</b>. Four hops, and it leaves the map’s obvious left-to-right corridor to do it.'
+  });
+
+  /* ---- panel ---- */
+  var qc = $('sp-qcount'), keys = $('sp-keys'), popline = $('sp-pop');
+  var rows = $('sp-rows'), relhead = $('sp-relhead');
+  var totalEl = $('sp-total'), routeEl = $('sp-route'), cmpEl = $('sp-compare');
+
+  function apply(idx, st){
+    gv.clear();
+
+    LINKS.forEach(function(L, i){ gv.label(i, L.t, ''); });
+
+    /* the tree grown so far */
+    IDS.forEach(function(id){
+      var i = st.prev[id];
+      if(i !== null && i !== undefined) gv.edge(i, 'k-acc thin on');
+    });
+
+    /* this step's relaxations sit on top of the tree */
+    if(st.rel){
+      st.rel.forEach(function(r){
+        if(r.settled) return;
+        gv.edge(r.i, r.ok ? 'k-good on fat' : 'k-ghost on');
+        gv.label(r.i, null, r.ok ? 'up' : 'lit');
+      });
+    }
+
+    /* the final answer traced over the tree */
+    if(st.kind === 'route'){
+      LINKS.forEach(function(L, i){ gv.edge(i, '', 'faded'); gv.label(i, null, 'mute'); });
+      IDS.forEach(function(id){
+        var i = st.prev[id];
+        if(i !== null && i !== undefined) gv.edge(i, 'k-ghost on');
+      });
+      best.forEach(function(i, k){
+        var fromNode = bestNodes[k];
+        gv.edge(i, 'k-acc on fat' + (LINKS[i].a === fromNode ? '' : ' rev'), '');
+        gv.label(i, null, 'lit');
+      });
+    }
+
+    /* sites */
+    IDS.forEach(function(id){
+      var cls = st.settled[id] ? 'on' : (st.dist[id] === Infinity ? 'idle' : '');
+      if(id === st.pop) cls = 'on cur';
+      if(id === SRC || id === DST) cls += ' term';
+      if(st.kind === 'route' && bestNodes.indexOf(id) < 0) cls = 'idle';
+      gv.node(id, cls);
+    });
+
+    /* badges */
+    var bmap = {};
+    IDS.forEach(function(id){
+      if(st.dist[id] === Infinity){ bmap[id] = { text:'∞', cls:'' }; return; }
+      var fresh = false;
+      if(st.rel) st.rel.forEach(function(r){ if(r.ok && r.v === id) fresh = true; });
+      bmap[id] = { text: st.dist[id], cls: fresh ? 'fresh' : (st.settled[id] ? 'set' : '') };
+    });
+    gv.setBadges(bmap);
+
+    /* ---- panel ---- */
+    var entries = keyEntries(st.dist, st.settled, st.kind === 'pop' ? st.pop : null, false);
+    renderKeys(keys, entries);
+    var nSettled = IDS.filter(function(id){ return st.settled[id]; }).length;
+    qc.textContent = nSettled + ' of 10 settled';
+
+    var nxt = entries.filter(function(e){ return e.state === 'next'; })[0];
+    if(st.kind === 'pop'){
+      popline.innerHTML = 'Popping <b>' + NAME[st.pop] + '</b> at <span class="n">' + st.dist[st.pop] +
+        '</span> — the smallest key in the queue.';
+    } else if(nxt){
+      popline.innerHTML = 'Pops next: <b>' + NAME[nxt.id] + '</b> at <span class="n">' + nxt.val +
+        '</span>, because nothing unsettled is smaller.';
+    } else {
+      popline.innerHTML = 'Queue empty — all ten sites settled.';
+    }
+
+    if(st.rel){
+      var live = st.rel.filter(function(r){ return !r.settled; });
+      relhead.textContent = 'from ' + NAME[st.pop] + ' (' + st.dist[st.pop] + ')';
+      rows.innerHTML = live.length ? live.map(function(r){
+        var w = LINKS[r.i].t;
+        if(r.ok) return '<div class="row ok"><span class="mark">✓</span><span class="txt"><b>' + NAME[r.v] +
+          '</b> <span class="n">' + st.dist[st.pop] + '+' + w + '=' + r.to + '</span> beats <span class="was">' +
+          (r.from === Infinity ? '∞' : r.from) + '</span> <span class="now">' + r.to + '</span></span></div>';
+        return '<div class="row no"><span class="mark">·</span><span class="txt"><b>' + NAME[r.v] +
+          '</b> <span class="n">' + st.dist[st.pop] + '+' + w + '=' + r.cand + '</span> loses to <span class="n">' +
+          (r.from === Infinity ? '∞' : r.from) + '</span></span></div>';
+      }).join('') : '<div class="row empty">every road from here reaches a settled site</div>';
+    } else {
+      relhead.textContent = '';
+      rows.innerHTML = '<div class="row empty">' +
+        (st.kind === 'init' ? 'nothing relaxed yet' : 'waiting on the next pop') + '</div>';
+    }
+
+    /* result */
+    if(st.dist[DST] === Infinity){
+      totalEl.textContent = '—'; totalEl.setAttribute('data-v', '0');
+      routeEl.innerHTML = '<span class="hop">Harbor not reached yet</span>';
+      cmpEl.innerHTML = 'Harbor is still holding <span class="n">∞</span>.';
+    } else {
+      countTo(totalEl, st.dist[DST]);
+      var pth = pathFrom(st.prev, SRC, DST);
+      routeEl.innerHTML = routeHTML(nodesOf(pth, SRC), 't');
+      var settledDst = st.settled[DST];
+      cmpEl.innerHTML = (settledDst ? 'Settled. ' : 'Still tentative — a later pop may beat it. ') +
+        'For contrast, the routes a driver would guess: the straight left-to-right run ' +
+        '<b>' + seqText(straight) + '</b> costs <span class="n">' + routeSum(straight,'t') + '</span>, ' +
+        'the fewest-hop route <b>Depot → Clinic → Harbor</b> costs <span class="n">' + routeSum(fewest,'t') + '</span>, ' +
+        'and the northern run through Mill costs <span class="n">' + routeSum(northern,'t') + '</span>. ' +
+        (settledDst ? 'The winner takes <b>more hops than any of them</b>.' : '');
+    }
+  }
+
+  new Runner({
+    steps: steps, apply: apply, base: 1050,
+    ui: { play:$('sp-play'), next:$('sp-next'), prev:$('sp-prev'), reset:$('sp-reset'),
+          speed:$('sp-speed'), speedv:$('sp-speedv'), pill:$('sp-pill'),
+          capT:$('sp-capT'), capB:$('sp-capB') }
+  }).render();
+})();
+
+/* ==========================================================================
+   5. SECTION TWO — Prim's minimum spanning tree
+   ========================================================================== */
+(function sectionMST(){
+  var gv   = new GraphView($('svg-mst'), { directed:false });
+  var ROOT = 'home';
+  var pr   = prim(ROOT, 'c', false);
+
+  /* the two naive plans, both priced by the same cost column */
+  var buildAll = LINKS.reduce(function(s,L){ return s + L.c; }, 0);
+  var hub      = dijkstra('depot', 'c');
+  var hubEdges = IDS.filter(function(id){ return hub.prev[id] !== null; }).map(function(id){ return hub.prev[id]; });
+  var hubTotal = hubEdges.reduce(function(s,i){ return s + LINKS[i].c; }, 0);
+
+  /* the pair that shows an MST is not a shortest-path tree */
+  var DA = 'park', DB = 'yard';
+  var divTree = treePath(pr.tree, DA, DB);
+  var divTreeCost = sumOf(divTree, 'c');
+  var divSP = pathFrom(dijkstra(DA, 'c').prev, DA, DB);
+  var divSPCost = sumOf(divSP, 'c');
+
+  /* ---- record ---- */
+  var steps = [];
+  var key = {}, via = {}, inT = {}, tree = [], total = 0;
+  IDS.forEach(function(id){ key[id] = Infinity; via[id] = null; });
+  key[ROOT] = 0;
+
+  pr.log.forEach(function(L, k){
+    inT[L.add] = true;
+    if(L.edge !== null && L.edge !== undefined){ tree.push(L.edge); total = L.total; }
+    L.upd.forEach(function(u){ if(!u.skip){ key[u.v] = u.to; via[u.v] = u.i; } });
+    var improved = L.upd.filter(function(u){ return !u.skip; });
+    var title, text;
+    if(L.edge === null || L.edge === undefined){
+      title = 'Start anywhere — say Home';
+      text = 'The root is arbitrary: a minimum spanning tree has no direction and no origin. Each of the four links out of Home becomes that neighbour’s current best offer.';
+    } else {
+      var w = LINKS[L.edge].c;
+      title = 'Add ' + NAME[L.add] + ' for ' + w;
+      text = 'Of every link with one end inside the tree and one end outside, <b>' +
+        NAME[LINKS[L.edge].a] + '–' + NAME[LINKS[L.edge].b] + '</b> at <span class="n">' + w +
+        '</span> is the cheapest. The cut property says the cheapest link across any split is safe, so this one can be committed without ever being revisited. Total <span class="n">' + L.total + '</span>.' +
+        (improved.length ? ' ' + improved.map(function(u){
+          return '<b>' + NAME[u.v] + '</b> ' + (u.from === Infinity ? '<span class="n">∞</span>' : '<span class="n">' + u.from + '</span>') +
+                 ' → <span class="up">' + u.to + '</span>';
+        }).join(', ') + '.' : '');
+    }
+    steps.push({
+      kind:'grow', add:L.add, edge:L.edge, upd:L.upd,
+      key:clone(key), via:clone(via), inT:clone(inT), tree:tree.slice(), total:total,
+      title:title, text:text
+    });
+  });
+
+  var full = { key:clone(key), via:clone(via), inT:clone(inT), tree:tree.slice(), total:total };
+  steps.push({
+    kind:'done', add:null, edge:null, upd:null,
+    key:full.key, via:full.via, inT:full.inT, tree:full.tree, total:full.total,
+    title:'Nine links, ' + pr.total + ' spent',
+    text:'Every site reachable, nothing spare: a spanning tree on ten sites always has exactly nine edges. Digging all twenty corridors would cost <span class="n">' + buildAll +
+         '</span>; wiring every site back to a Depot hub along its own cheapest route costs <span class="n">' + hubTotal +
+         '</span>. Both connect the city. Only <span class="n">' + pr.total + '</span> is minimal.'
+  });
+  steps.push({
+    kind:'diverge', add:null, edge:null, upd:null,
+    key:full.key, via:full.via, inT:full.inT, tree:full.tree, total:full.total,
+    title:'Cheapest network ≠ shortest routes',
+    text:'Park and Yard have a direct link costing <span class="n">' + divSPCost +
+         '</span> — the shortest path between them. The MST left it out, so inside the tree they are <b>' +
+         divTreeCost + '</b> apart, ' + Math.round((divTreeCost / divSPCost - 1) * 100) +
+         '% worse. Dropping that link is exactly how the total came down.'
+  });
+
+  /* ---- panel ---- */
+  var keysEl = $('ms-keys'), popEl = $('ms-pop'), rowsEl = $('ms-rows');
+  var totalEl = $('ms-total'), tagEl = $('ms-tag');
+  var barsEl = $('ms-bars'), barNote = $('ms-barnote'), divEl = $('ms-div');
+
+  function bars(show){
+    var max = buildAll;
+    var data = [
+      { l:'Minimum spanning tree', v:pr.total,  c:'win' },
+      { l:'Hub-and-spoke on Depot', v:hubTotal, c:'mid' },
+      { l:'Dig every corridor',     v:buildAll, c:'lose' }
+    ];
+    barsEl.innerHTML = data.map(function(d){
+      var pct = show ? Math.round(d.v / max * 100) : 0;
+      return '<div class="bar ' + d.c + '"><span class="bl">' + d.l + '</span>' +
+             '<span class="bt"><span class="bf" style="width:' + pct + '%"></span></span>' +
+             '<span class="bv">' + (show ? d.v : '—') + '</span></div>';
+    }).join('');
+    barNote.innerHTML = show
+      ? 'The hub plan is a <b>shortest-path tree</b> — every site wired to Depot by its own cheapest route. It is only <span class="n">' +
+        (hubTotal - pr.total) + '</span> more here, but it is a different tree, and section 4 shows the single line of code that separates them.'
+      : 'Totals appear once the tree is finished.';
+  }
+
+  function apply(idx, st){
+    gv.clear();
+    LINKS.forEach(function(L, i){ gv.label(i, L.c, ''); });
+
+    if(st.kind === 'diverge'){
+      LINKS.forEach(function(L, i){ gv.edge(i, '', 'faded'); gv.label(i, null, 'mute'); });
+      st.tree.forEach(function(i){ gv.edge(i, 'k-ghost on'); });
+      var seq = nodesOf(divTree, DA);
+      divTree.forEach(function(i, k){
+        gv.edge(i, 'k-acc on fat' + (LINKS[i].a === seq[k] ? '' : ' rev'), '');
+        gv.label(i, null, 'lit');
+      });
+      divSP.forEach(function(i){ gv.edge(i, 'k-bad on fat'); gv.label(i, null, 'hot'); });
+      IDS.forEach(function(id){ gv.node(id, seq.indexOf(id) >= 0 ? 'on' : 'idle'); });
+      gv.node(DA, 'on cur'); gv.node(DB, 'on cur');
+      gv.setBadges({});
+    } else {
+      /* the tree so far */
+      st.tree.forEach(function(i){ gv.edge(i, 'k-acc on'); gv.label(i, null, 'lit'); });
+      /* the offers currently on the table */
+      IDS.forEach(function(id){
+        if(st.inT[id]) return;
+        var i = st.via[id];
+        if(i !== null && i !== undefined){ gv.edge(i, 'k-ghost on'); gv.label(i, null, ''); }
+      });
+      if(st.edge !== null && st.edge !== undefined){
+        gv.edge(st.edge, 'k-acc on fat');
+        gv.label(st.edge, null, 'up');
+      }
+      IDS.forEach(function(id){
+        var cls = st.inT[id] ? 'on' : (st.via[id] !== null && st.via[id] !== undefined ? '' : 'idle');
+        if(id === st.add) cls = 'on cur';
+        gv.node(id, cls);
+      });
+      var bmap = {};
+      IDS.forEach(function(id){
+        if(st.inT[id]){ bmap[id] = { text:'✓', cls:'set' }; return; }
+        if(st.key[id] === Infinity){ bmap[id] = { text:'∞', cls:'' }; return; }
+        var fresh = st.upd && st.upd.some(function(u){ return !u.skip && u.v === id; });
+        bmap[id] = { text:st.key[id], cls: fresh ? 'fresh' : '' };
+      });
+      gv.setBadges(bmap);
+    }
+
+    /* panel */
+    renderKeys(keysEl, keyEntries(st.key, st.inT, null, false));
+    var outside = IDS.filter(function(id){ return !st.inT[id] && st.key[id] !== Infinity; });
+    outside.sort(function(p,q){ return st.key[p] - st.key[q]; });
+    if(outside.length){
+      var n = outside[0], i = st.via[n];
+      popEl.innerHTML = 'Joins next: <b>' + NAME[n] + '</b> through <b>' + NAME[LINKS[i].a] + '–' + NAME[LINKS[i].b] +
+        '</b> at <span class="n">' + st.key[n] + '</span> — no cheaper link crosses the cut.';
+    } else {
+      popEl.innerHTML = 'Every site is in the tree. <b>' + st.tree.length + '</b> links chosen.';
+    }
+
+    if(st.upd && st.upd.length){
+      rowsEl.innerHTML = st.upd.map(function(u){
+        if(!u.skip) return '<div class="row ok"><span class="mark">✓</span><span class="txt"><b>' + NAME[u.v] +
+          '</b> can now join for <span class="now">' + u.to + '</span>, was <span class="was">' +
+          (u.from === Infinity ? '∞' : u.from) + '</span></span></div>';
+        return '<div class="row no"><span class="mark">·</span><span class="txt"><b>' + NAME[u.v] +
+          '</b> keeps <span class="n">' + u.from + '</span>, this link costs <span class="n">' + u.to + '</span></span></div>';
+      }).join('');
+    } else {
+      rowsEl.innerHTML = '<div class="row empty">' +
+        (st.kind === 'grow' ? 'no outside site was touched by this one' : 'tree complete') + '</div>';
+    }
+
+    countTo(totalEl, st.total);
+    tagEl.textContent = st.tree.length + ' of 9 links';
+    bars(st.kind !== 'grow' || st.tree.length === 9);
+    divEl.innerHTML = st.kind === 'diverge'
+      ? '<b>' + NAME[DA] + ' → ' + NAME[DB] + '</b>: shortest path <span class="n">' + divSPCost +
+        '</span> (the direct link, in red) versus <span class="n">' + divTreeCost + '</span> through the tree (' +
+        seqText(nodesOf(divTree, DA)) + '). An MST minimises the <b>sum of all its edges</b>, and never promised anything about the distance between any particular pair.'
+      : 'Step to the end to see the pair where the tree route is far longer than the shortest one.';
+  }
+
+  new Runner({
+    steps: steps, apply: apply, base: 1200,
+    ui: { play:$('ms-play'), next:$('ms-next'), prev:$('ms-prev'), reset:$('ms-reset'),
+          speed:$('ms-speed'), speedv:$('ms-speedv'), pill:$('ms-pill'),
+          capT:$('ms-capT'), capB:$('ms-capB') }
+  }).render();
+})();
+
+/* ==========================================================================
+   6. SECTION THREE — Edmonds-Karp, Plant to Harbor
+   ========================================================================== */
+(function sectionFlow(){
+  var gv  = new GraphView($('svg-flow'), { directed:true });
+  var S = 'plant', T = 'harbor';
+  var capOf = function(i){ return LINKS[i].cap; };
+  var ek = edmondsKarp(S, T, capOf);
+
+  var srcOut = LINKS.filter(function(L){ return L.a === S; }).reduce(function(x,L){ return x + L.cap; }, 0);
+  var sinkIn = LINKS.filter(function(L){ return L.b === T; }).reduce(function(x,L){ return x + L.cap; }, 0);
+  var zero = LINKS.map(function(){ return 0; });
+
+  gv.tag(S, 'SOURCE'); gv.tag(T, 'SINK');
+
+  /* ---- record ---- */
+  var steps = [{
+    kind:'init', flow:zero, path:null, k:-1, done:0, total:0, cut:false,
+    title:'Every pipe empty',
+    text:'Labels read <span class="n">flow / capacity</span>. The Plant can push <span class="n">' + srcOut +
+         '</span> into the network and the Harbor can swallow <span class="n">' + sinkIn +
+         '</span> — so the answer is somewhere at or below <span class="n">' + Math.min(srcOut, sinkIn) + '</span>. Usually it is below both.'
+  }];
+
+  ek.aug.forEach(function(A, k){
+    var tightName = NAME[LINKS[A.tight].a] + '→' + NAME[LINKS[A.tight].b];
+    var spare = capOf(A.tight) - A.before[A.tight];
+    steps.push({
+      kind:'find', flow:A.before, path:A, k:k, done:k, total:A.total - A.bottleneck, cut:false,
+      title:'Augmenting path ' + (k+1) + ' — ' + A.arcs.length + ' pipes',
+      text:'BFS on the residual graph finds <b>' + seqText(A.nodes) + '</b>: every pipe on it still has room. ' +
+           'The <b>bottleneck</b> is <span class="hot">' + tightName + '</span> with only <span class="n">' + spare +
+           '</span> spare, so this path can carry <span class="n">' + A.bottleneck + '</span> and no more.'
+    });
+    steps.push({
+      kind:'push', flow:A.after, path:A, k:k, done:k+1, total:A.total, cut:false,
+      title:'Push ' + A.bottleneck + ' — running total ' + A.total,
+      text:'Every label on the path goes up by <span class="n">' + A.bottleneck + '</span>, and <span class="hot">' +
+           tightName + '</span> is now full. A full pipe is gone from the forward search, but a <b>residual arc</b> appears pointing backwards along it — that is the escape hatch letting a later path undo this one if it has to.'
+    });
+  });
+
+  steps.push({
+    kind:'stuck', flow:ek.flow, path:null, k:-1, done:ek.aug.length, total:ek.total, cut:false,
+    title:'No augmenting path left',
+    text:'BFS from the Plant now runs out of residual capacity before it can reach the Harbor. Ford–Fulkerson stops here: <b>' +
+         ek.total + ' kL/min</b>. The sites BFS could still reach are about to matter.'
+  });
+  steps.push({
+    kind:'cut', flow:ek.flow, path:null, k:-1, done:ek.aug.length, total:ek.total, cut:true,
+    title:'The min cut, for free',
+    text:'Split the city into what the last BFS reached (<b>S</b>) and what it did not (<b>T</b>). Exactly ' +
+         ek.cut.length + ' pipes cross that line and every one of them is <b>full</b>: ' +
+         ek.cut.map(function(i){ return NAME[LINKS[i].a] + '→' + NAME[LINKS[i].b] + ' <span class="n">' + LINKS[i].cap + '</span>'; }).join(', ') +
+         ' — total <span class="hot">' + ek.cutCap + '</span>, the same number as the flow.'
+  });
+
+  /* ---- panel ---- */
+  var pathsEl = $('fl-paths'), totalEl = $('fl-total'), cutEl = $('fl-cut'), factsEl = $('fl-facts');
+  var inS = {}; ek.S.forEach(function(id){ inS[id] = true; });
+
+  function apply(idx, st){
+    gv.clear();
+
+    LINKS.forEach(function(L, i){
+      var f = st.flow[i], full = f >= L.cap;
+      gv.label(i, f + '/' + L.cap, f === 0 ? 'mute' : (full ? 'hot' : 'lit'));
+      if(f > 0){ gv.edge(i, 'k-acc on thin'); gv.arrow(i, 'a-on'); }
+      else     { gv.edge(i, ''); gv.arrow(i, 'a-faded'); }
+      if(full){ gv.edge(i, 'k-bad on thin'); gv.arrow(i, 'a-bad'); }
+    });
+
+    if(st.path){
+      var seq = st.path.nodes;
+      st.path.arcs.forEach(function(a, k){
+        var back = !a.fwd;
+        gv.edge(a.i, (back ? 'k-good' : 'k-acc') + ' on fat' + (LINKS[a.i].a === seq[k] ? '' : ' rev'));
+        gv.arrow(a.i, back ? 'a-r3' : 'a-on');
+        gv.label(a.i, null, st.kind === 'find' ? 'lit' : 'up');
+      });
+      gv.edge(st.path.tight, 'k-bad on fat');
+      gv.label(st.path.tight, null, 'hot');
+      IDS.forEach(function(id){ gv.node(id, seq.indexOf(id) >= 0 ? 'on' : 'idle'); });
+    } else {
+      IDS.forEach(function(id){ gv.node(id, st.total > 0 ? 'on' : ''); });
+    }
+
+    if(st.cut){
+      LINKS.forEach(function(L, i){ if(ek.cut.indexOf(i) < 0) gv.edge(i, st.flow[i] > 0 ? 'k-ghost on' : ''); });
+      ek.cut.forEach(function(i){ gv.edge(i, 'k-bad on fat dash'); gv.arrow(i, 'a-bad'); gv.label(i, null, 'hot'); });
+      IDS.forEach(function(id){ gv.node(id, inS[id] ? 'on' : 'inT'); });
+    }
+    gv.showCut(st.cut);
+
+    gv.node(S, (st.cut || st.path || st.total > 0 ? 'on' : '') + ' term');
+    gv.node(T, (st.cut ? 'inT' : (st.path || st.total > 0 ? 'on' : '')) + ' term');
+    gv.setBadges({});
+
+    /* panel */
+    pathsEl.innerHTML = ek.aug.map(function(A, k){
+      var current = st.k === k;
+      var pend = k >= st.done && !current;
+      return '<div class="pth ' + (current ? 'now ' : '') + (pend ? 'pend' : '') + '">' +
+             '<span class="idx">' + (k+1) + '</span><span class="seq">' + seqText(A.nodes) +
+             '</span><span class="bn">+' + A.bottleneck + '</span></div>';
+    }).join('');
+
+    countTo(totalEl, st.total);
+
+    if(st.cut){
+      cutEl.innerHTML = '<b>S</b> = ' + names(ek.S).join(', ') + '. <b>T</b> = everything else. ' +
+        'The ' + ek.cut.length + ' pipes crossing add up to <span class="n">' + ek.cutCap +
+        '</span>, and the flow reached <span class="n">' + ek.total + '</span>. Equal — so both are optimal.';
+      factsEl.innerHTML =
+        '<span class="fact hot">min cut <span class="n">' + ek.cutCap + '</span></span>' +
+        '<span class="fact good">max flow <span class="n">' + ek.total + '</span></span>' +
+        '<span class="fact">cut at the source <span class="n">' + srcOut + '</span></span>' +
+        '<span class="fact">cut at the sink <span class="n">' + sinkIn + '</span></span>';
+    } else {
+      cutEl.innerHTML = 'When BFS finally fails, the set of sites it still reached is a <b>minimum cut</b> — and the pipes leaving that set are all full. Run to the end to see it drawn.';
+      factsEl.innerHTML =
+        '<span class="fact">pipes out of Plant <span class="n">' + srcOut + '</span></span>' +
+        '<span class="fact">pipes into Harbor <span class="n">' + sinkIn + '</span></span>' +
+        '<span class="fact">paths so far <span class="n">' + st.done + '</span></span>';
+    }
+  }
+
+  new Runner({
+    steps: steps, apply: apply, base: 1250,
+    ui: { play:$('fl-play'), next:$('fl-next'), prev:$('fl-prev'), reset:$('fl-reset'),
+          speed:$('fl-speed'), speedv:$('fl-speedv'), pill:$('fl-pill'),
+          capT:$('fl-capT'), capB:$('fl-capB') }
+  }).render();
+})();
+
+/* ==========================================================================
+   7A. CONNECTIONS — Prim is Dijkstra with one expression swapped
+   ========================================================================== */
+var connA = (function(){
+  var gv = new GraphView($('svg-ca'), { directed:false });
+  var ROOT = 'depot';
+
+  var pr = prim(ROOT, 'c', false);
+  var dj = dijkstra(ROOT, 'c');
+  var sptEdges = IDS.filter(function(id){ return dj.prev[id] !== null; }).map(function(id){ return dj.prev[id]; });
+  var sptTotal = sptEdges.reduce(function(s,i){ return s + LINKS[i].c; }, 0);
+  var onlyMST = pr.tree.filter(function(i){ return sptEdges.indexOf(i) < 0; });
+  var onlySPT = sptEdges.filter(function(i){ return pr.tree.indexOf(i) < 0; });
+
+  /* Prim's steps: growing a tree, keys are raw edge costs */
+  function primSteps(){
+    var steps = [], key = {}, via = {}, inT = {}, tree = [], total = 0;
+    IDS.forEach(function(id){ key[id] = Infinity; via[id] = null; });
+    key[ROOT] = 0;
+    pr.log.forEach(function(L){
+      inT[L.add] = true;
+      if(L.edge !== null && L.edge !== undefined){ tree.push(L.edge); total = L.total; }
+      L.upd.forEach(function(u){ if(!u.skip){ key[u.v] = u.to; via[u.v] = u.i; } });
+      steps.push({
+        add:L.add, edge:L.edge, key:clone(key), via:clone(via), inT:clone(inT),
+        tree:tree.slice(), total:total, treeCost:total,
+        title: L.edge == null ? 'Prim from Depot' : 'Take ' + NAME[L.add] + ', key = ' + LINKS[L.edge].c,
+        text: L.edge == null
+          ? 'Same queue, same loop, same root. Prim’s key for a site is <b>the cost of the single link that would attach it</b> — nothing about Depot enters the number.'
+          : '<b>' + NAME[L.add] + '</b> had the smallest key, <span class="n">' + LINKS[L.edge].c +
+            '</span>, which is just the price of <b>' + NAME[LINKS[L.edge].a] + '–' + NAME[LINKS[L.edge].b] +
+            '</b>. Cable in the tree so far: <span class="n">' + total + '</span>.'
+      });
+    });
+    steps.push({
+      add:null, edge:null, key:clone(key), via:clone(via), inT:clone(inT),
+      tree:tree.slice(), total:total, treeCost:total, done:true,
+      title:'Prim’s tree: ' + total + ' of cable',
+      text:'Cheapest possible way to connect all ten sites. It says nothing at all about how far anything is from Depot.'
+    });
+    return steps;
+  }
+
+  /* Dijkstra's steps, shaped identically so the two are comparable frame by
+     frame: same root, same pops, but the key carries dist[u] + w */
+  function dijkstraSteps(){
+    var steps = [], dist = {}, via = {}, done = {}, tree = [], total = 0;
+    IDS.forEach(function(id){ dist[id] = Infinity; via[id] = null; });
+    dist[ROOT] = 0;
+    steps.push({
+      add:ROOT, edge:null, key:clone(dist), via:clone(via), inT:{ depot:true },
+      tree:[], total:0, treeCost:0,
+      title:'Dijkstra from Depot',
+      text:'Same queue, same loop, same root. Dijkstra’s key is <b>the whole distance back to Depot</b>, so every relaxation carries the accumulated total with it.'
+    });
+    dj.log[0].rel.forEach(function(r){ if(r.ok){ dist[r.v] = r.to; via[r.v] = r.i; } });
+    done[ROOT] = true;
+    steps[0].key = clone(dist); steps[0].via = clone(via); steps[0].inT = clone(done);
+    dj.log.slice(1).forEach(function(L){
+      done[L.pop] = true; tree.push(L.via); total += LINKS[L.via].c;
+      L.rel.forEach(function(r){ if(r.ok){ dist[r.v] = r.to; via[r.v] = r.i; } });
+      steps.push({
+        add:L.pop, edge:L.via, key:clone(dist), via:clone(via), inT:clone(done),
+        tree:tree.slice(), total:L.d, treeCost:total,
+        title:'Take ' + NAME[L.pop] + ', key = ' + L.d,
+        text:'<b>' + NAME[L.pop] + '</b> had the smallest key, <span class="n">' + L.d +
+          '</span>, which is <span class="n">' + (L.d - LINKS[L.via].c) + ' + ' + LINKS[L.via].c +
+          '</span> — the distance to its parent plus the link. Cable in the tree so far: <span class="n">' + total + '</span>.'
+      });
+    });
+    steps.push({
+      add:null, edge:null, key:clone(dist), via:clone(via), inT:clone(done),
+      tree:tree.slice(), total:0, treeCost:total, done:true,
+      title:'Dijkstra’s tree: ' + total + ' of cable',
+      text:'Every site is as close to Depot as it can be — and the cable bill is <span class="n">' +
+           (total - pr.total) + '</span> higher than Prim’s. Optimising distances is not optimising the network.'
+    });
+    return steps;
+  }
+
+  var STEPS = { prim:primSteps(), dij:dijkstraSteps() };
+  var mode = 'prim';
+
+  var keysEl = $('ca-keys'), popEl = $('ca-pop'), codeEl = $('ca-code');
+  var noteEl = $('ca-codenote'), whoEl = $('ca-who'), totalEl = $('ca-total');
+  var unitEl = $('ca-unit'), tagEl = $('ca-tag'), diffEl = $('ca-diff');
+
+  function code(){
+    var expr = mode === 'prim' ? 'w' : 'key[u] + w';
+    codeEl.innerHTML =
+      '<span class="cm">// grow a tree outward from one root</span>\n' +
+      'key[root] = 0\n' +
+      '<span class="kw">while</span> queue not empty:\n' +
+      '    u = <span class="kw">pop-min</span>(queue)\n' +
+      '    tree.add(parent[u])\n' +
+      '    <span class="kw">for</span> (u, v, w) <span class="kw">in</span> edges(u):\n' +
+      '        cand = <span class="hl" id="ca-hl">' + expr + '</span>\n' +
+      '        <span class="kw">if</span> cand &lt; key[v]:\n' +
+      '            key[v]    = cand\n' +
+      '            parent[v] = (u, v)';
+    var hl = $('ca-hl');
+    if(hl) flash(hl, 'flip');
+    noteEl.innerHTML = mode === 'prim'
+      ? 'Prim asks <b>how cheap is the link in front of me</b>. The root drops out of the arithmetic entirely, which is why the tree it builds does not depend on where it started.'
+      : 'Dijkstra asks <b>how far is that from the root</b>. The <span class="n">key[u] +</span> is the whole difference: it makes the key cumulative, and a cumulative key builds a completely different tree.';
+    whoEl.textContent = mode === 'prim' ? 'Prim' : 'Dijkstra';
+  }
+
+  function apply(idx, st){
+    gv.clear();
+    LINKS.forEach(function(L, i){ gv.label(i, L.c, ''); });
+
+    st.tree.forEach(function(i){ gv.edge(i, 'k-acc on'); gv.label(i, null, 'lit'); });
+    IDS.forEach(function(id){
+      if(st.inT[id]) return;
+      var i = st.via[id];
+      if(i !== null && i !== undefined){ gv.edge(i, 'k-ghost on'); }
+    });
+    if(st.edge !== null && st.edge !== undefined){ gv.edge(st.edge, 'k-acc on fat'); gv.label(st.edge, null, 'up'); }
+
+    if(st.done){
+      onlyMST.forEach(function(i){ gv.edge(i, (mode === 'prim' ? 'k-good' : 'k-ghost') + ' on fat'); gv.label(i, null, mode === 'prim' ? 'up' : ''); });
+      onlySPT.forEach(function(i){ gv.edge(i, (mode === 'dij'  ? 'k-good' : 'k-ghost') + ' on fat'); gv.label(i, null, mode === 'dij'  ? 'up' : ''); });
+    }
+
+    IDS.forEach(function(id){
+      var cls = st.inT[id] ? 'on' : (st.via[id] !== null && st.via[id] !== undefined ? '' : 'idle');
+      if(id === st.add) cls = 'on cur';
+      if(id === ROOT) cls += ' term';
+      gv.node(id, cls);
+    });
+
+    var bmap = {};
+    IDS.forEach(function(id){
+      if(st.key[id] === Infinity){ bmap[id] = { text:'∞', cls:'' }; return; }
+      bmap[id] = { text:st.key[id], cls: st.inT[id] ? 'set' : '' };
+    });
+    gv.setBadges(bmap);
+
+    renderKeys(keysEl, keyEntries(st.key, st.inT, null, false));
+    var out = IDS.filter(function(id){ return !st.inT[id] && st.key[id] !== Infinity; });
+    out.sort(function(p,q){ return st.key[p] - st.key[q]; });
+    popEl.innerHTML = out.length
+      ? 'Pops next: <b>' + NAME[out[0]] + '</b> at <span class="n">' + st.key[out[0]] + '</span> — ' +
+        (mode === 'prim' ? 'the price of one link.' : 'a distance measured all the way back to Depot.')
+      : 'Queue empty. Nine links chosen either way.';
+
+    countTo(totalEl, st.treeCost);
+    unitEl.textContent = '£10k of cable in the tree';
+    tagEl.innerHTML = st.tree.length + ' of 9 links · Prim <span style="color:var(--ink)">' + pr.total +
+                      '</span> vs Dijkstra <span style="color:var(--ink)">' + sptTotal + '</span>';
+
+    diffEl.innerHTML = st.done
+      ? 'Seven of the nine links are the same in both trees. They part on two: Prim keeps <b>' +
+        onlyMST.map(function(i){ return NAME[LINKS[i].a] + '–' + NAME[LINKS[i].b] + ' (' + LINKS[i].c + ')'; }).join(' and ') +
+        '</b>; Dijkstra takes <b>' +
+        onlySPT.map(function(i){ return NAME[LINKS[i].a] + '–' + NAME[LINKS[i].b] + ' (' + LINKS[i].c + ')'; }).join(' and ') +
+        '</b> instead, because reaching Park through Mill is cheap cable but a long way round from Depot. Cost of that difference: <span class="n">' +
+        (sptTotal - pr.total) + '</span>.'
+      : 'Run either algorithm to the end, then flip the switch — the two trees agree everywhere except two links.';
+  }
+
+  var runner = new Runner({
+    steps: STEPS[mode], apply: apply, base: 1150,
+    ui: { play:$('ca-play'), next:$('ca-next'), prev:$('ca-prev'), reset:$('ca-reset'),
+          speed:$('ca-speed'), speedv:$('ca-speedv'), pill:$('ca-pill'),
+          capT:$('ca-capT'), capB:$('ca-capB') }
+  });
+
+  function setMode(m){
+    if(mode === m) return;
+    mode = m;
+    $('ca-pri').setAttribute('aria-pressed', m === 'prim' ? 'true' : 'false');
+    $('ca-dij').setAttribute('aria-pressed', m === 'dij'  ? 'true' : 'false');
+    code();
+    runner.setSteps(STEPS[m], true);      /* stay where you are and watch it change */
+  }
+  $('ca-pri').addEventListener('click', function(){ setMode('prim'); });
+  $('ca-dij').addEventListener('click', function(){ setMode('dij'); });
+
+  code();
+  runner.render();
+  return runner;
+})();
+
+/* ==========================================================================
+   7B. CONNECTIONS — the heaviest truck, answered by a spanning tree
+   ========================================================================== */
+var connB = (function(){
+  var gv = new GraphView($('svg-cb'), { directed:false });
+  var ROOT = 'home', DST = 'harbor';
+  var mx = prim(ROOT, 'lim', true);                 /* maximum spanning tree */
+  var wide = treePath(mx.tree, ROOT, DST);
+  var wideSeq = nodesOf(wide, ROOT);
+  var wideVal = minOf(wide, 'lim');
+
+  /* the road with the highest limit on the whole map, and why it is useless */
+  var heaviest = 0, heaviestIdx = 0;
+  LINKS.forEach(function(L,i){ if(L.lim > heaviest){ heaviest = L.lim; heaviestIdx = i; } });
+  var decoy = ['home','market','depot','mill','park','harbor'];
+  var decoyVal = decoy.reduce(function(m, id, k){
+    return k + 1 < decoy.length ? Math.min(m, LINKS[linkBetween(id, decoy[k+1])].lim) : m;
+  }, Infinity);
+
+  /* ---- steps ---- */
+  var steps = [];
+  var key = {}, via = {}, inT = {}, tree = [], grew = 0;
+  IDS.forEach(function(id){ key[id] = -Infinity; via[id] = null; });
+  key[ROOT] = 0;
+  mx.log.forEach(function(L){
+    inT[L.add] = true;
+    if(L.edge !== null && L.edge !== undefined) tree.push(L.edge);
+    L.upd.forEach(function(u){ if(!u.skip){ key[u.v] = u.to; via[u.v] = u.i; } });
+    steps.push({
+      add:L.add, edge:L.edge, upd:L.upd, key:clone(key), via:clone(via), inT:clone(inT),
+      tree:tree.slice(), trace:false,
+      title: L.edge == null ? 'Prim, popping the largest key' : 'Attach ' + NAME[L.add] + ' at ' + LINKS[L.edge].lim + 't',
+      text: L.edge == null
+        ? 'One character changes: <b>pop-max</b> instead of pop-min. The result is a <b>maximum</b> spanning tree, and its tree paths turn out to be widest paths.'
+        : '<b>' + NAME[L.add] + '</b> joins through <b>' + NAME[LINKS[L.edge].a] + '–' + NAME[LINKS[L.edge].b] +
+          '</b>, the heaviest link crossing the cut at <span class="n">' + LINKS[L.edge].lim +
+          't</span>. Nothing outside can reach the tree over a stronger road than that.'
+    });
+  });
+  steps.push({
+    add:null, edge:null, upd:null, key:clone(key), via:clone(via), inT:clone(inT),
+    tree:tree.slice(), trace:true,
+    title:'Home → Harbor: ' + wideVal + ' tonnes',
+    text:'The tree path is <b>' + seqText(wideSeq) + '</b>, and its weakest link is <span class="hot">' + wideVal +
+         't</span>. That is the answer for every pair at once — 45 widest paths out of one tree.'
+  });
+  steps.push({
+    add:null, edge:null, upd:null, key:clone(key), via:clone(via), inT:clone(inT),
+    tree:tree.slice(), trace:true, why:true,
+    title:'Why no route can beat it',
+    text:'Delete every road under <span class="n">' + (wideVal + 1) + 't</span>. What survives is what a ' +
+         (wideVal + 1) + '-tonne truck could use — and Home and Harbor land in different pieces of it. So <span class="n">' +
+         wideVal + '</span> really is the ceiling, and the tree found it without ever enumerating a route.'
+  });
+
+  /* ---- interactive route builder ---- */
+  var mode = 'run';
+  var built = [ROOT];
+  var routeEl = $('cb-route'), verdictEl = $('cb-verdict'), yourvEl = $('cb-yourv');
+  var keysEl = $('cb-keys'), popEl = $('cb-pop'), totalEl = $('cb-total'), tagEl = $('cb-tag');
+  var decoyEl = $('cb-decoy');
+
+  function builtVal(){
+    if(built.length < 2) return null;
+    var m = Infinity;
+    for(var k = 0; k + 1 < built.length; k++) m = Math.min(m, LINKS[linkBetween(built[k], built[k+1])].lim);
+    return m;
+  }
+  function builtLinks(){
+    var out = [];
+    for(var k = 0; k + 1 < built.length; k++) out.push(linkBetween(built[k], built[k+1]));
+    return out;
+  }
+
+  function drawBuild(){
+    gv.clear();
+    LINKS.forEach(function(L, i){ gv.label(i, L.lim, ''); });
+
+    /* the tree's answer stays on screen, dashed, as the bar to beat */
+    wide.forEach(function(i){ gv.edge(i, 'k-ghost on fat dash'); gv.label(i, null, ''); });
+
+    var used = builtLinks(), tip = built[built.length - 1];
+    var v = builtVal();
+    used.forEach(function(i, k){
+      /* the bottleneck crawls, because it is the only number that matters */
+      var weak = v !== null && LINKS[i].lim === v;
+      gv.edge(i, weak ? 'k-bad on fat dash'
+                      : 'k-acc on fat' + (LINKS[i].a === built[k] ? '' : ' rev'));
+      gv.label(i, null, weak ? 'hot' : 'lit');
+    });
+
+    /* everything you could click next */
+    INC[tip].forEach(function(i){
+      var nxt = other(i, tip);
+      if(built.indexOf(nxt) >= 0) return;
+      gv.edges[i].hit.style.pointerEvents = 'all';
+      gv.edges[i].hit.style.cursor = 'pointer';
+      if(used.indexOf(i) < 0) gv.label(i, null, 'lit');
+    });
+    /* and the last link, clickable to undo */
+    if(used.length){
+      var lastI = used[used.length - 1];
+      gv.edges[lastI].hit.style.pointerEvents = 'all';
+      gv.edges[lastI].hit.style.cursor = 'pointer';
+    }
+
+    IDS.forEach(function(id){ gv.node(id, built.indexOf(id) >= 0 ? 'on' : 'idle'); });
+    gv.node(ROOT, 'on term'); gv.node(DST, (built.indexOf(DST) >= 0 ? 'on' : '') + ' term');
+    gv.node(tip, 'on cur');
+    gv.setBadges({});
+
+    routeEl.innerHTML = built.length > 1
+      ? routeHTML(built, 'lim')
+      : '<span class="hop">Home</span><span class="arr">&nbsp;click a road to extend</span>';
+    yourvEl.textContent = v === null ? '' : v + 't';
+
+    var atEnd = built[built.length - 1] === DST;
+    verdictEl.innerHTML = v === null
+      ? 'Click any road leaving Home. Click the last road again to take it back. Your bottleneck is the weakest link you have picked, shown in red.'
+      : (atEnd
+          ? (v === wideVal
+              ? '<b>' + v + 't</b> — you matched the tree. There are several widest paths; there is no route above <span class="n">' + wideVal + '</span>.'
+              : '<b>' + v + 't</b>, against the tree’s <span class="n">' + wideVal + '</span>. Try again — the ceiling does not move.')
+          : '<b>' + v + 't</b> so far. Keep going — the bottleneck can only fall from here, never rise.');
+
+    keysEl.innerHTML = '';
+    popEl.innerHTML = 'Build mode. The maximum spanning tree’s answer stays drawn underneath in grey: <b>' +
+      seqText(wideSeq) + '</b> at <span class="n">' + wideVal + 't</span>.';
+    totalEl.textContent = wideVal;
+    totalEl.setAttribute('data-v', wideVal);
+    tagEl.textContent = 'Home → Harbor';
+    decoyEl.innerHTML = 'The strongest road in the city is <b>' + NAME[LINKS[heaviestIdx].a] + '–' +
+      NAME[LINKS[heaviestIdx].b] + '</b> at <span class="n">' + heaviest + 't</span>, and it is no help: the best way to reach it, <b>' +
+      seqText(decoy) + '</b>, is already capped at <span class="n">' + decoyVal + 't</span> before you get there.';
+  }
+
+  function apply(idx, st){
+    if(mode === 'build'){ drawBuild(); return; }
+    gv.clear();
+    LINKS.forEach(function(L, i){ gv.label(i, L.lim, ''); });
+
+    st.tree.forEach(function(i){ gv.edge(i, 'k-acc on'); gv.label(i, null, 'lit'); });
+    IDS.forEach(function(id){
+      if(st.inT[id]) return;
+      var i = st.via[id];
+      if(i !== null && i !== undefined) gv.edge(i, 'k-ghost on');
+    });
+    if(st.edge !== null && st.edge !== undefined){ gv.edge(st.edge, 'k-acc on fat'); gv.label(st.edge, null, 'up'); }
+
+    if(st.why){
+      LINKS.forEach(function(L, i){ if(L.lim <= wideVal) gv.edge(i, '', 'gone'); });
+      LINKS.forEach(function(L, i){ gv.label(i, null, L.lim > wideVal ? 'lit' : 'mute'); });
+      st.tree.forEach(function(i){ if(LINKS[i].lim > wideVal) gv.edge(i, 'k-acc on'); else gv.edge(i, ''); });
+    }
+    if(st.trace){
+      wide.forEach(function(i, k){
+        var weak = LINKS[i].lim === wideVal;
+        if(st.why && weak) return;
+        gv.edge(i, weak ? 'k-bad on fat dash'
+                        : 'k-acc on fat' + (LINKS[i].a === wideSeq[k] ? '' : ' rev'));
+        gv.label(i, null, weak ? 'hot' : 'lit');
+      });
+    }
+
+    IDS.forEach(function(id){
+      var cls = st.inT[id] ? 'on' : (st.via[id] !== null && st.via[id] !== undefined ? '' : 'idle');
+      if(id === st.add) cls = 'on cur';
+      if(st.trace) cls = wideSeq.indexOf(id) >= 0 ? 'on' : 'idle';
+      if(id === ROOT || id === DST) cls += ' term';
+      gv.node(id, cls);
+    });
+
+    var bmap = {};
+    IDS.forEach(function(id){
+      if(st.key[id] === -Infinity){ bmap[id] = { text:'–', cls:'' }; return; }
+      var fresh = st.upd && st.upd.some(function(u){ return !u.skip && u.v === id; });
+      bmap[id] = { text: st.inT[id] ? '✓' : st.key[id], cls: st.inT[id] ? 'set' : (fresh ? 'fresh' : '') };
+    });
+    gv.setBadges(st.trace ? {} : bmap);
+
+    renderKeys(keysEl, keyEntries(st.key, st.inT, null, true));
+    var out = IDS.filter(function(id){ return !st.inT[id] && st.key[id] !== -Infinity; });
+    out.sort(function(p,q){ return st.key[q] - st.key[p]; });
+    popEl.innerHTML = out.length
+      ? 'Joins next: <b>' + NAME[out[0]] + '</b> at <span class="n">' + st.key[out[0]] + 't</span> — the <b>heaviest</b> link crossing the cut, not the lightest.'
+      : 'Tree complete. Every pair of sites now has its widest path written into it.';
+
+    if(st.trace){ countTo(totalEl, wideVal); } else { totalEl.textContent = '—'; totalEl.setAttribute('data-v', '0'); }
+    tagEl.textContent = st.tree.length + ' of 9 links';
+    routeEl.innerHTML = st.trace ? routeHTML(wideSeq, 'lim') : '<span class="hop">switch to build mode to try your own</span>';
+    yourvEl.textContent = '';
+    verdictEl.innerHTML = st.trace
+      ? 'Switch to <b>Build your own route</b> and try to beat <span class="n">' + wideVal + 't</span>. You cannot.'
+      : 'The tree is still growing.';
+    decoyEl.innerHTML = 'The strongest road in the city is <b>' + NAME[LINKS[heaviestIdx].a] + '–' +
+      NAME[LINKS[heaviestIdx].b] + '</b> at <span class="n">' + heaviest + 't</span>, and it is no help: the best way to reach it, <b>' +
+      seqText(decoy) + '</b>, is already capped at <span class="n">' + decoyVal + 't</span> before you get there.';
+  }
+
+  var runner = new Runner({
+    steps: steps, apply: apply, base: 1150,
+    ui: { play:$('cb-play'), next:$('cb-next'), prev:$('cb-prev'), reset:$('cb-reset'),
+          speed:$('cb-speed'), speedv:$('cb-speedv'), pill:$('cb-pill'),
+          capT:$('cb-capT'), capB:$('cb-capB') }
+  });
+
+  /* clicking a road extends the route, or takes back the last one */
+  gv.edges.forEach(function(e, i){
+    e.hit.addEventListener('click', function(){
+      if(mode !== 'build') return;
+      var used = builtLinks();
+      if(used.length && used[used.length - 1] === i){ built.pop(); drawBuild(); return; }
+      var tip = built[built.length - 1];
+      if(LINKS[i].a !== tip && LINKS[i].b !== tip) return;
+      var nxt = other(i, tip);
+      if(built.indexOf(nxt) >= 0) return;
+      built.push(nxt);
+      drawBuild();
+    });
+  });
+  $('cb-clear').addEventListener('click', function(){ built = [ROOT]; if(mode === 'build') drawBuild(); });
+
+  function setMode(m){
+    if(mode === m) return;
+    runner.pause();
+    mode = m;
+    $('cb-run').setAttribute('aria-pressed', m === 'run' ? 'true' : 'false');
+    $('cb-build').setAttribute('aria-pressed', m === 'build' ? 'true' : 'false');
+    ['cb-play','cb-next','cb-prev','cb-reset','cb-speed'].forEach(function(id){ $(id).disabled = (m === 'build'); });
+    if(m === 'build'){ drawBuild(); $('cb-capT').textContent = 'Your turn';
+      $('cb-capB').innerHTML = 'Click roads to walk from Home to Harbor. The grey path underneath is the one the maximum spanning tree picked, worth <b>' +
+        wideVal + 't</b>. Every route you can build is worth that or less.';
+      $('cb-pill').textContent = 'build';
+    } else { runner.render(); }
+  }
+  $('cb-run').addEventListener('click', function(){ setMode('run'); });
+  $('cb-build').addEventListener('click', function(){ setMode('build'); });
+
+  runner.render();
+  return runner;
+})();
+
+/* ==========================================================================
+   7C. CONNECTIONS — independent routes are a max-flow problem in disguise
+   ========================================================================== */
+var connC = (function(){
+  var gv = new GraphView($('svg-cc'), { directed:true });
+  var S = 'plant', T = 'harbor';
+  var unit = edmondsKarp(S, T, function(){ return 1; });
+  var COLOR = ['k-r1','k-r2','k-r3','k-acc'];
+  var ARROW = ['a-r1','a-r2','a-r3','a-on'];
+
+  gv.tag(S, 'SOURCE'); gv.tag(T, 'SINK');
+
+  /* which sites are used by more than one route — the honest caveat */
+  var visits = {};
+  unit.aug.forEach(function(A){ A.nodes.forEach(function(id){ visits[id] = (visits[id] || 0) + 1; }); });
+  var shared = IDS.filter(function(id){ return visits[id] > 1 && id !== S && id !== T; });
+
+  var steps = [{
+    kind:'init', k:-1, done:0,
+    title:'Every capacity set to 1',
+    text:'Nothing about a convoy involves litres. But give every road capacity <span class="n">1</span> and a unit of flow can no longer be split or shared — it has to be one whole route, using each road at most once.'
+  }];
+  unit.aug.forEach(function(A, k){
+    steps.push({
+      kind:'route', k:k, done:k+1,
+      title:'Route ' + (k+1) + ' — ' + A.arcs.length + ' roads',
+      text:'<b>' + seqText(A.nodes) + '</b>. It pushes <span class="n">1</span>, which fills every road on it, so no later route can touch any of them.' +
+        (A.arcs.some(function(a){ return !a.fwd; })
+          ? ' This one runs backwards along an earlier road — the residual arc rerouting an earlier choice.'
+          : '')
+    });
+  });
+  steps.push({
+    kind:'all', k:-1, done:unit.aug.length,
+    title:unit.total + ' independent routes, and no more',
+    text:'The Plant has only ' + LINKS.filter(function(L){ return L.a === S; }).length +
+         ' roads out and the Harbor only ' + LINKS.filter(function(L){ return L.b === T; }).length +
+         ' in, so ' + unit.total + ' was the ceiling — and the flow reached it. Note the routes share <b>' +
+         names(shared).join(' and ') + '</b>: edge-disjoint, not site-disjoint. Wanting site-disjoint routes means splitting each site into an in-node and an out-node joined by a capacity-1 pipe, and running the same algorithm again.'
+  });
+
+  var pathsEl = $('cc-paths'), totalEl = $('cc-total'), noteEl = $('cc-note');
+
+  function apply(idx, st){
+    gv.clear();
+    LINKS.forEach(function(L, i){ gv.label(i, '1', 'mute'); gv.arrow(i, 'a-faded'); });
+
+    function paint(k, faded){
+      var A = unit.aug[k], seq = A.nodes;
+      A.arcs.forEach(function(a, j){
+        gv.edge(a.i, COLOR[k % 4] + ' on' + (faded ? ' thin' : ' fat') + (LINKS[a.i].a === seq[j] ? '' : ' rev'));
+        gv.arrow(a.i, ARROW[k % 4]);
+        gv.label(a.i, null, faded ? 'lit' : 'up');
+      });
+    }
+    if(st.kind === 'route'){
+      for(var j = 0; j < st.k; j++) paint(j, true);
+      paint(st.k, false);
+      var used = {};
+      unit.aug.slice(0, st.k + 1).forEach(function(A){ A.nodes.forEach(function(id){ used[id] = true; }); });
+      IDS.forEach(function(id){ gv.node(id, used[id] ? 'on' : 'idle'); });
+      unit.aug[st.k].nodes.forEach(function(id){ gv.node(id, 'on cur'); });
+    } else if(st.kind === 'all'){
+      unit.aug.forEach(function(A, k){ paint(k, false); });
+      IDS.forEach(function(id){ gv.node(id, visits[id] ? 'on' : 'idle'); });
+      shared.forEach(function(id){ gv.node(id, 'on cur'); });
+    } else {
+      IDS.forEach(function(id){ gv.node(id, ''); });
+    }
+    gv.node(S, 'on term'); gv.node(T, 'on term');
+    gv.setBadges({});
+
+    pathsEl.innerHTML = unit.aug.map(function(A, k){
+      return '<div class="pth r' + (k+1) + ' ' + (st.k === k ? 'now ' : '') + (k >= st.done && st.k !== k ? 'pend' : '') + '">' +
+             '<span class="idx">' + (k+1) + '</span><span class="seq">' + seqText(A.nodes) +
+             '</span><span class="bn">' + A.arcs.length + ' roads</span></div>';
+    }).join('');
+    countTo(totalEl, st.done);
+    noteEl.innerHTML = st.kind === 'all'
+      ? 'The min cut here is the smallest set of roads whose closure disconnects the Plant from the Harbor — and it has exactly <b>' +
+        unit.cutCap + '</b> roads in it, matching the route count. That equality is Menger&rsquo;s theorem, which predates max-flow by three decades.'
+      : 'Each route is drawn in its own colour, and no colour ever reuses a road.';
+  }
+
+  var runner = new Runner({
+    steps: steps, apply: apply, base: 1400,
+    ui: { play:$('cc-play'), next:$('cc-next'), prev:$('cc-prev'), reset:$('cc-reset'),
+          speed:$('cc-speed'), speedv:$('cc-speedv'), pill:$('cc-pill'),
+          capT:$('cc-capT'), capB:$('cc-capB') }
+  });
+  runner.render();
+  return runner;
+})();
+
+/* ==========================================================================
+   8. TABS, SUB-TABS, REDUCTION MAP, KEYBOARD
+   ========================================================================== */
+(function shell(){
+  var SEC = { sp:$('sec-sp'), mst:$('sec-mst'), flow:$('sec-flow'), conn:$('sec-conn') };
+  var tabs = [].slice.call(document.querySelectorAll('.tab'));
+  var subs = { a:$('cn-a'), b:$('cn-b'), c:$('cn-c') };
+  var panes = { a:$('pane-a'), b:$('pane-b'), c:$('pane-c') };
+  var active = 'sp', sub = 'a';
+
+  /* which chips and arrows in the reduction map are live right now */
+  var MAP = {
+    sp:   { chips:['sp'],           arrows:[] },
+    mst:  { chips:['mst'],          arrows:[] },
+    flow: { chips:['flow'],         arrows:[] },
+    'conn-a': { chips:['mst','sp'],      arrows:['r-key'] },
+    'conn-b': { chips:['wide','mst'],    arrows:['r-wide'] },
+    'conn-c': { chips:['disj','flow'],   arrows:['r-unit'] }
+  };
+  function paintMap(){
+    var m = MAP[active === 'conn' ? 'conn-' + sub : active];
+    [].slice.call(document.querySelectorAll('.rm-chip')).forEach(function(c){
+      c.classList.toggle('lit', m.chips.indexOf(c.getAttribute('data-k')) >= 0);
+    });
+    [].slice.call(document.querySelectorAll('.rm-arr')).forEach(function(a){
+      a.classList.toggle('lit', m.arrows.indexOf(a.getAttribute('data-k')) >= 0);
+    });
+  }
+
+  function setTab(t){
+    /* anything mid-flight in the section you are leaving stops cleanly */
+    RUNNERS.forEach(function(r){ r.pause(); });
+    active = t;
+    for(var k in SEC) SEC[k].classList.toggle('active', k === t);
+    tabs.forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-t') === t ? 'true' : 'false'); });
+    paintMap();
+  }
+  function setSub(s){
+    RUNNERS.forEach(function(r){ r.pause(); });
+    sub = s;
+    for(var k in panes) panes[k].classList.toggle('active', k === s);
+    for(var j in subs)  subs[j].setAttribute('aria-pressed', j === s ? 'true' : 'false');
+    paintMap();
+  }
+  tabs.forEach(function(b){ b.addEventListener('click', function(){ setTab(b.getAttribute('data-t')); }); });
+  subs.a.addEventListener('click', function(){ setSub('a'); });
+  subs.b.addEventListener('click', function(){ setSub('b'); });
+  subs.c.addEventListener('click', function(){ setSub('c'); });
+
+  /* the runner belonging to whatever is on screen */
+  function current(){
+    var order = { sp:0, mst:1, flow:2 };
+    if(active !== 'conn') return RUNNERS[order[active]];
+    return { a:connA, b:connB, c:connC }[sub];
+  }
+
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    var tag = (e.target && e.target.tagName || '').toLowerCase();
+    if(tag === 'input' && e.key !== '1' && e.key !== '2' && e.key !== '3' && e.key !== '4') return;
+    var r = current();
+    if(e.key === 'ArrowRight'){ e.preventDefault(); r.pause(); r.go(r.i + 1); return; }
+    if(e.key === 'ArrowLeft') { e.preventDefault(); r.pause(); r.go(r.i - 1); return; }
+    if(e.key === ' ' || e.key === 'Spacebar'){ e.preventDefault(); r.playing ? r.pause() : r.play(); return; }
+    var n = ['1','2','3','4'].indexOf(e.key);
+    if(n >= 0){ e.preventDefault(); setTab(['sp','mst','flow','conn'][n]); }
+  });
+
+  paintMap();
+})();
+
+})();
+</script>
+</body>
+</html>

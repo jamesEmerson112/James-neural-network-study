@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neighbors — Graph Theory</title>
+<style>
+/* ============================================================
+   Theme — one dark palette, committed to.
+   Two accents carry the whole lesson:
+     cyan  = outgoing (Adj+)      amber = incoming (Adj-)
+     violet = the vertex u you are currently looking at
+   ============================================================ */
+:root{
+  --bg:        #090d15;
+  --bg-soft:   #0e1420;
+  --panel:     #111926;
+  --panel-2:   #16202f;
+  --line:      #22304a;
+  --ink:       #e9eefb;
+  --ink-dim:   #94a4bd;
+  --ink-faint: #64748b;
+
+  --out:       #22d3ee;   /* outgoing accent */
+  --in:        #fbbf24;   /* incoming accent */
+  --sel:       #c084fc;   /* selected vertex  */
+
+  --edge:      #2e405e;
+  --disc:      #16202f;
+  --disc-line: #33456a;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --math: "Cambria Math", Cambria, "Iowan Old Style", Georgia, "Times New Roman", serif;
+}
+
+*{ box-sizing: border-box; }
+
+html, body{ height: 100%; }
+body{
+  margin: 0;
+  background:
+    radial-gradient(1100px 700px at 12% -10%, #14203a 0%, transparent 62%),
+    radial-gradient(900px 600px at 105% 110%, #1a1430 0%, transparent 58%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.app{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 18px;
+  gap: 12px;
+}
+
+/* ---------------- header ---------------- */
+header{
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+h1{
+  margin: 0;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+h1 .accent{
+  background: linear-gradient(92deg, var(--out), var(--sel) 55%, var(--in));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sub{
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  letter-spacing: .01em;
+}
+.legend{
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+.legend .key{ display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.swatch{ width: 22px; height: 3px; border-radius: 2px; display: inline-block; }
+.swatch.out{ background: var(--out); box-shadow: 0 0 10px rgba(34,211,238,.55); }
+.swatch.in { background: var(--in);  box-shadow: 0 0 10px rgba(251,191,36,.5); }
+.swatch.sel{ width: 11px; height: 11px; border-radius: 50%; background: rgba(192,132,252,.22); border: 2px solid var(--sel); }
+
+/* ---------------- layout ---------------- */
+main{
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 16px;
+}
+
+/* ---------------- stage (graph column) ---------------- */
+.stage{
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(22,32,47,.55), rgba(14,20,32,.55));
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 12px 14px 14px;
+}
+
+.toolbar{
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* segmented directed / undirected switch */
+.seg{
+  display: inline-flex;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  position: relative;
+}
+.seg button{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font: 600 12.5px/1 var(--sans);
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .25s ease, background .25s ease;
+  white-space: nowrap;
+}
+.seg button[aria-pressed="true"]{
+  color: #071018;
+  background: linear-gradient(180deg, #7fe6f6, var(--out));
+  box-shadow: 0 2px 12px rgba(34,211,238,.28);
+}
+.seg button:focus-visible{ outline: 2px solid var(--sel); outline-offset: 2px; }
+
+.spacer{ flex: 1 1 auto; }
+
+.btn{
+  appearance: none;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: 600 12.5px/1 var(--sans);
+  padding: 8px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, transform .12s ease, opacity .2s ease;
+  white-space: nowrap;
+}
+.btn:hover{ background: #1d2a3d; border-color: #33456a; }
+.btn:active{ transform: translateY(1px); }
+.btn:focus-visible{ outline: 2px solid var(--sel); outline-offset: 2px; }
+.btn.primary{
+  background: linear-gradient(180deg, #d9b6ff, var(--sel));
+  border-color: transparent;
+  color: #1c0f2e;
+  box-shadow: 0 2px 14px rgba(192,132,252,.25);
+}
+.btn.primary:hover{ filter: brightness(1.06); background: linear-gradient(180deg, #d9b6ff, var(--sel)); }
+.btn.icon{ padding: 8px 11px; font-size: 13px; }
+
+/* ---------------- svg ---------------- */
+.canvas{
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+svg#graph{
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* dim base edge, always visible */
+.edge-base{
+  fill: none;
+  stroke: var(--edge);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: opacity .35s ease, stroke .3s ease;
+}
+
+/* the animated overlay that "draws" itself when highlighted */
+.edge-hl{
+  fill: none;
+  stroke: var(--out);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+  opacity: 0;
+  transition: stroke-dashoffset .52s cubic-bezier(.33,.02,.2,1),
+              opacity .18s ease,
+              stroke .22s ease;
+}
+.edge-hl.on{ stroke-dashoffset: 0; opacity: 1; }
+.edge-hl.as-out{ stroke: var(--out); filter: drop-shadow(0 0 5px rgba(34,211,238,.55)); }
+.edge-hl.as-in { stroke: var(--in);  filter: drop-shadow(0 0 5px rgba(251,191,36,.5)); }
+
+.arrow{
+  fill: var(--edge);
+  transition: fill .3s ease, opacity .38s ease;
+}
+/* the head recolours only once the line has finished drawing */
+.arrow.as-out{ fill: var(--out); transition-delay: .34s, 0s; }
+.arrow.as-in { fill: var(--in);  transition-delay: .34s, 0s; }
+
+.hidden{ opacity: 0 !important; pointer-events: none; }
+
+/* ---------------- vertices ---------------- */
+.node{ cursor: pointer; transition: opacity .3s ease; }
+.node:focus{ outline: none; }
+.node.is-idle{ opacity: .38; }
+
+.hit{ fill: none; pointer-events: all; }
+
+/* transform-box:fill-box keeps the scale centred on each circle itself,
+   which is what makes the pop read as a pop and not a slide. */
+.disc, .ring, .halo{
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.disc{
+  fill: var(--disc);
+  stroke: var(--disc-line);
+  stroke-width: 1.6;
+  transition: fill .28s ease, stroke .28s ease, stroke-width .28s ease,
+              transform .4s cubic-bezier(.34,1.5,.64,1);
+}
+.node:hover .disc{ transform: scale(1.08); stroke: #5b7099; }
+.node:focus-visible .disc{ stroke: var(--sel); stroke-width: 2.4; }
+.node.is-out .disc{ stroke: rgba(34,211,238,.75); }
+.node.is-in  .disc{ stroke: rgba(251,191,36,.7); }
+.node.is-sel .disc{
+  fill: #2b1c46;
+  stroke: var(--sel);
+  stroke-width: 2.6;
+  transform: scale(1.12);
+}
+
+.ring{
+  fill: none;
+  stroke-width: 2;
+  opacity: 0;
+  transform: scale(.7);
+  transition: opacity .28s ease, transform .42s cubic-bezier(.34,1.5,.64,1);
+}
+.ring-out{ stroke: var(--out); }
+.ring-in { stroke: var(--in); stroke-dasharray: 4.5 5; }
+/* rings land just after the edges finish drawing — a small piece of choreography */
+.node.is-out .ring-out,
+.node.is-in  .ring-in{ opacity: 1; transform: scale(1); transition-delay: .3s; }
+
+.halo{
+  fill: var(--sel);
+  opacity: 0;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.halo.on{ animation: pulse 2.4s cubic-bezier(.2,.6,.3,1) infinite; }
+@keyframes pulse{
+  0%   { opacity: .34; transform: scale(1); }
+  70%  { opacity: 0;   transform: scale(2.05); }
+  100% { opacity: 0;   transform: scale(2.05); }
+}
+
+.lbl{
+  fill: var(--ink);
+  font: 600 17px var(--math);
+  font-style: italic;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+  transition: fill .25s ease;
+}
+.node.is-sel .lbl{ fill: #f3e8ff; }
+
+/* tour focus: push the other direction into the background */
+#graph[data-focus="out"] .edge-hl.as-in.on{ opacity: .16; }
+#graph[data-focus="out"] .arrow.as-in{ opacity: .3; }
+#graph[data-focus="out"] .node.is-in:not(.is-out):not(.is-sel){ opacity: .42; }
+#graph[data-focus="in"] .edge-hl.as-out.on{ opacity: .16; }
+#graph[data-focus="in"] .arrow.as-out{ opacity: .3; }
+#graph[data-focus="in"] .node.is-out:not(.is-in):not(.is-sel){ opacity: .42; }
+
+/* ---------------- caption / tour ---------------- */
+.caption{
+  flex: 0 0 auto;
+  /* pinned so a two-line step caption doesn't resize the graph underneath it */
+  min-height: 94px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 11px 14px;
+  transition: border-color .3s ease, background .3s ease;
+}
+.caption.tour-on{ border-left-color: var(--sel); background: #131029; }
+.step-pill{
+  flex: 0 0 auto;
+  font: 700 10.5px/1 var(--sans);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  margin-top: 1px;
+}
+.caption.tour-on .step-pill{ color: var(--sel); border-color: rgba(192,132,252,.45); }
+.cap-body{ min-width: 0; }
+.cap-title{ font-weight: 650; font-size: 13.5px; margin-bottom: 2px; }
+.cap-text{ color: var(--ink-dim); font-size: 12.8px; }
+.cap-text b{ color: var(--ink); font-weight: 600; }
+.cap-text .m{ font-family: var(--math); font-size: 14px; color: var(--ink); }
+
+kbd{
+  font: 600 11px var(--sans);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--ink-dim);
+}
+
+/* ---------------- panel ---------------- */
+.panel{
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.panel::-webkit-scrollbar{ width: 8px; }
+.panel::-webkit-scrollbar-thumb{ background: #22304a; border-radius: 4px; }
+
+.sel-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.sel-chip{
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  background: #2b1c46;
+  border: 2px solid var(--sel);
+  font: italic 700 17px var(--math);
+  color: #f3e8ff;
+}
+.sel-label{ font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+.sel-hint{ margin-left: auto; font-size: 11.5px; color: var(--ink-faint); text-align: right; }
+
+.card{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 13px 11px;
+  transition: border-color .3s ease, box-shadow .3s ease, opacity .3s ease, background .3s ease;
+  flex: 0 0 auto;
+}
+.card.emph{ box-shadow: 0 0 0 1px rgba(192,132,252,.35), 0 6px 24px rgba(0,0,0,.35); }
+.card.muted{ opacity: .5; }
+
+.card-head{
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 700 10.5px/1 var(--sans);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 7px;
+}
+.dot{ width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.dot-out{ background: var(--out); box-shadow: 0 0 8px rgba(34,211,238,.6); }
+.dot-in { background: var(--in);  box-shadow: 0 0 8px rgba(251,191,36,.55); }
+.dot-both{ background: linear-gradient(90deg, var(--out) 50%, var(--in) 50%); }
+.dot-sel{ background: var(--sel); }
+
+.math{
+  font-family: var(--math);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.math i{ font-style: italic; }
+.math sup{ font-size: .68em; }
+.math .op{ color: var(--ink-faint); }
+.math.def{ color: var(--ink-dim); font-size: 14px; }
+.math.res{ font-size: 16.5px; letter-spacing: .01em; }
+.card-out .math.res b{ color: var(--out); font-weight: 600; }
+.card-in  .math.res b{ color: var(--in);  font-weight: 600; }
+.card-both .math.res b{ color: var(--sel); font-weight: 600; }
+.card-def .math.res b{ color: var(--out); font-weight: 600; }
+
+.note{
+  margin-top: 6px;
+  font-size: 11.8px;
+  color: var(--ink-faint);
+  line-height: 1.45;
+}
+.note .m{ font-family: var(--math); font-size: 13px; color: var(--ink-dim); }
+
+.mini-btn{
+  appearance: none;
+  margin-top: 7px;
+  background: transparent;
+  border: 1px dashed #3a4a68;
+  color: var(--ink-dim);
+  border-radius: 999px;
+  font: 600 11.5px/1 var(--sans);
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.mini-btn:hover{ color: var(--out); border-color: var(--out); background: rgba(34,211,238,.07); }
+.mini-btn:focus-visible{ outline: 2px solid var(--sel); outline-offset: 2px; }
+
+.stat{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(180deg, rgba(34,211,238,.07), rgba(34,211,238,.02));
+  border: 1px solid rgba(34,211,238,.25);
+  border-radius: var(--r-md);
+  padding: 9px 13px;
+  flex: 0 0 auto;
+}
+.stat .math{ font-size: 14.5px; }
+.stat .tag{ font-size: 11px; color: var(--ink-faint); letter-spacing: .05em; }
+
+/* ---------------- responsive ---------------- */
+
+/* Short laptop screens: tighten the panel so the sum-of-degrees identity,
+   which is the payoff of the whole panel, stays above the fold. */
+@media (min-width: 1021px) and (max-height: 840px){
+  .panel{ gap: 7px; }
+  .card{ padding: 8px 12px 9px; }
+  .card-head{ margin-bottom: 5px; }
+  .math{ font-size: 14px; line-height: 1.5; }
+  .math.res{ font-size: 15.5px; }
+  .math.def{ font-size: 13px; }
+  .note{ margin-top: 4px; font-size: 11.2px; }
+  .mini-btn{ margin-top: 5px; }
+  .stat{ padding: 7px 12px; }
+  .caption{ min-height: 86px; }
+}
+
+@media (max-width: 1020px){
+  body{ overflow: auto; }
+  .app{ height: auto; min-height: 100%; }
+  main{ grid-template-columns: minmax(0, 1fr); }
+  .stage{ min-height: 62vh; }
+  .legend{ margin-left: 0; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+     transition-duration: .001ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1><span class="accent">Neighbors</span></h1>
+    <span class="sub">Adj<sup>+</sup> / Adj<sup>&minus;</sup>, out-degree, in-degree &mdash; on a live graph</span>
+    <div class="legend">
+      <span class="key"><span class="swatch out"></span> outgoing &middot; Adj<sup>+</sup></span>
+      <span class="key"><span class="swatch in"></span> incoming &middot; Adj<sup>&minus;</sup></span>
+      <span class="key"><span class="swatch sel"></span> <span id="legendSel">u</span></span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ graph ============ -->
+    <section class="stage">
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Graph type">
+          <button id="btnDirected"   type="button" aria-pressed="true">Directed</button>
+          <button id="btnUndirected" type="button" aria-pressed="false">Undirected</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn icon" id="btnPrev" type="button" aria-label="Previous step" title="Previous step (←)">&#8249;</button>
+        <button class="btn primary" id="btnPlay" type="button">&#9654;&nbsp; Play tour</button>
+        <button class="btn icon" id="btnNext" type="button" aria-label="Next step" title="Next step (→)">&#8250;</button>
+      </div>
+
+      <div class="canvas">
+        <svg id="graph" viewBox="0 0 680 476" preserveAspectRatio="xMidYMid meet"
+             role="img" aria-label="A directed graph on seven vertices, a through g">
+          <g id="layer-halos"></g>
+          <g id="layer-edges"></g>
+          <g id="layer-arrows"></g>
+          <g id="layer-nodes"></g>
+        </svg>
+      </div>
+
+      <div class="caption" id="caption">
+        <span class="step-pill" id="stepPill">explore</span>
+        <div class="cap-body">
+          <div class="cap-title" id="capTitle">Pick a vertex</div>
+          <div class="cap-text" id="capText">Hover or click any vertex to see its neighbor sets computed live. Keys: <kbd>a</kbd>&ndash;<kbd>g</kbd> select, <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> step the tour, <kbd>p</kbd> plays it.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ definitions ============ -->
+    <aside class="panel">
+      <div class="sel-row">
+        <span class="sel-label">vertex&nbsp;u</span>
+        <span class="sel-chip" id="selChip">b</span>
+        <span class="sel-hint" id="selHint">7 vertices &middot; 10 directed edges</span>
+      </div>
+
+      <div class="card card-out" id="cardOut">
+        <div class="card-head"><span class="dot dot-out"></span> Outgoing neighbor set &amp; out-degree</div>
+        <div class="math def" id="outDef"></div>
+        <div class="math res" id="outSet"></div>
+        <div class="math res" id="outDeg"></div>
+        <div class="note" id="outNote"></div>
+      </div>
+
+      <div class="card card-in" id="cardIn">
+        <div class="card-head"><span class="dot dot-in"></span> Incoming neighbor set &amp; in-degree</div>
+        <div class="math def" id="inDef"></div>
+        <div class="math res" id="inSet"></div>
+        <div class="math res" id="inDeg"></div>
+        <div class="note" id="inNote"></div>
+      </div>
+
+      <div class="card card-both" id="cardBoth">
+        <div class="card-head"><span class="dot dot-both"></span> Undirected graphs</div>
+        <div class="math res" id="bothSet"></div>
+        <div class="math res" id="bothDeg"></div>
+        <div class="note" id="bothNote"></div>
+        <button class="mini-btn" id="btnTryUndirected" type="button">flip to undirected &rarr;</button>
+      </div>
+
+      <div class="card card-def" id="cardDefault">
+        <div class="card-head"><span class="dot dot-sel"></span> Dropping the superscript</div>
+        <div class="math res" id="defSet"></div>
+        <div class="math res" id="defDeg"></div>
+        <div class="note">A bare Adj or deg always means the outgoing one. Traversals only ever ask &ldquo;where can I go from here&rdquo;, so outgoing is the useful default.</div>
+      </div>
+
+      <div class="stat">
+        <span class="math" id="statMath"></span>
+        <span class="tag" id="statTag"></span>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ==========================================================================
+   1. DATA — the single source of truth.
+   Every set, every degree, and every drawn edge below is derived from EDGES,
+   so the picture and the panel can never disagree with each other.
+   ========================================================================== */
+
+// Hand-placed so no edge passes through an unrelated vertex and the whole
+// thing sits at roughly the aspect ratio of the stage it is drawn into.
+var VERTS = [
+  { id:'a', x:  80, y:  95 },
+  { id:'b', x: 300, y:  60 },
+  { id:'c', x: 560, y: 105 },
+  { id:'d', x:  95, y: 300 },
+  { id:'e', x: 330, y: 240 },
+  { id:'f', x: 600, y: 320 },
+  { id:'g', x: 250, y: 415 }
+];
+
+// Chosen so the examples stay interesting:
+//   a  is a source (deg- = 0)      f  is a sink (deg+ = 0)
+//   b <-> c  is a two-way pair, so c lands in BOTH Adj+(b) and Adj-(b)
+var EDGES = [
+  ['a','b'], ['a','d'],
+  ['b','c'], ['c','b'],
+  ['b','e'],
+  ['d','e'],
+  ['c','f'], ['e','f'],
+  ['e','g'], ['g','d']
+];
+
+var POS   = {};
+var ORDER = {};
+VERTS.forEach(function(v, i){ POS[v.id] = v; ORDER[v.id] = i; });
+
+/* ==========================================================================
+   2. ADJACENCY — computed, never hardcoded.
+   Undirected simply means "read every edge in both directions", which is
+   exactly why Adj-(u) and Adj+(u) come out identical in that mode.
+   ========================================================================== */
+
+function adjacency(directed){
+  var out = {}, inc = {};
+  VERTS.forEach(function(v){ out[v.id] = {}; inc[v.id] = {}; });
+  EDGES.forEach(function(e){
+    var u = e[0], v = e[1];
+    out[u][v] = true;
+    inc[v][u] = true;
+    if(!directed){ out[v][u] = true; inc[u][v] = true; }
+  });
+  return { out: out, inc: inc };
+}
+
+function setToList(obj){
+  return Object.keys(obj).sort(function(p, q){ return ORDER[p] - ORDER[q]; });
+}
+
+// |E| depends on the mode: an undirected graph counts b<->c once, not twice.
+function edgeCount(directed){
+  if(directed) return EDGES.length;
+  var seen = {};
+  EDGES.forEach(function(e){
+    var k = ORDER[e[0]] < ORDER[e[1]] ? e[0]+'|'+e[1] : e[1]+'|'+e[0];
+    seen[k] = true;
+  });
+  return Object.keys(seen).length;
+}
+
+/* ==========================================================================
+   3. GEOMETRY
+   ========================================================================== */
+
+var R         = 21;   // vertex radius
+var GAP_TAIL  = 27;   // where an edge leaves its source circle
+var GAP_HEAD  = 33;   // where an edge stops, leaving room for the arrowhead
+var BOW       = 26;   // how far a reciprocal pair bends apart
+var ARROW_LEN = 12;
+var ARROW_W   = 5.2;
+
+function geom(u, v, bow){
+  var A = POS[u], B = POS[v];
+  var dx = B.x - A.x, dy = B.y - A.y;
+  var L  = Math.hypot(dx, dy);
+  var nx = -dy / L, ny = dx / L;                       // left normal
+  var cx = (A.x + B.x) / 2 + nx * bow * 2;             // quadratic control pt
+  var cy = (A.y + B.y) / 2 + ny * bow * 2;
+
+  // tangents at the two ends of the quadratic curve
+  var t0x = cx - A.x, t0y = cy - A.y, l0 = Math.hypot(t0x, t0y);
+  var t1x = B.x - cx, t1y = B.y - cy, l1 = Math.hypot(t1x, t1y);
+  t0x /= l0; t0y /= l0; t1x /= l1; t1y /= l1;
+
+  var sx = A.x + t0x * GAP_TAIL, sy = A.y + t0y * GAP_TAIL;
+  var ex = B.x - t1x * GAP_HEAD, ey = B.y - t1y * GAP_HEAD;
+
+  // arrowhead: tip on the curve, two corners flared off the tangent
+  var bx = ex - t1x * ARROW_LEN, by = ey - t1y * ARROW_LEN;
+  var px = -t1y, py = t1x;
+  var pts = ex.toFixed(2)+','+ey.toFixed(2)+' '
+          + (bx + px*ARROW_W).toFixed(2)+','+(by + py*ARROW_W).toFixed(2)+' '
+          + (bx - px*ARROW_W).toFixed(2)+','+(by - py*ARROW_W).toFixed(2);
+
+  return {
+    d: 'M '+sx.toFixed(2)+' '+sy.toFixed(2)+' Q '+cx.toFixed(2)+' '+cy.toFixed(2)
+       +' '+ex.toFixed(2)+' '+ey.toFixed(2),
+    points: pts
+  };
+}
+
+/* ==========================================================================
+   4. BUILD THE SVG
+   ========================================================================== */
+
+var NS = 'http://www.w3.org/2000/svg';
+function el(name, attrs){
+  var n = document.createElementNS(NS, name);
+  for(var k in attrs){ n.setAttribute(k, attrs[k]); }
+  return n;
+}
+
+var svg      = document.getElementById('graph');
+var layerH   = document.getElementById('layer-halos');
+var layerE   = document.getElementById('layer-edges');
+var layerA   = document.getElementById('layer-arrows');
+var layerN   = document.getElementById('layer-nodes');
+
+var edgeRecs = EDGES.map(function(e, i){
+  var u = e[0], v = e[1];
+  var revIdx = -1;
+  EDGES.forEach(function(f, j){ if(f[0] === v && f[1] === u) revIdx = j; });
+
+  // Both halves of a reciprocal pair bow by the same amount along their own
+  // left normal, which puts them on opposite sides of the straight line.
+  var bow = revIdx !== -1 ? BOW : 0;
+
+  // When the graph goes undirected the pair collapses to one edge; the later
+  // of the two is the one that disappears.
+  var mirrorDup = revIdx !== -1 && revIdx < i;
+
+  var g = geom(u, v, bow);
+  var rec = {
+    u: u, v: v, mirrorDup: mirrorDup,
+    base: el('path',    { 'class':'edge-base', d: g.d }),
+    hl:   el('path',    { 'class':'edge-hl',   d: g.d }),
+    head: el('polygon', { 'class':'arrow', points: g.points })
+  };
+  layerE.appendChild(rec.base);
+  layerE.appendChild(rec.hl);
+  layerA.appendChild(rec.head);
+  return rec;
+});
+
+// Path length has to be measured after the node is in the document.
+edgeRecs.forEach(function(r){
+  var len = r.hl.getTotalLength();
+  r.hl.style.setProperty('--len', len.toFixed(2));
+});
+
+var nodeRecs = VERTS.map(function(v){
+  // The selection pulse lives in its own layer under the edges, otherwise the
+  // expanding disc would wash over the arrowheads meeting that vertex.
+  var halo = el('circle', { 'class':'halo', cx: v.x, cy: v.y, r: R });
+  layerH.appendChild(halo);
+
+  var g = el('g', {
+    'class': 'node', 'data-id': v.id,
+    transform: 'translate(' + v.x + ',' + v.y + ')',
+    tabindex: '0', role: 'button', 'aria-label': 'vertex ' + v.id
+  });
+  g.appendChild(el('circle', { 'class':'ring ring-in',  r: 31 }));
+  g.appendChild(el('circle', { 'class':'ring ring-out', r: 26.5 }));
+  g.appendChild(el('circle', { 'class':'disc',      r: R }));
+  var t = el('text', { 'class':'lbl', x: 0, y: 1 });
+  t.textContent = v.id;
+  g.appendChild(t);
+  g.appendChild(el('circle', { 'class':'hit', r: 34 }));
+  layerN.appendChild(g);
+  return { id: v.id, g: g, halo: halo };
+});
+
+/* ==========================================================================
+   5. STATE
+   ========================================================================== */
+
+var state = {
+  directed: true,
+  selected: 'b',
+  preview:  null,     // hover / keyboard-focus peek, does not stick
+  focus:    null,     // 'out' | 'in' | null — tour emphasis
+  tourOn:   false,
+  playing:  false,
+  step:     0
+};
+var timer = null;
+var STEP_MS = 6600;
+
+function activeVertex(){ return state.preview || state.selected; }
+
+/* ==========================================================================
+   6. RENDER
+   ========================================================================== */
+
+var $ = function(id){ return document.getElementById(id); };
+var V = function(x){ return '<i>' + x + '</i>'; };                 // a variable
+var SET = function(list){
+  return list.length ? '{ ' + list.map(V).join(', ') + ' }' : '&empty;';
+};
+
+function render(){
+  var dir = state.directed;
+  var adj = adjacency(dir);
+  var u   = activeVertex();
+  var O   = setToList(adj.out[u]);
+  var I   = setToList(adj.inc[u]);
+  var oSet = {}, iSet = {};
+  O.forEach(function(x){ oSet[x] = true; });
+  I.forEach(function(x){ iSet[x] = true; });
+
+  // Peeking at some other vertex mid-tour shouldn't inherit that step's
+  // one-sided emphasis, so the focus drops while a preview is active.
+  var focus = (state.preview && state.preview !== state.selected) ? null : state.focus;
+
+  svg.setAttribute('data-focus', focus || '');
+
+  /* ---- edges ---- */
+  edgeRecs.forEach(function(r){
+    var gone = !dir && r.mirrorDup;
+    var isOut, isIn;
+    if(gone){
+      isOut = isIn = false;
+    } else if(dir){
+      isOut = (r.u === u);
+      isIn  = (r.v === u);
+    } else {
+      // undirected: an incident edge is outgoing AND incoming at the same time
+      isOut = isIn = (r.u === u || r.v === u);
+    }
+    r.base.classList.toggle('hidden', gone);
+    r.hl.classList.toggle('hidden', gone);
+    r.hl.classList.toggle('on', isOut || isIn);
+    r.hl.classList.toggle('as-out', isOut);
+    r.hl.classList.toggle('as-in', isIn && !isOut);
+    // arrowheads fade away entirely once direction stops meaning anything
+    r.head.classList.toggle('hidden', gone || !dir);
+    r.head.classList.toggle('as-out', dir && isOut);
+    r.head.classList.toggle('as-in', dir && isIn && !isOut);
+  });
+
+  /* ---- vertices ---- */
+  nodeRecs.forEach(function(n){
+    var sel = n.id === u;
+    var io  = !!oSet[n.id], ii = !!iSet[n.id];
+    n.g.classList.toggle('is-sel', sel);
+    n.g.classList.toggle('is-out', io);
+    n.g.classList.toggle('is-in',  ii);
+    n.g.classList.toggle('is-idle', !sel && !io && !ii);
+    n.halo.classList.toggle('on', sel);
+  });
+
+  /* ---- panel ---- */
+  var E = edgeCount(dir);
+  $('selChip').innerHTML = V(u);
+  $('legendSel').innerHTML = 'selected ' + V(u);
+  $('selHint').innerHTML = VERTS.length + ' vertices &middot; ' + E
+                         + (dir ? ' directed' : ' undirected') + ' edges';
+
+  $('outDef').innerHTML = 'Adj<sup>+</sup>(' + V(u) + ') = {' + V('v')
+    + ' <span class="op">&isin;</span> V <span class="op">|</span> ('
+    + V(u) + ',&thinsp;' + V('v') + ') <span class="op">&isin;</span> E}';
+  $('outSet').innerHTML = '<span class="op">=</span> <b>' + SET(O) + '</b>';
+  $('outDeg').innerHTML = 'deg<sup>+</sup>(' + V(u) + ') <span class="op">=</span> |Adj<sup>+</sup>('
+    + V(u) + ')| <span class="op">=</span> <b>' + O.length + '</b>';
+
+  $('inDef').innerHTML = 'Adj<sup>&minus;</sup>(' + V(u) + ') = {' + V('v')
+    + ' <span class="op">&isin;</span> V <span class="op">|</span> ('
+    + V('v') + ',&thinsp;' + V(u) + ') <span class="op">&isin;</span> E}';
+  $('inSet').innerHTML = '<span class="op">=</span> <b>' + SET(I) + '</b>';
+  $('inDeg').innerHTML = 'deg<sup>&minus;</sup>(' + V(u) + ') <span class="op">=</span> |Adj<sup>&minus;</sup>('
+    + V(u) + ')| <span class="op">=</span> <b>' + I.length + '</b>';
+
+  if(dir){
+    $('outNote').innerHTML = O.length === 0
+      ? '<span class="m">deg<sup>+</sup>(' + u + ') = 0</span> &mdash; ' + u
+        + ' is a <b>sink</b>. Arrive there and you are stuck.'
+      : O.length + ' option' + (O.length === 1 ? '' : 's') + ' when leaving ' + u + '.';
+    $('inNote').innerHTML = I.length === 0
+      ? '<span class="m">deg<sup>&minus;</sup>(' + u + ') = 0</span> &mdash; ' + u
+        + ' is a <b>source</b>. Nothing points at it, so it can only ever start a walk.'
+      : I.length + ' way' + (I.length === 1 ? '' : 's') + ' to arrive at ' + u + '.';
+  } else {
+    var same = O.length + ' edge' + (O.length === 1 ? '' : 's') + ' touch' + (O.length === 1 ? 'es' : '')
+             + ' ' + u + ' &mdash; the same ones whichever direction you read them in.';
+    $('outNote').innerHTML = same;
+    $('inNote').innerHTML  = same;
+  }
+
+  /* bullet 5 — undirected collapse */
+  $('cardBoth').classList.toggle('muted', dir);
+  $('btnTryUndirected').style.display = dir ? '' : 'none';
+  if(dir){
+    $('bothSet').innerHTML = 'Adj<sup>&minus;</sup>(' + V('u') + ') <span class="op">=</span> Adj<sup>+</sup>('
+      + V('u') + ') <span class="op">=</span> Adj(' + V('u') + ')';
+    $('bothDeg').innerHTML = 'deg<sup>&minus;</sup>(' + V('u') + ') <span class="op">=</span> deg<sup>+</sup>('
+      + V('u') + ') <span class="op">=</span> deg(' + V('u') + ')';
+    $('bothNote').innerHTML = 'With no direction on an edge, every edge is read both ways &mdash; '
+      + 'so the two sets are literally the same set.';
+  } else {
+    $('bothSet').innerHTML = 'Adj<sup>&minus;</sup>(' + V(u) + ') <span class="op">=</span> Adj<sup>+</sup>('
+      + V(u) + ') <span class="op">=</span> Adj(' + V(u) + ') <span class="op">=</span> <b>' + SET(O) + '</b>';
+    $('bothDeg').innerHTML = 'deg<sup>&minus;</sup>(' + V(u) + ') <span class="op">=</span> deg<sup>+</sup>('
+      + V(u) + ') <span class="op">=</span> deg(' + V(u) + ') <span class="op">=</span> <b>' + O.length + '</b>';
+    $('bothNote').innerHTML = 'The two-way pair <span class="m">b&#8596;c</span> is now a single edge, counted once.';
+  }
+
+  /* bullet 6 — the default superscript */
+  $('defSet').innerHTML = 'Adj(' + V(u) + ') <span class="op">=</span> Adj<sup>+</sup>('
+    + V(u) + ') <span class="op">=</span> <b>' + SET(O) + '</b>';
+  $('defDeg').innerHTML = 'deg(' + V(u) + ') <span class="op">=</span> deg<sup>+</sup>('
+    + V(u) + ') <span class="op">=</span> <b>' + O.length + '</b>';
+
+  /* running total — the handshake identity, recomputed live */
+  var sumOut = 0;
+  VERTS.forEach(function(v){ sumOut += setToList(adj.out[v.id]).length; });
+  if(dir){
+    $('statMath').innerHTML = '&Sigma;<sub>u&isin;V</sub> deg<sup>+</sup>(' + V('u')
+      + ') <span class="op">=</span> ' + sumOut + ' <span class="op">=</span> |E|';
+    $('statTag').textContent = 'every edge leaves exactly one vertex';
+  } else {
+    $('statMath').innerHTML = '&Sigma;<sub>u&isin;V</sub> deg(' + V('u')
+      + ') <span class="op">=</span> ' + sumOut + ' <span class="op">=</span> 2|E|';
+    $('statTag').textContent = 'every edge has two ends';
+  }
+
+  /* card emphasis follows the tour */
+  $('cardOut').classList.toggle('emph', focus === 'out');
+  $('cardIn').classList.toggle('emph',  focus === 'in');
+  $('cardBoth').classList.toggle('emph', focus === 'both');
+  $('cardDefault').classList.toggle('emph', focus === 'default');
+
+  /* mode switch */
+  $('btnDirected').setAttribute('aria-pressed', dir ? 'true' : 'false');
+  $('btnUndirected').setAttribute('aria-pressed', dir ? 'false' : 'true');
+}
+
+/* ==========================================================================
+   7. GUIDED TOUR — the six bullets, in order
+   ========================================================================== */
+
+var TOUR = [
+  {
+    v: 'a', directed: true, focus: 'out',
+    title: '1 · Outgoing neighbor set',
+    text: '<span class="m">Adj<sup>+</sup>(a) = {v &isin; V | (a,&thinsp;v) &isin; E}</span> — everything one hop <b>forward</b> from a. Follow the cyan arrows out of a; their heads are the set.'
+  },
+  {
+    v: 'b', directed: true, focus: 'in',
+    title: '2 · Incoming neighbor set',
+    text: '<span class="m">Adj<sup>&minus;</sup>(b) = {v &isin; V | (v,&thinsp;b) &isin; E}</span> — same test, arrow flipped. Note <b>c</b> appears in both of b\'s sets, because b&#8594;c and c&#8594;b are two separate edges.'
+  },
+  {
+    v: 'f', directed: true, focus: 'out',
+    title: '3 · Out-degree',
+    text: '<span class="m">deg<sup>+</sup>(u) = |Adj<sup>+</sup>(u)|</span> — how many options you have on leaving u. Nothing lights up cyan at f: <b>deg<sup>+</sup>(f) = 0</b>, a sink. Summing deg<sup>+</sup> over V counts each edge once, so <span class="m">&Sigma; deg<sup>+</sup> = |E|</span>.'
+  },
+  {
+    v: 'a', directed: true, focus: 'in',
+    title: '4 · In-degree',
+    text: '<span class="m">deg<sup>&minus;</sup>(u) = |Adj<sup>&minus;</sup>(u)|</span> — how many ways there are to arrive at u. Nothing amber reaches a: <b>deg<sup>&minus;</sup>(a) = 0</b>, a source. Out-degree and in-degree are independent — a has 2 and 0.'
+  },
+  {
+    v: 'b', directed: false, focus: 'both',
+    title: '5 · Undirected graphs',
+    text: 'Arrowheads gone, every edge reads both ways, so <span class="m">Adj<sup>&minus;</sup>(u) = Adj<sup>+</sup>(u)</span> and <span class="m">deg<sup>&minus;</sup>(u) = deg<sup>+</sup>(u)</span>. The b&#8596;c pair merges into <b>one</b> edge — the same relation stated once.'
+  },
+  {
+    v: 'c', directed: true, focus: 'default',
+    title: '6 · Dropping the superscript',
+    text: 'Bare notation defaults to outgoing: <span class="m">Adj(u) = Adj<sup>+</sup>(u)</span>, <span class="m">deg(u) = deg<sup>+</sup>(u)</span>. BFS and DFS only ever ask &ldquo;where can I go next&rdquo;, so outgoing is the direction worth defaulting to.'
+  }
+];
+
+function renderTour(){
+  var cap = $('caption');
+  cap.classList.toggle('tour-on', state.tourOn);
+  if(state.tourOn){
+    var st = TOUR[state.step];
+    $('stepPill').textContent = (state.step + 1) + ' / ' + TOUR.length;
+    $('capTitle').textContent = st.title;
+    $('capText').innerHTML = st.text;
+  } else {
+    $('stepPill').textContent = 'explore';
+    $('capTitle').textContent = 'Pick a vertex';
+    $('capText').innerHTML = 'Hover or click any vertex to see its neighbor sets computed live. '
+      + 'Keys: <kbd>a</kbd>&ndash;<kbd>g</kbd> select, <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> step the tour, <kbd>p</kbd> plays it.';
+  }
+  var label;
+  if(state.playing)                            label = '&#10073;&#10073;&nbsp; Pause';
+  else if(!state.tourOn)                       label = '&#9654;&nbsp; Play tour';
+  else if(state.step >= TOUR.length - 1)       label = '&#8635;&nbsp; Replay';
+  else                                         label = '&#9654;&nbsp; Resume';
+  $('btnPlay').innerHTML = label;
+}
+
+function goTo(i){
+  var n = TOUR.length;
+  state.step     = ((i % n) + n) % n;
+  var st         = TOUR[state.step];
+  state.tourOn   = true;
+  state.directed = st.directed;   // each step owns the mode, so stepping
+  state.selected = st.v;          // backwards restores it correctly
+  state.preview  = null;
+  state.focus    = st.focus;
+  render();
+  renderTour();
+}
+
+function schedule(){
+  clearTimeout(timer);
+  if(!state.playing) return;
+  timer = setTimeout(function(){
+    if(state.step >= TOUR.length - 1){ pauseTour(); return; }   // stop at the end
+    goTo(state.step + 1);
+    schedule();
+  }, STEP_MS);
+}
+
+function playTour(){
+  // Fresh start, or a replay once the last step has already been reached;
+  // otherwise pick up from wherever the user paused.
+  if(!state.tourOn || state.step >= TOUR.length - 1) goTo(0);
+  state.playing = true;
+  renderTour();
+  schedule();
+}
+
+function pauseTour(){
+  state.playing = false;
+  clearTimeout(timer);
+  renderTour();
+}
+
+// Any deliberate user action drops out of the tour rather than fighting it.
+// This has to re-render the graph too, since leaving the tour clears the
+// one-sided focus dimming that the current step had applied.
+function stopTour(){
+  if(!state.tourOn && !state.playing) return;
+  state.tourOn  = false;
+  state.playing = false;
+  state.focus   = null;
+  clearTimeout(timer);
+  render();
+  renderTour();
+}
+
+/* ==========================================================================
+   8. EVENTS
+   ========================================================================== */
+
+function userSelect(id){
+  stopTour();
+  state.selected = id;
+  state.preview  = null;
+  render();
+}
+
+function setMode(directed){
+  if(state.directed === directed) return;
+  state.directed = directed;
+  render();
+}
+
+nodeRecs.forEach(function(n){
+  n.g.addEventListener('click', function(){ userSelect(n.id); });
+  n.g.addEventListener('mouseenter', function(){
+    if(state.playing) return;              // don't fight the autoplay
+    state.preview = n.id;
+    render();
+  });
+  n.g.addEventListener('mouseleave', function(){
+    if(state.preview === n.id){ state.preview = null; render(); }
+  });
+  n.g.addEventListener('focus', function(){
+    if(state.playing) return;
+    state.preview = n.id;
+    render();
+  });
+  n.g.addEventListener('blur', function(){
+    if(state.preview === n.id){ state.preview = null; render(); }
+  });
+  n.g.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar'){
+      e.preventDefault();
+      userSelect(n.id);
+    }
+  });
+});
+
+$('btnDirected').addEventListener('click', function(){ stopTour(); setMode(true); });
+$('btnUndirected').addEventListener('click', function(){ stopTour(); setMode(false); });
+$('btnTryUndirected').addEventListener('click', function(){ stopTour(); setMode(false); });
+
+$('btnPlay').addEventListener('click', function(){
+  if(state.playing) pauseTour(); else playTour();
+});
+$('btnNext').addEventListener('click', function(){
+  goTo(state.tourOn ? state.step + 1 : 0);
+  if(state.playing) schedule();          // restart the dwell on this step
+});
+$('btnPrev').addEventListener('click', function(){
+  goTo(state.tourOn ? state.step - 1 : TOUR.length - 1);
+  if(state.playing) schedule();
+});
+
+document.addEventListener('keydown', function(e){
+  if(e.metaKey || e.ctrlKey || e.altKey) return;
+  var k = e.key;
+  if(k === 'ArrowRight'){ e.preventDefault(); $('btnNext').click(); return; }
+  if(k === 'ArrowLeft'){  e.preventDefault(); $('btnPrev').click(); return; }
+  if(k === 'p' || k === 'P'){ e.preventDefault(); $('btnPlay').click(); return; }
+  if(k === 'u' || k === 'U'){ e.preventDefault(); stopTour(); setMode(!state.directed); return; }
+  if(k.length === 1 && POS[k.toLowerCase()]){ e.preventDefault(); userSelect(k.toLowerCase()); }
+});
+
+/* first paint */
+render();
+renderTour();
+
+})();
+</script>
+</body>
+</html>

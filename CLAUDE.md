@@ -4,31 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-This is a personal study repository for learning neural network concepts, with a current focus on NLP models (BERT, ELMo, Transformers, etc.).
+Personal study repository for neural networks, NLP, and ML history. It contains two kinds of content: Markdown study notes (`notes/`) and a collection of research papers as PDFs. There is no build system, linter, or test suite — the only runnable code is the occasional standalone Python script (e.g. `notes/turing/turing_machine_simulator.py`), run directly with `python`.
 
 ## Repository Structure
 
-This is an early-stage learning repository. Code and notebooks will be organized by topic as study progresses.
+- `notes/` — the main content. General neural-network/NLP notes live at the root with numbered prefixes (`00_timeline.md` … `30_spade_geann_goldilocks.md`); deeper dives live in topic subfolders (`ddpm/`, `rl/`, `turing/`, `von_neumann/`, `godel/`, `nash/`, `exponential-and-logarithm/`, `llm-inference-stack/`, `clrs/`, etc.).
+- `TODO/` — papers not yet read.
+- `human_cognitive_ai/`, `general_ai_and_society/`, `CUDA class/` — papers that have been read, organized by topic.
+- `README.md` — the reading index: a "To Read" table mirroring `TODO/` and a "Read" list mirroring the topic folders. When a paper moves from `TODO/` into a topic folder, update README.md to match.
 
-## Key Concepts Being Studied
+## Note Conventions
 
-- Neural network fundamentals
-- NLP model architectures (ELMo, BERT, Transformers)
-- Contextualized word embeddings vs static embeddings
+- One file per topic; create separate files rather than appending unrelated sections to an existing one.
+- Root notes use numbered prefixes in rough chronological/curriculum order. Insertions between existing numbers get a letter suffix (`00a_`, `06b_`, `17b_`). Topic subfolders start with a `00_overview.md`.
+- Math uses GFM LaTeX syntax (`$...$` inline, `$$...$$` display), never Unicode approximations.
+- Notes weave in historical context — who created the idea, why, what inspired them, and what happened after. The `history-lore-researcher` agent (`.claude/agents/`) exists for researching this.
+- ASCII diagrams are used liberally for visual intuition (timelines, architecture sketches, geometric comparisons).
 
 ## Guidelines
 
-- Prioritize clear, educational code with explanatory comments over production-grade abstractions
-- When creating examples, include inline explanations of *why* each step matters, not just *what* it does
-- Use Python with PyTorch or Hugging Face Transformers as the default stack unless otherwise specified
-
-## Context History
-
-### 2026-04-19 / 2026-04-20 (late night session)
-- [feat] Expanded `notes/quiz5/quiz_5_11_calibration_and_fairness_impossibility.md` — added confusion matrix primer (FPR/FNR definitions), 7-step worked numerical example proving calibration + equal FPR + equal FNR can't coexist when base rates differ, plus forced-equal-FPR scenario showing FNR explosion to 85%
-- [feat] Created 4 RL study note files in `notes/rl/` from UW CSE 579 PDFs: `01_markov_decision_processes.md`, `02_policy_iteration.md`, `03_temporal_difference_and_q_learning.md`, `04_policy_gradients.md`
-- [research] Looked up Nirbhay Modhe (GT PhD, Dhruv Batra's MLP Lab, post-Zoox)
-- [decision] Identified core career motivation: "healing people" — breaking, diagnosing, fixing. Explored biomedical engineering paths in SF (Neuralink, BCI startups, AbbVie Pleasanton, Penumbra Alameda, Mind Company SF)
-- [feat] Submitted Neuralink application — drafted 4 "exceptional ability" bullets (PNA sole developer, memory optimization, BioBERT clinical ML, multimodal agent hackathon)
-- [decision] Summer 2026 plan: DSA foundation gaps (DP, graphs, recursion) + math gaps (integral/sum equivalence, chain rule for log, gradient-integral swap). Resources: MIT 6.006, Skiena, targeted CLRS chapters
-- Various concept explanations: backprop vs Value Iteration parallel, DQN algorithm breakdown, policy gradient likelihood ratio trick line-by-line, Rust vs Python for DSA comparison
+- Prioritize clear, educational code with comments explaining *why* each step matters, not just *what* it does.
+- Use Python with PyTorch or Hugging Face Transformers as the default stack unless otherwise specified.
