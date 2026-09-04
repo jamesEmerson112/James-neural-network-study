@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside a Modern AI Agent — Interactive Architecture</title>
+<style>
+:root{
+  --bg:#071019;
+  --panel:#0c1723;
+  --panel-2:#111f2e;
+  --line:#23364a;
+  --ink:#edf5f7;
+  --muted:#9aafba;
+  --faint:#657b88;
+  --cyan:#35d0d0;
+  --violet:#aa8cff;
+  --amber:#ffbb55;
+  --coral:#ff786b;
+  --green:#6cdd9a;
+  --blue:#62a8ff;
+  --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--ink);
+  font:14px/1.45 var(--sans);
+  background:
+    radial-gradient(900px 580px at -5% -10%,rgba(53,208,208,.13),transparent 60%),
+    radial-gradient(850px 620px at 105% 105%,rgba(170,140,255,.12),transparent 58%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+button,select{font:inherit}
+button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+
+.app{height:100%;min-height:680px;display:flex;flex-direction:column;padding:18px 20px;gap:14px}
+header{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.heading{min-width:260px}
+.eyebrow{margin-bottom:4px;color:var(--cyan);font:700 10px/1 var(--sans);letter-spacing:.17em;text-transform:uppercase}
+h1{margin:0;font-size:clamp(21px,2.1vw,29px);line-height:1.1;letter-spacing:-.035em;font-weight:700}
+h1 span{color:var(--muted);font-weight:450}
+.subtitle{margin:5px 0 0;color:var(--muted);font-size:12.5px}
+.header-note{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--faint);font-size:11.5px}
+.header-note svg{width:16px;height:16px;color:var(--amber)}
+
+main{min-height:0;flex:1;display:grid;grid-template-columns:minmax(680px,1fr) 348px;gap:14px}
+.card{background:linear-gradient(180deg,rgba(17,31,46,.88),rgba(9,20,31,.94));border:1px solid var(--line);border-radius:17px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.stage{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+
+.toolbar{min-height:60px;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.scenario-label{color:var(--faint);font:700 9px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase}
+.scenario-tabs{display:flex;gap:5px;padding:3px;background:#07111c;border:1px solid #1c3042;border-radius:10px}
+.scenario-tab{border:0;background:transparent;color:var(--muted);padding:7px 10px;border-radius:7px;cursor:pointer;font-size:11.5px;font-weight:650;transition:.2s ease}
+.scenario-tab:hover{color:var(--ink);background:rgba(255,255,255,.035)}
+.scenario-tab[aria-pressed="true"]{color:#051317;background:var(--cyan);box-shadow:0 4px 16px rgba(53,208,208,.2)}
+.toolbar-spacer{flex:1}
+.control{height:32px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);padding:0 10px;cursor:pointer;font-weight:650;font-size:11.5px;transition:.18s ease}
+.control:hover{color:var(--ink);border-color:#36536c;background:#17283a}
+.control svg{width:13px;height:13px}
+.control.primary{color:#08151b;background:linear-gradient(180deg,#63e3df,var(--cyan));border-color:transparent;min-width:77px}
+.control.primary:hover{filter:brightness(1.07)}
+.control:disabled{opacity:.42;cursor:not-allowed}
+.speed-wrap{display:flex;align-items:center;gap:6px;color:var(--faint);font-size:10.5px}
+.speed-wrap select{height:30px;border:1px solid var(--line);border-radius:8px;background:#0b1723;color:var(--muted);padding:0 6px;cursor:pointer}
+
+.diagram-shell{position:relative;flex:1;min-width:0;min-height:0;padding:8px}
+#architecture{display:block;width:100%;height:100%;min-height:490px}
+.system-shell{fill:rgba(7,16,25,.24);stroke:#294156;stroke-width:1.4}
+.section-shell{fill:rgba(17,31,46,.34);stroke:#365066;stroke-width:1.2;stroke-dasharray:5 6}
+.section-caption{fill:#6f8795;font:700 10px var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.flow-line{fill:none;stroke:#2d4458;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s,opacity .25s,filter .25s;opacity:.66}
+.flow-line.completed{stroke:#426273;opacity:.9}
+.flow-line.active{stroke:var(--cyan);stroke-width:3;opacity:1;stroke-dasharray:7 9;animation:flow 1s linear infinite;filter:drop-shadow(0 0 5px rgba(53,208,208,.5))}
+.flow-line.feedback.active{stroke:var(--amber);filter:drop-shadow(0 0 5px rgba(255,187,85,.45))}
+@keyframes flow{to{stroke-dashoffset:-32}}
+.node{cursor:pointer}
+.node rect,.node path.node-shape{fill:#0e1d2a;stroke:#2b455b;stroke-width:1.4;transition:fill .22s,stroke .22s,filter .22s,opacity .22s}
+.node .node-icon-bg{fill:#142838;stroke:#304d62}
+.node .node-icon{fill:none;stroke:#88a2b1;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
+.node .node-title{fill:var(--ink);font:650 14px var(--sans)}
+.node .node-sub{fill:#728997;font:10.5px var(--sans)}
+.node .node-kicker{fill:#6c8492;font:700 8.5px var(--sans);letter-spacing:.13em;text-transform:uppercase}
+.node:hover rect,.node:hover path.node-shape{stroke:#52738a;fill:#122534}
+.node.active rect,.node.active path.node-shape{fill:#112b35;stroke:var(--cyan);stroke-width:2.2;filter:drop-shadow(0 0 10px rgba(53,208,208,.22))}
+.node.active .node-icon{stroke:var(--cyan)}
+.node.visited rect,.node.visited path.node-shape{stroke:#3a5c70}
+.node[data-node="controller"].active rect{fill:#211d37;stroke:var(--violet);filter:drop-shadow(0 0 10px rgba(170,140,255,.25))}
+.node[data-node="controller"].active .node-icon{stroke:var(--violet)}
+.node[data-node="reaction"].active rect{fill:#30211b;stroke:var(--coral);filter:drop-shadow(0 0 10px rgba(255,120,107,.22))}
+.node[data-node="reaction"].active .node-icon{stroke:var(--coral)}
+.node[data-node="training"].active rect{fill:#2d2717;stroke:var(--amber);filter:drop-shadow(0 0 10px rgba(255,187,85,.2))}
+.node[data-node="training"].active .node-icon{stroke:var(--amber)}
+.node[data-node="output"].active rect{fill:#14291f;stroke:var(--green);filter:drop-shadow(0 0 10px rgba(108,221,154,.22))}
+.node[data-node="output"].active .node-icon{stroke:var(--green)}
+.route-pill rect{fill:#0a151f;stroke:#2c4355}.route-pill text{fill:#758b98;font:600 9px var(--sans)}
+.route-pill.active rect{fill:#123039;stroke:var(--cyan)}.route-pill.active text{fill:#9deceb}
+
+.analogy{position:absolute;left:19px;bottom:16px;display:flex;gap:7px;align-items:center;color:#718793;font-size:10.5px;pointer-events:none}
+.analogy b{color:#a9bac3}
+.analogy-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px rgba(255,187,85,.6)}
+
+.side{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.side-head{padding:15px 16px 13px;border-bottom:1px solid var(--line)}
+.side-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.phase{display:inline-flex;align-items:center;gap:7px;color:var(--cyan);font:700 9.5px/1 var(--sans);letter-spacing:.13em;text-transform:uppercase}
+.phase::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor}
+.step-count{font:11px var(--mono);color:var(--faint)}
+#stepTitle{margin:10px 0 5px;font-size:18px;line-height:1.2;letter-spacing:-.02em}
+#stepDescription{margin:0;color:var(--muted);font-size:12.3px;min-height:35px}
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:13px}
+.meter{padding:8px 8px 7px;background:#091520;border:1px solid #1e3345;border-radius:9px}
+.meter-top{display:flex;justify-content:space-between;gap:3px;color:#708795;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em}
+.meter-value{color:#aebfc7;font-family:var(--mono);letter-spacing:0;text-transform:none}
+.meter-track{height:3px;margin-top:6px;border-radius:5px;background:#1d3040;overflow:hidden}
+.meter-fill{display:block;height:100%;width:0;border-radius:inherit;background:var(--cyan);transition:width .45s ease}
+.meter:nth-child(2) .meter-fill{background:var(--violet)}
+.meter:nth-child(3) .meter-fill{background:var(--green)}
+
+.side-scroll{min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:#294155 transparent}
+.side-section{padding:13px 16px;border-bottom:1px solid rgba(35,54,74,.72)}
+.section-label{margin:0 0 9px;color:var(--faint);font:700 9px/1 var(--sans);letter-spacing:.13em;text-transform:uppercase}
+.implementation{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border-radius:10px;background:#0a1722;border:1px solid #1d3243}
+.impl-icon{flex:0 0 27px;width:27px;height:27px;border-radius:8px;display:grid;place-items:center;background:rgba(53,208,208,.1);color:var(--cyan);font:700 11px var(--mono)}
+#implementationTitle{font-size:11.5px;font-weight:700;color:#dce8eb}
+#implementationText{margin-top:2px;color:#7f96a3;font-size:10.5px;line-height:1.4}
+.trace{display:flex;flex-direction:column;gap:2px}
+.trace-row{display:grid;grid-template-columns:20px 1fr auto;gap:7px;align-items:center;min-height:27px;color:#667d8a;font-size:10.5px;transition:.25s}
+.trace-index{width:18px;height:18px;display:grid;place-items:center;border:1px solid #294155;border-radius:50%;font:8.5px var(--mono)}
+.trace-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trace-state{font:8px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:#526a78}
+.trace-row.done{color:#9db0ba}.trace-row.done .trace-index{border-color:#3a6071;color:var(--cyan)}
+.trace-row.current{color:var(--ink)}.trace-row.current .trace-index{border-color:var(--cyan);background:rgba(53,208,208,.12);color:var(--cyan);box-shadow:0 0 8px rgba(53,208,208,.2)}
+.trace-row.current .trace-state{color:var(--cyan)}
+.mapping-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.map-chip{border:1px solid #203749;border-radius:8px;background:#0a1722;padding:7px 8px;cursor:pointer;transition:.18s}
+.map-chip:hover{border-color:#3c6076;background:#0f202e}
+.map-old{color:#718995;font-size:8px;text-transform:uppercase;letter-spacing:.07em}
+.map-new{color:#becdd3;font-size:10px;margin-top:2px;font-weight:650}
+.learning-note{display:flex;gap:9px;color:#7d929e;font-size:10.5px;line-height:1.45}
+.learning-note svg{flex:0 0 15px;width:15px;height:15px;color:var(--amber);margin-top:1px}
+.learning-note strong{color:#c4d1d6}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,14px);padding:9px 13px;background:#dcebed;color:#0a1721;border-radius:9px;font-size:11.5px;font-weight:650;opacity:0;pointer-events:none;transition:.25s;box-shadow:0 12px 30px rgba(0,0,0,.3);z-index:10}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:1050px){
+  .app{height:auto;min-height:100%;overflow:auto}.header-note{display:none}
+  main{grid-template-columns:1fr}.stage{min-height:650px}.side{min-height:520px;max-height:none}
+  .side-scroll{overflow:visible}
+}
+@media (max-width:720px){
+  .app{padding:12px;gap:10px}.subtitle{max-width:530px}main{display:block}.stage{min-height:650px}
+  .toolbar{align-items:flex-start}.scenario-label{width:100%;margin-bottom:-4px}.scenario-tabs{width:100%}.scenario-tab{flex:1;padding-inline:5px}
+  .toolbar-spacer{display:none}.speed-wrap{margin-left:auto}.diagram-shell{overflow:auto;padding:2px}#architecture{width:860px;height:535px}
+  .analogy{position:static;padding:0 12px 10px}.side{margin-top:10px}.mapping-grid{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.flow-line.active{animation:none}.meter-fill{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="heading">
+      <div class="eyebrow">Interactive systems map</div>
+      <h1>Inside a modern AI agent <span>— from prompt to action</span></h1>
+      <p class="subtitle">Explore how reaction, deliberation, memory, learning, and metacognition map onto current AI systems.</p>
+    </div>
+    <div class="header-note" aria-label="Important qualification">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2.6 20h18.8L12 3Z"/><path d="M12 9v5m0 3v.1"/></svg>
+      A functional analogy—not a claim of human-like consciousness
+    </div>
+  </header>
+
+  <main>
+    <section class="stage card" aria-label="Interactive AI architecture diagram">
+      <div class="toolbar">
+        <span class="scenario-label">Try a request</span>
+        <div class="scenario-tabs" role="group" aria-label="Example request">
+          <button class="scenario-tab" data-scenario="quick" aria-pressed="false">Quick reply</button>
+          <button class="scenario-tab" data-scenario="research" aria-pressed="true">Research</button>
+          <button class="scenario-tab" data-scenario="agent" aria-pressed="false">Agent task</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <button class="control" id="resetBtn" title="Reset simulation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M5.5 16a8 8 0 1 0 .5-9l-2 3"/></svg>Reset
+        </button>
+        <button class="control" id="stepBtn" title="Advance one step">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 5 9 7-9 7V5Zm11 0v14"/></svg>Step
+        </button>
+        <button class="control primary" id="runBtn">
+          <svg id="runIcon" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 11 7-11 7V5Z"/></svg><span id="runLabel">Run</span>
+        </button>
+        <label class="speed-wrap">Speed
+          <select id="speedSelect" aria-label="Animation speed"><option value="1250">1×</option><option value="700">2×</option><option value="350">4×</option></select>
+        </label>
+      </div>
+
+      <div class="diagram-shell">
+        <svg id="architecture" viewBox="0 0 1120 650" role="img" aria-labelledby="diagramTitle diagramDesc">
+          <title id="diagramTitle">Architecture of a modern AI agent</title>
+          <desc id="diagramDesc">An interactive flow from user input through a controller, reasoning model, context and memory, tools, reaction path, output, and an offline training loop.</desc>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="context-stroke"/></marker>
+            <linearGradient id="systemGlow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#102636"/><stop offset="1" stop-color="#0a1723"/></linearGradient>
+          </defs>
+
+          <rect class="system-shell" x="190" y="20" width="730" height="570" rx="22" fill="url(#systemGlow)"/>
+          <text class="section-caption" x="214" y="47">AI AGENT RUNTIME</text>
+          <rect class="section-shell" x="230" y="188" width="650" height="285" rx="18"/>
+          <text class="section-caption" x="251" y="214">DELIBERATION / TEST-TIME COMPUTE</text>
+
+          <g id="connections" aria-hidden="true">
+            <path id="edge-input-controller" class="flow-line" marker-end="url(#arrow)" d="M157 304 C174 304 175 110 244 110"/>
+            <path id="edge-controller-reason" class="flow-line" marker-end="url(#arrow)" d="M555 153 V237"/>
+            <path id="edge-controller-memory" class="flow-line" marker-end="url(#arrow)" d="M680 153 C740 177 763 246 763 337"/>
+            <path id="edge-controller-reaction" class="flow-line" marker-end="url(#arrow)" d="M390 153 C265 202 272 452 356 498"/>
+            <path id="edge-weights-reason" class="flow-line" marker-end="url(#arrow)" d="M405 383 C436 364 452 335 465 316"/>
+            <path id="edge-memory-reason" class="flow-line" marker-end="url(#arrow)" d="M677 383 C644 362 628 337 618 316"/>
+            <path id="edge-reason-memory" class="flow-line" marker-end="url(#arrow)" d="M645 270 C706 266 754 292 763 337"/>
+            <path id="edge-reason-tools" class="flow-line" marker-end="url(#arrow)" d="M645 273 C800 273 864 202 947 202"/>
+            <path id="edge-tools-reason" class="flow-line" marker-end="url(#arrow)" d="M947 246 C856 285 799 319 645 303"/>
+            <path id="edge-reason-controller" class="flow-line" marker-end="url(#arrow)" d="M508 237 C498 210 498 181 510 153"/>
+            <path id="edge-controller-output" class="flow-line" marker-end="url(#arrow)" d="M866 111 C980 111 1008 322 1018 387"/>
+            <path id="edge-reaction-output" class="flow-line" marker-end="url(#arrow)" d="M756 522 C881 522 904 443 953 429"/>
+            <path id="edge-output-training" class="flow-line feedback" marker-end="url(#arrow)" d="M1018 469 C1034 580 920 623 792 623"/>
+            <path id="edge-training-weights" class="flow-line feedback" marker-end="url(#arrow)" d="M350 604 C280 563 257 480 315 426"/>
+          </g>
+
+          <g class="route-pill" id="pill-fast"><rect x="207" y="474" width="81" height="23" rx="11.5"/><text x="247.5" y="489" text-anchor="middle">FAST PATH</text></g>
+          <g class="route-pill" id="pill-slow"><rect x="247" y="224" width="94" height="23" rx="11.5"/><text x="294" y="239" text-anchor="middle">SLOWER PATH</text></g>
+
+          <g class="node" data-node="input" tabindex="0" role="button" aria-label="User input">
+            <rect x="20" y="265" width="137" height="78" rx="15"/>
+            <circle class="node-icon-bg" cx="48" cy="293" r="14"/>
+            <path class="node-icon" d="M41 288h14v10H45l-4 4v-14Z"/>
+            <text class="node-kicker" x="70" y="286">INPUT</text>
+            <text class="node-title" x="70" y="304">Your prompt</text>
+            <text class="node-sub" x="38" y="328">text · image · audio</text>
+          </g>
+
+          <g class="node" data-node="controller" tabindex="0" role="button" aria-label="Agent controller, analogous to metacognition">
+            <rect x="244" y="68" width="622" height="85" rx="16"/>
+            <circle class="node-icon-bg" cx="280" cy="109" r="19"/>
+            <path class="node-icon" d="M270 109h20m-10-10v20m-7-17 14 14m0-14-14 14"/>
+            <text class="node-kicker" x="312" y="94">METACOGNITION ANALOGUE</text>
+            <text class="node-title" x="312" y="116">Agent controller</text>
+            <text class="node-sub" x="312" y="136">route · budget · plan · evaluate · stop</text>
+            <rect x="706" y="91" width="126" height="35" rx="9" style="fill:#151b2e;stroke:#3f3862"/>
+            <text x="769" y="105" text-anchor="middle" style="fill:#9987d6;font:700 8px var(--sans);letter-spacing:.1em">POLICY</text>
+            <text x="769" y="119" text-anchor="middle" style="fill:#c9bfff;font:600 10px var(--mono)">verify? → yes</text>
+          </g>
+
+          <g class="node" data-node="reason" tabindex="0" role="button" aria-label="Reasoning model inference">
+            <rect x="446" y="237" width="199" height="79" rx="39"/>
+            <circle class="node-icon-bg" cx="479" cy="276" r="16"/>
+            <path class="node-icon" d="M474 270c0-5 10-5 10 0 0 3-3 3-3 6m0 5v.1M471 265c-5 2-6 9-2 12-2 5 3 10 8 8m14-20c5 2 6 9 2 12 2 5-3 10-8 8"/>
+            <text class="node-kicker" x="506" y="267">REASONING</text>
+            <text class="node-title" x="506" y="287">Model inference</text>
+            <text class="node-sub" x="506" y="302">one or many passes</text>
+          </g>
+
+          <g class="node" data-node="weights" tabindex="0" role="button" aria-label="Learned model weights">
+            <rect x="283" y="337" width="196" height="89" rx="15"/>
+            <circle class="node-icon-bg" cx="316" cy="373" r="15"/>
+            <path class="node-icon" d="M308 373h16m-13-6 10 12m0-12-10 12"/>
+            <text class="node-kicker" x="341" y="360">LEARNING</text>
+            <text class="node-title" x="341" y="380">Model weights</text>
+            <text class="node-sub" x="300" y="405">knowledge learned in training</text>
+          </g>
+
+          <g class="node" data-node="memory" tabindex="0" role="button" aria-label="Context and retrieved memory">
+            <rect x="625" y="337" width="196" height="89" rx="15"/>
+            <circle class="node-icon-bg" cx="658" cy="373" r="15"/>
+            <path class="node-icon" d="M650 368c0-4 16-4 16 0v12c0 4-16 4-16 0v-12Zm0 0c0 4 16 4 16 0m-16 6c0 4 16 4 16 0"/>
+            <text class="node-kicker" x="683" y="360">MEMORY</text>
+            <text class="node-title" x="683" y="380">Context + retrieval</text>
+            <text class="node-sub" x="642" y="405">prompt · history · RAG · state</text>
+          </g>
+
+          <g class="node" data-node="reaction" tabindex="0" role="button" aria-label="Fast reaction path">
+            <rect x="356" y="498" width="400" height="64" rx="14"/>
+            <circle class="node-icon-bg" cx="390" cy="530" r="15"/>
+            <path class="node-icon" d="m392 518-9 13h7l-2 11 10-15h-7l1-9Z"/>
+            <text class="node-kicker" x="416" y="521">REACTION</text>
+            <text class="node-title" x="416" y="541">Direct, single-pass response</text>
+            <text class="node-sub" x="620" y="535">low latency</text>
+          </g>
+
+          <g class="node" data-node="training" tabindex="0" role="button" aria-label="Offline training and evaluation loop">
+            <rect x="240" y="604" width="552" height="38" rx="12"/>
+            <circle class="node-icon-bg" cx="264" cy="623" r="11"/>
+            <path class="node-icon" d="M259 623a5 5 0 1 0 2-4m-2-2v4h4"/>
+            <text class="node-kicker" x="285" y="620">OFFLINE LEARNING LOOP</text>
+            <text class="node-sub" x="443" y="626">feedback → evals → fine-tuning → new weights</text>
+          </g>
+
+          <g class="node" data-node="tools" tabindex="0" role="button" aria-label="External tools and environment">
+            <rect x="947" y="164" width="153" height="106" rx="16"/>
+            <circle class="node-icon-bg" cx="978" cy="196" r="14"/>
+            <path class="node-icon" d="m972 201 11-11m-3-2 5 5m-15 3-3 7 7-3"/>
+            <text class="node-kicker" x="1001" y="190">ACTION</text>
+            <text class="node-title" x="1001" y="208">Tools</text>
+            <text class="node-sub" x="965" y="232">search · code · APIs</text>
+            <text class="node-sub" x="965" y="248">files · environment</text>
+          </g>
+
+          <g class="node" data-node="output" tabindex="0" role="button" aria-label="Output or external action">
+            <rect x="953" y="387" width="147" height="82" rx="16"/>
+            <circle class="node-icon-bg" cx="983" cy="418" r="14"/>
+            <path class="node-icon" d="M975 418h14m-5-5 5 5-5 5"/>
+            <text class="node-kicker" x="1006" y="410">OUTPUT</text>
+            <text class="node-title" x="1006" y="430">Answer</text>
+            <text class="node-sub" x="970" y="452">or real-world action</text>
+          </g>
+        </svg>
+        <div class="analogy"><span class="analogy-dot"></span><span><b>Hover or select a block</b> to inspect it. Arrows show information flow, not brain anatomy.</span></div>
+      </div>
+    </section>
+
+    <aside class="side card" aria-live="polite">
+      <div class="side-head">
+        <div class="side-head-row"><span class="phase" id="phaseLabel">Ready</span><span class="step-count" id="stepCount">0 / 12</span></div>
+        <h2 id="stepTitle">Choose Run or Step</h2>
+        <p id="stepDescription">Watch a research question move through the agent’s control, memory, reasoning, tool, and verification loops.</p>
+        <div class="meters" aria-label="Simulation metrics">
+          <div class="meter"><div class="meter-top">Compute <span class="meter-value" id="computeValue">0%</span></div><div class="meter-track"><span class="meter-fill" id="computeMeter"></span></div></div>
+          <div class="meter"><div class="meter-top">Context <span class="meter-value" id="contextValue">0%</span></div><div class="meter-track"><span class="meter-fill" id="contextMeter"></span></div></div>
+          <div class="meter"><div class="meter-top">Confidence <span class="meter-value" id="confidenceValue">—</span></div><div class="meter-track"><span class="meter-fill" id="confidenceMeter"></span></div></div>
+        </div>
+      </div>
+      <div class="side-scroll">
+        <section class="side-section">
+          <h3 class="section-label">What this means in software</h3>
+          <div class="implementation"><div class="impl-icon" id="implementationIcon">→</div><div><div id="implementationTitle">A routed computation graph</div><div id="implementationText">Modern systems combine a trained model with ordinary software: prompts, retrieval, tools, policies, and checks.</div></div></div>
+        </section>
+        <section class="side-section">
+          <h3 class="section-label">Live execution trace</h3>
+          <div class="trace" id="trace"></div>
+        </section>
+        <section class="side-section">
+          <h3 class="section-label">Original diagram → modern AI</h3>
+          <div class="mapping-grid">
+            <div class="map-chip" data-inspect="controller" tabindex="0"><div class="map-old">Metacognition</div><div class="map-new">Controller + evals</div></div>
+            <div class="map-chip" data-inspect="reason" tabindex="0"><div class="map-old">Reasoning</div><div class="map-new">Model inference</div></div>
+            <div class="map-chip" data-inspect="memory" tabindex="0"><div class="map-old">Memory</div><div class="map-new">Context + retrieval</div></div>
+            <div class="map-chip" data-inspect="weights" tabindex="0"><div class="map-old">Learning</div><div class="map-new">Training + weights</div></div>
+            <div class="map-chip" data-inspect="reaction" tabindex="0"><div class="map-old">Reaction</div><div class="map-new">Direct generation</div></div>
+            <div class="map-chip" data-inspect="tools" tabindex="0"><div class="map-old">Environment</div><div class="map-new">Tools + APIs</div></div>
+          </div>
+        </section>
+        <section class="side-section">
+          <div class="learning-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2.6 20h18.8L12 3Z"/><path d="M12 9v5m0 3v.1"/></svg>
+            <span><strong>Important distinction:</strong> conversation history can change the current context, but a deployed model normally does not update its learned weights after every prompt. Weight learning happens later, in a separate training pipeline.</span>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const nodeInfo = {
+  input:{phase:'Input',title:'The request enters the system',description:'The system receives text, an image, audio, or another structured message.',icon:'IN',implTitle:'Tokenization + request envelope',implText:'The input is converted into tokens or embeddings and packaged with system instructions, permissions, and session state.'},
+  controller:{phase:'Metacognition analogue',title:'The controller decides how to proceed',description:'It estimates difficulty, selects a route, assigns a budget, and later checks whether the result is good enough.',icon:'MC',implTitle:'Agent loop + control policy',implText:'Usually ordinary orchestration code around one or more models—not a separate conscious inner observer.'},
+  reason:{phase:'Deliberation',title:'The model works through the request',description:'Extra inference steps can decompose a problem, compare candidates, or revise a draft.',icon:'AI',implTitle:'Transformer inference + test-time compute',implText:'A model predicts tokens. A surrounding loop may call it repeatedly, branch over candidates, or ask a verifier to critique the result.'},
+  weights:{phase:'Learned knowledge',title:'Training shaped the model weights',description:'Capabilities and broad patterns are encoded before this request arrives.',icon:'W',implTitle:'Parameters learned offline',implText:'Pretraining and post-training optimize billions of numeric parameters. They influence every inference pass but normally stay fixed during a chat.'},
+  memory:{phase:'Memory analogue',title:'Relevant context is assembled',description:'The current prompt, conversation, retrieved documents, and saved state become working context.',icon:'M',implTitle:'Context window + retrieval (RAG)',implText:'Memory is often an external database search whose results are inserted into the prompt. It is not perfect human recall.'},
+  reaction:{phase:'Reaction',title:'The fast path answers directly',description:'A simple, familiar, low-risk request can use a single model pass without tools or an iterative loop.',icon:'⚡',implTitle:'Direct generation',implText:'The controller still applies instructions and safety policy, but skips costly search and multi-step deliberation.'},
+  tools:{phase:'Action',title:'The agent consults the outside world',description:'A tool supplies fresh facts, performs computation, reads files, or changes an authorized system.',icon:'↗',implTitle:'Structured tool or function call',implText:'The model emits arguments; trusted application code executes the call and returns observations to the model.'},
+  output:{phase:'Output',title:'A response or action leaves the system',description:'The final answer is rendered—or an authorized action is applied to the environment.',icon:'OUT',implTitle:'Rendering + action boundary',implText:'The host application formats citations, streams text, displays media, or commits an approved external action.'},
+  training:{phase:'Offline learning',title:'Feedback can improve a future model',description:'Logs and ratings may feed evaluations and later training—not instant self-modification.',icon:'↻',implTitle:'Evals + post-training pipeline',implText:'Curated data, reinforcement signals, fine-tuning, and release gates can produce a new version of the model.'}
+};
+
+const scenarios = {
+  quick:{
+    prompt:'“Define deliberation.”',route:'fast',compute:[8,16,25,28],context:[6,12,15,15],confidence:[0,68,88,94],
+    steps:[
+      ['input',null,'Prompt received','A short definition request arrives.'],
+      ['controller','input-controller','Classify the request','Low ambiguity, low risk, and no fresh information required.'],
+      ['reaction','controller-reaction','Choose the fast path','One inference pass is sufficient; tools would add latency without useful evidence.'],
+      ['output','reaction-output','Return a concise answer','The answer is rendered directly to the user.']
+    ]
+  },
+  research:{
+    prompt:'“Compare today’s leading AI chips.”',route:'slow',compute:[5,10,15,22,34,47,61,69,77,86,92,96],context:[5,11,28,42,44,58,70,76,80,82,84,84],confidence:[0,22,30,36,43,54,63,68,76,84,91,94],
+    steps:[
+      ['input',null,'Research question received','The word “today” makes the answer time-sensitive.'],
+      ['controller','input-controller','Assess freshness and risk','The controller routes to a sourced research path and requires a final check.'],
+      ['memory','controller-memory','Load session context','Instructions and relevant conversation history are assembled.'],
+      ['reason','memory-reason','Form a research plan','The model chooses comparison criteria: performance, memory, power, availability, and price.'],
+      ['tools','reason-tools','Search authoritative sources','External tools retrieve current vendor specifications and independent measurements.'],
+      ['reason','tools-reason','Synthesize evidence','Returned documents are compared; conflicting claims are marked for resolution.'],
+      ['memory','reason-memory','Ground claims in sources','Useful passages and their provenance stay in working context.'],
+      ['reason','memory-reason','Draft the comparison','The model produces a structured answer tied to the collected evidence.'],
+      ['controller','reason-controller','Verify the draft','A check looks for unsupported claims, stale dates, and missing caveats.'],
+      ['tools','reason-tools','Resolve one weak claim','The agent performs a targeted second lookup instead of guessing.'],
+      ['controller',['tools-reason','reason-controller'],'Accept after re-check','Evidence coverage and answer quality now meet the stopping rule.'],
+      ['output','controller-output','Return answer with sources','The user receives the concise comparison and citations.']
+    ]
+  },
+  agent:{
+    prompt:'“Analyze these tests and fix the bug.”',route:'slow',compute:[4,9,17,28,36,48,58,67,76,83,89,93,96,98],context:[4,10,18,31,39,49,58,62,69,73,77,80,82,82],confidence:[0,18,25,34,42,50,58,64,70,75,81,87,92,95],
+    steps:[
+      ['input',null,'Task and files received','The request includes a goal plus an environment the agent may inspect.'],
+      ['controller','input-controller','Plan within permissions','The controller identifies allowed actions and creates a test-driven stopping condition.'],
+      ['memory','controller-memory','Load repository context','Instructions, relevant files, and recent tool results enter the working context.'],
+      ['reason','memory-reason','Generate a hypothesis','The model connects the failing behavior to likely code paths.'],
+      ['weights','weights-reason','Apply learned patterns','Patterns learned during training help interpret code and common failure modes.'],
+      ['tools','reason-tools','Inspect files and run tests','Tools expose ground truth from the actual environment.'],
+      ['reason','tools-reason','Update the hypothesis','The observation rules out one cause and points to a boundary-condition bug.'],
+      ['tools','reason-tools','Edit the scoped file','The agent applies the smallest relevant change.'],
+      ['reason','tools-reason','Interpret verification','Test output is evidence, not merely a signal to stop.'],
+      ['controller','reason-controller','Check goal and side effects','The controller asks whether tests pass and whether unrelated behavior changed.'],
+      ['tools','reason-tools','Run focused validation','Syntax checks and affected tests pass.'],
+      ['controller',['tools-reason','reason-controller'],'Apply the stopping rule','The requested outcome is met with no remaining required work.'],
+      ['output','controller-output','Report the completed change','The response names what changed and how it was verified.'],
+      ['training','output-training','Optional feedback enters evals','A later offline pipeline—not this live agent—may learn from the outcome.']
+    ]
+  }
+};
+
+let scenarioKey='research';
+let index=-1;
+let timer=null;
+let running=false;
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+
+function scenario(){return scenarios[scenarioKey]}
+function edgeId(name){return name?`#edge-${name}`:null}
+
+function buildTrace(){
+  const list=$('#trace'); list.innerHTML='';
+  scenario().steps.forEach((step,i)=>{
+    const row=document.createElement('div');row.className='trace-row';row.dataset.i=i;
+    row.innerHTML=`<span class="trace-index">${String(i+1).padStart(2,'0')}</span><span class="trace-label">${step[2]}</span><span class="trace-state">queued</span>`;
+    list.appendChild(row);
+  });
+}
+
+function setMeter(id,value,label){
+  $(`#${id}Meter`).style.width=`${value}%`;
+  $(`#${id}Value`).textContent=label ?? `${value}%`;
+}
+
+function showInfo(nodeKey,titleOverride,descriptionOverride){
+  const info=nodeInfo[nodeKey];
+  $('#phaseLabel').textContent=info.phase;
+  $('#stepTitle').textContent=titleOverride||info.title;
+  $('#stepDescription').textContent=descriptionOverride||info.description;
+  $('#implementationIcon').textContent=info.icon;
+  $('#implementationTitle').textContent=info.implTitle;
+  $('#implementationText').textContent=info.implText;
+}
+
+function render(){
+  const data=scenario();
+  $$('.node').forEach(n=>n.classList.remove('active','visited'));
+  $$('.flow-line').forEach(p=>p.classList.remove('active','completed'));
+  const visited=new Set();
+  for(let i=0;i<=index;i++){
+    const [node,edge]=data.steps[i];visited.add(node);
+    const edges=Array.isArray(edge)?edge:[edge];
+    edges.filter(Boolean).forEach(name=>{const el=$(edgeId(name));if(el)el.classList.add(i===index?'active':'completed')});
+  }
+  visited.forEach(key=>{const n=$(`.node[data-node="${key}"]`);if(n)n.classList.add('visited')});
+  if(index>=0){
+    const step=data.steps[index],node=$(`.node[data-node="${step[0]}"]`);
+    if(node)node.classList.add('active');
+    showInfo(step[0],step[2],step[3]);
+    setMeter('compute',data.compute[index]);setMeter('context',data.context[index]);setMeter('confidence',data.confidence[index],`${data.confidence[index]}%`);
+  }else{
+    $('#phaseLabel').textContent='Ready';$('#stepTitle').textContent='Choose Run or Step';
+    $('#stepDescription').textContent=`${data.prompt} — watch this request choose the ${data.route==='fast'?'fast reaction':'deliberative'} path.`;
+    $('#implementationIcon').textContent='→';$('#implementationTitle').textContent='A routed computation graph';
+    $('#implementationText').textContent='Modern systems combine a trained model with ordinary software: prompts, retrieval, tools, policies, and checks.';
+    setMeter('compute',0);setMeter('context',0);setMeter('confidence',0,'—');
+  }
+  $('#pill-fast').classList.toggle('active',data.route==='fast');$('#pill-slow').classList.toggle('active',data.route==='slow');
+  $('#stepCount').textContent=`${Math.max(0,index+1)} / ${data.steps.length}`;
+  $$('.trace-row').forEach((r,i)=>{
+    r.classList.toggle('done',i<index);r.classList.toggle('current',i===index);
+    r.querySelector('.trace-state').textContent=i<index?'done':i===index?'active':'queued';
+  });
+  const current=$('.trace-row.current');if(current)current.scrollIntoView({block:'nearest',behavior:'smooth'});
+  $('#stepBtn').disabled=index>=data.steps.length-1;
+}
+
+function advance(){
+  const data=scenario();
+  if(index<data.steps.length-1){index++;render()}
+  else stop(true);
+}
+function play(){
+  if(index>=scenario().steps.length-1)index=-1;
+  running=true;updateRunButton();advance();
+  timer=setInterval(()=>{if(index>=scenario().steps.length-1){stop(true)}else advance()},Number($('#speedSelect').value));
+}
+function stop(finished=false){clearInterval(timer);timer=null;running=false;updateRunButton();if(finished)toast('Simulation complete')}
+function updateRunButton(){
+  $('#runLabel').textContent=running?'Pause':(index>=scenario().steps.length-1?'Replay':'Run');
+  $('#runIcon').innerHTML=running?'<path d="M7 5h4v14H7V5Zm7 0h4v14h-4V5Z"/>':'<path d="m8 5 11 7-11 7V5Z"/>';
+}
+function reset(){stop();index=-1;updateRunButton();render()}
+function selectScenario(key){scenarioKey=key;$$('.scenario-tab').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.scenario===key)));buildTrace();reset()}
+function toast(message){const t=$('#toast');t.textContent=message;t.classList.add('show');clearTimeout(t._hide);t._hide=setTimeout(()=>t.classList.remove('show'),1500)}
+function inspect(key){
+  stop();$$('.node').forEach(n=>n.classList.remove('active'));const node=$(`.node[data-node="${key}"]`);if(node)node.classList.add('active');showInfo(key);
+}
+
+$$('.scenario-tab').forEach(b=>b.addEventListener('click',()=>selectScenario(b.dataset.scenario)));
+$('#runBtn').addEventListener('click',()=>running?stop():play());
+$('#stepBtn').addEventListener('click',()=>{if(running)stop();advance()});
+$('#resetBtn').addEventListener('click',reset);
+$('#speedSelect').addEventListener('change',()=>{if(running){stop();play()}});
+$$('.node').forEach(n=>{
+  n.addEventListener('click',()=>inspect(n.dataset.node));
+  n.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspect(n.dataset.node)}});
+});
+$$('.map-chip').forEach(c=>{
+  c.addEventListener('click',()=>inspect(c.dataset.inspect));
+  c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspect(c.dataset.inspect)}});
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('button,select,[tabindex]'))return;
+  if(e.code==='Space'){e.preventDefault();running?stop():play()}
+  if(e.key==='ArrowRight'){e.preventDefault();if(running)stop();advance()}
+  if(e.key==='Escape')reset();
+});
+
+buildTrace();render();
+</script>
+</body>
+</html>

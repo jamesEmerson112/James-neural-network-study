@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routing a Metropolis — Dijkstra, ALT, Reach, and Shortcuts</title>
+<style>
+:root {
+  --bg: #071118;
+  --bg-soft: #0a1821;
+  --panel: #10232d;
+  --panel-2: #142c37;
+  --line: #27414c;
+  --ink: #f2f7f5;
+  --muted: #a3b6b8;
+  --faint: #6e888e;
+  --teal: #58dfc1;
+  --sky: #62b9ff;
+  --amber: #ffc65b;
+  --coral: #ff826e;
+  --violet: #b8a0ff;
+  --green: #8fe6a7;
+  --red: #ff7d87;
+  --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 580px at 8% -8%, rgba(47, 137, 143, .23), transparent 62%),
+    radial-gradient(850px 620px at 106% 11%, rgba(112, 75, 172, .16), transparent 60%),
+    var(--bg);
+  font: 15px/1.56 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, select, input { font: inherit; }
+button { color: inherit; }
+a { color: var(--teal); }
+.page { width: min(1480px, 100%); margin: 0 auto; padding: 22px clamp(14px, 3vw, 42px) 80px; }
+.mono { font-family: var(--mono); }
+.eyebrow { margin: 0 0 9px; color: var(--teal); font: 800 11px/1 var(--sans); letter-spacing: .15em; text-transform: uppercase; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { max-width: 1050px; margin-bottom: 17px; font-size: clamp(35px, 5.8vw, 78px); line-height: .96; letter-spacing: -.057em; font-weight: 780; }
+h1 em { color: var(--amber); font-style: normal; }
+h2 { margin-bottom: 10px; font-size: clamp(25px, 3.2vw, 43px); line-height: 1.06; letter-spacing: -.038em; }
+h3 { margin-bottom: 7px; font-size: 17px; line-height: 1.24; }
+.lede { max-width: 840px; color: var(--muted); font-size: clamp(16px, 2vw, 21px); }
+.hero { padding: clamp(30px, 6vw, 78px) 0 34px; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(315px, .65fr); gap: clamp(25px, 5vw, 72px); align-items: end; }
+.hero-note { border: 1px solid rgba(255,198,91,.35); border-radius: 18px; padding: 19px; background: linear-gradient(145deg, rgba(58,43,18,.58), rgba(10,24,33,.91)); box-shadow: 0 18px 55px rgba(0,0,0,.24); }
+.hero-note b { display: block; margin-bottom: 7px; color: var(--amber); font-size: 12px; text-transform: uppercase; letter-spacing: .09em; }
+.hero-note p { margin: 0; color: var(--muted); }
+.hero-note strong { color: var(--ink); }
+
+.lesson-nav { position: sticky; z-index: 30; top: 0; display: flex; gap: 7px; overflow-x: auto; padding: 10px 0; background: linear-gradient(180deg, rgba(7,17,24,.98) 72%, transparent); scrollbar-width: none; }
+.lesson-nav::-webkit-scrollbar { display: none; }
+.nav-pill, .btn, .chip-btn, .answer {
+  appearance: none; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); cursor: pointer;
+  transition: transform .15s, border-color .2s, background .2s, color .2s, opacity .2s;
+}
+.nav-pill { flex: 0 0 auto; padding: 8px 13px; color: var(--muted); font-size: 12px; text-decoration: none; }
+.nav-pill:hover, .btn:hover, .chip-btn:hover, .answer:hover { border-color: #4b6b75; color: var(--ink); }
+.nav-pill:focus-visible, .btn:focus-visible, .chip-btn:focus-visible, .answer:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+.section { scroll-margin-top: 60px; margin-top: clamp(48px, 7vw, 92px); }
+.section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 455px); gap: 32px; align-items: end; margin-bottom: 23px; }
+.section-head p:last-child { margin-bottom: 0; color: var(--muted); }
+.section-num { color: var(--faint); font: 750 12px var(--mono); letter-spacing: .1em; }
+.callout { border-left: 3px solid var(--amber); padding: 14px 17px; color: var(--muted); background: rgba(255,198,91,.06); border-radius: 0 12px 12px 0; }
+.callout strong { color: var(--ink); }
+
+.story-flow { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; }
+.story-card { position: relative; min-height: 180px; padding: 18px; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: rgba(16,35,45,.86); }
+.story-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: var(--accent, var(--faint)); }
+.story-card .kicker { color: var(--accent, var(--faint)); font: 800 10px var(--mono); text-transform: uppercase; letter-spacing: .1em; }
+.story-card h3 { margin-top: 23px; }
+.story-card p { margin: 0; color: var(--muted); font-size: 13px; }
+.story-card .formula { display: block; margin: 9px 0; color: var(--ink); font: 12px var(--mono); }
+.story-card:nth-child(1) { --accent: var(--sky); }
+.story-card:nth-child(2) { --accent: var(--amber); }
+.story-card:nth-child(3) { --accent: var(--teal); }
+.story-card:nth-child(4) { --accent: var(--coral); }
+.story-card:nth-child(5) { --accent: var(--violet); }
+.foundation-note { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 13px; }
+.foundation-note > div { padding: 15px 17px; border: 1px solid var(--line); border-radius: 14px; color: var(--muted); background: rgba(8,22,29,.55); }
+.foundation-note b { color: var(--ink); }
+.symbol-key { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; padding: 13px 16px; color: var(--muted); border: 1px solid var(--line); border-radius: 14px; background: rgba(8,22,29,.55); font-size: 12px; }
+.symbol-key code { color: var(--amber); font-family: var(--mono); }
+
+.lab-shell { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 23px; background: linear-gradient(150deg, rgba(18,42,52,.9), rgba(7,20,27,.94)); box-shadow: 0 28px 80px rgba(0,0,0,.25); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 15px; border-bottom: 1px solid var(--line); background: rgba(7,20,27,.68); }
+.toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.toolbar-label { color: var(--faint); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.toolbar-sep { width: 1px; align-self: stretch; min-height: 26px; background: var(--line); margin: 0 3px; }
+.spacer { flex: 1 1 auto; }
+.btn { min-height: 35px; padding: 7px 13px; color: var(--muted); font-size: 12px; }
+.btn.primary { border-color: transparent; color: #071118; background: var(--teal); font-weight: 800; }
+.btn.amber { border-color: transparent; color: #191103; background: var(--amber); font-weight: 800; }
+.btn.icon { width: 36px; padding: 0; font-size: 15px; }
+.btn:disabled { cursor: not-allowed; opacity: .4; }
+.chip-btn { padding: 6px 10px; color: var(--muted); font-size: 11px; }
+.chip-btn.active { color: #071118; border-color: transparent; background: var(--amber); font-weight: 800; }
+select { min-height: 35px; max-width: 260px; padding: 6px 30px 6px 10px; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; background: #10232d; }
+input[type="range"] { width: 96px; accent-color: var(--teal); }
+
+.preprocess-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); min-width: 0; }
+.pre-map-wrap { position: relative; min-width: 0; min-height: 440px; border-right: 1px solid var(--line); background: #08151c; }
+canvas { display: block; width: 100%; max-width: 100%; touch-action: none; }
+.map-canvas { height: 100%; min-height: 440px; }
+.map-overlay { position: absolute; inset: 13px auto auto 13px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 26px); pointer-events: none; }
+.map-badge { padding: 5px 8px; color: var(--muted); border: 1px solid rgba(255,255,255,.1); border-radius: 999px; background: rgba(5,15,21,.82); backdrop-filter: blur(7px); font-size: 10px; }
+.map-badge b { color: var(--ink); }
+.pre-panel { min-width: 0; padding: 20px; }
+.pre-panel > p { color: var(--muted); }
+.pre-stage-list { display: grid; gap: 8px; margin: 18px 0; }
+.pre-stage { display: grid; grid-template-columns: 27px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--line); border-radius: 13px; background: rgba(7,20,27,.48); }
+.pre-stage .num { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; color: var(--faint); background: rgba(255,255,255,.05); font: 800 11px var(--mono); }
+.pre-stage strong { display: block; font-size: 13px; }
+.pre-stage small { display: block; color: var(--faint); }
+.pre-stage .stage-value { color: var(--muted); font: 700 11px var(--mono); text-align: right; }
+.pre-stage.active { border-color: var(--amber); background: rgba(255,198,91,.08); }
+.pre-stage.active .num { color: #151006; background: var(--amber); }
+.pre-stage.done .num { color: #071118; background: var(--green); }
+.pre-total { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.mini-stat { padding: 11px; border-radius: 12px; background: rgba(255,255,255,.035); }
+.mini-stat span { display: block; color: var(--faint); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.mini-stat b { display: block; margin-top: 3px; font: 750 14px var(--mono); }
+
+.route-layout { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(330px,.55fr); min-width: 0; }
+.route-map-wrap { position: relative; min-width: 0; min-height: 560px; border-right: 1px solid var(--line); background: #08151c; }
+.route-map-wrap .map-canvas { min-height: 560px; }
+.route-help { position: absolute; left: 13px; bottom: 12px; max-width: calc(100% - 26px); padding: 6px 9px; color: var(--muted); border: 1px solid rgba(255,255,255,.1); border-radius: 9px; background: rgba(5,15,21,.84); font-size: 10px; pointer-events: none; }
+.route-side { min-width: 0; }
+.algorithm-head { padding: 19px 19px 15px; border-bottom: 1px solid var(--line); }
+.algorithm-head .tag { display: inline-flex; margin-bottom: 10px; padding: 4px 8px; color: var(--teal); border-radius: 99px; background: rgba(88,223,193,.09); font: 800 9px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.algorithm-head p { margin-bottom: 0; color: var(--muted); font-size: 13px; }
+.scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
+.metric { min-height: 93px; padding: 13px 15px; background: var(--panel); }
+.metric span { display: block; color: var(--faint); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.metric b { display: block; margin: 7px 0 1px; color: var(--amber); font: 770 20px var(--mono); }
+.metric small { color: var(--faint); }
+.decision { padding: 17px 19px; border-top: 1px solid var(--line); }
+.decision .label { color: var(--faint); font: 800 10px var(--mono); text-transform: uppercase; letter-spacing: .09em; }
+.decision p { min-height: 68px; margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+.formula-box { margin: 12px 0 0; padding: 11px 12px; overflow-x: auto; color: var(--ink); border: 1px solid var(--line); border-radius: 11px; background: rgba(5,16,22,.55); font: 12px var(--mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 15px; padding: 11px 15px; color: var(--muted); border-top: 1px solid var(--line); font-size: 10px; }
+.legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 50%; background: var(--c); }
+
+.race-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 9px; padding: 12px; }
+.race-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: rgba(8,22,29,.7); }
+.race-card header { display: flex; justify-content: space-between; gap: 6px; align-items: center; padding: 10px 11px; }
+.race-card h3 { margin: 0; font-size: 12px; }
+.race-card .race-count { color: var(--faint); font: 700 10px var(--mono); }
+.race-canvas { aspect-ratio: 1000/620; height: auto; background: #08151c; }
+.race-card footer { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
+.race-card footer span { padding: 7px 9px; color: var(--faint); background: var(--panel); font-size: 9px; }
+.race-card footer b { display: block; color: var(--ink); font: 700 11px var(--mono); }
+.race-insight { margin: 0 12px 12px; border-left-color: var(--teal); font-size: 12px; }
+.implementation-note { padding: 11px 14px; color: var(--muted); border-top: 1px solid var(--line); background: rgba(184,160,255,.045); font-size: 11px; }
+
+.table-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; min-width: 760px; }
+th, td { padding: 11px 13px; border-bottom: 1px solid rgba(39,65,76,.8); text-align: right; white-space: nowrap; }
+th { color: var(--faint); background: rgba(7,20,27,.62); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+th:first-child, td:first-child { position: sticky; left: 0; z-index: 1; text-align: left; background: #10232d; }
+td { color: var(--muted); font: 12px var(--mono); }
+td:first-child { color: var(--ink); font-family: var(--sans); font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+.verified { color: var(--green); }
+.unverified { color: var(--red); }
+.table-caption { padding: 12px 14px; color: var(--faint); border-top: 1px solid var(--line); font-size: 11px; }
+
+.reach-layout { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(330px,.9fr); min-width: 0; }
+.reach-canvas-wrap { min-width: 0; min-height: 430px; border-right: 1px solid var(--line); background: #08151c; }
+.reach-canvas { height: 100%; min-height: 430px; }
+.reach-copy { padding: 21px; }
+.reach-copy p { color: var(--muted); }
+.reach-value { display: flex; justify-content: space-between; gap: 15px; align-items: end; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.reach-value span { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.reach-value b { color: var(--coral); font: 780 27px var(--mono); }
+.reach-rule { margin-top: 16px; padding: 14px; border: 1px solid rgba(255,130,110,.3); border-radius: 13px; background: rgba(255,130,110,.06); }
+.reach-rule .formula { color: var(--ink); font: 12px var(--mono); }
+.reach-rule p { margin: 8px 0 0; font-size: 12px; }
+.range-row { margin-top: 17px; }
+.range-row label { display: flex; justify-content: space-between; gap: 15px; color: var(--muted); font-size: 12px; }
+.range-row input { width: 100%; }
+
+.historical-layout { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(300px,.75fr); gap: 14px; }
+.history-card, .interpret-card { overflow: hidden; border: 1px solid var(--line); border-radius: 19px; background: rgba(16,35,45,.83); }
+.history-card header, .interpret-card header { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.history-card header p, .interpret-card header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.historical-table td { font-variant-numeric: tabular-nums; }
+.historical-table tr:last-child td { color: var(--amber); }
+.interpret-list { display: grid; gap: 0; }
+.interpret-item { padding: 15px 18px; border-bottom: 1px solid var(--line); }
+.interpret-item:last-child { border-bottom: 0; }
+.interpret-item b { display: block; color: var(--amber); font: 780 24px var(--mono); }
+.interpret-item span { color: var(--muted); font-size: 12px; }
+.complexity-strip { display: grid; grid-template-columns: repeat(3,1fr); gap: 11px; margin-top: 14px; }
+.complexity-strip > div { padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: rgba(8,22,29,.58); }
+.complexity-strip b { display: block; margin-bottom: 5px; }
+.complexity-strip p { margin: 0; color: var(--muted); font-size: 12px; }
+
+.timeline { position: relative; display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
+.timeline::before { content: ""; position: absolute; left: 4%; right: 4%; top: 25px; height: 1px; background: var(--line); }
+.era { position: relative; padding-top: 49px; }
+.era::before { content: ""; position: absolute; top: 19px; left: 16px; width: 12px; height: 12px; border: 4px solid var(--bg); border-radius: 50%; background: var(--accent,var(--teal)); box-shadow: 0 0 0 1px var(--accent,var(--teal)); }
+.era .year { color: var(--accent,var(--teal)); font: 800 12px var(--mono); }
+.era h3 { margin-top: 9px; }
+.era p { color: var(--muted); font-size: 12px; }
+.era:nth-child(2) { --accent: var(--sky); }
+.era:nth-child(3) { --accent: var(--coral); }
+.era:nth-child(4) { --accent: var(--amber); }
+.era:nth-child(5) { --accent: var(--violet); }
+.source-note { margin-top: 20px; color: var(--faint); font-size: 12px; }
+
+.quiz-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.question { padding: 18px; border: 1px solid var(--line); border-radius: 17px; background: rgba(16,35,45,.8); }
+.question .qnum { color: var(--faint); font: 800 10px var(--mono); }
+.question h3 { min-height: 46px; margin-top: 10px; }
+.answers { display: grid; gap: 7px; }
+.answer { width: 100%; padding: 9px 11px; color: var(--muted); border-radius: 10px; text-align: left; font-size: 12px; }
+.answer.correct { color: #071118; border-color: transparent; background: var(--green); }
+.answer.wrong { color: var(--ink); border-color: var(--red); background: rgba(255,125,135,.12); }
+.feedback { min-height: 42px; margin: 10px 0 0; color: var(--faint); font-size: 11px; }
+.footer-note { margin-top: 50px; padding-top: 18px; color: var(--faint); border-top: 1px solid var(--line); font-size: 12px; }
+
+@media (max-width: 1120px) {
+  .story-flow { grid-template-columns: repeat(3,1fr); }
+  .race-grid { grid-template-columns: repeat(2,1fr); }
+  .race-card:last-child { grid-column: 1 / -1; width: min(50%, 420px); justify-self: center; }
+  .timeline { grid-template-columns: repeat(3,1fr); }
+  .timeline::before { display: none; }
+  .era { padding-top: 30px; }
+  .era::before { top: 2px; }
+}
+
+@media (max-width: 860px) {
+  .hero-grid, .section-head, .preprocess-grid, .route-layout, .reach-layout, .historical-layout { grid-template-columns: 1fr; }
+  .hero-note { max-width: 620px; }
+  .section-head { gap: 8px; }
+  .pre-map-wrap, .route-map-wrap, .reach-canvas-wrap { border-right: 0; border-bottom: 1px solid var(--line); }
+  .route-map-wrap, .route-map-wrap .map-canvas { min-height: 470px; }
+  .complexity-strip, .quiz-grid { grid-template-columns: 1fr; }
+  .question h3 { min-height: 0; }
+}
+
+@media (max-width: 620px) {
+  .page { padding-left: 11px; padding-right: 11px; }
+  .story-flow, .foundation-note, .timeline, .race-grid { grid-template-columns: 1fr; }
+  .story-card { min-height: 0; }
+  .race-card:last-child { grid-column: auto; width: 100%; }
+  .toolbar-sep { display: none; }
+  .toolbar { align-items: flex-start; }
+  .toolbar-group { width: 100%; }
+  .toolbar select { flex: 1 1 190px; min-width: 0; }
+  .spacer { display: none; }
+  .pre-map-wrap, .map-canvas { min-height: 350px; }
+  .route-map-wrap, .route-map-wrap .map-canvas { min-height: 390px; }
+  .pre-total { grid-template-columns: 1fr; }
+  .scoreboard { grid-template-columns: 1fr 1fr; }
+  .metric { min-height: 86px; }
+  .reach-canvas-wrap, .reach-canvas { min-height: 340px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">Knowledge-based AI / Route-search laboratory</p>
+        <h1>How do you search a <em>whole metropolis</em>?</h1>
+        <p class="lede">Every method below finds the same optimal route. What changes is how much of Port Meridian it must inspect—and how much work it performs before anyone asks for directions.</p>
+      </div>
+      <aside class="hero-note">
+        <b>First, fix the table</b>
+        <p>The slide is an <strong>empirical benchmark</strong>, not a Big-O complexity table. It separates one-time preprocessing from the cost of each route query.</p>
+      </aside>
+    </div>
+  </header>
+
+  <nav class="lesson-nav" aria-label="Lesson sections">
+    <a class="nav-pill" href="#family">The family</a>
+    <a class="nav-pill" href="#preprocess">Preprocessing</a>
+    <a class="nav-pill" href="#lab">Route lab</a>
+    <a class="nav-pill" href="#race">Five-way race</a>
+    <a class="nav-pill" href="#reach">Reach microscope</a>
+    <a class="nav-pill" href="#paper">Read the table</a>
+    <a class="nav-pill" href="#lore">Lore</a>
+    <a class="nav-pill" href="metropolitan-route-lab/dist/index.html">Real OSM lab &nearr;</a>
+  </nav>
+
+  <section class="section" id="family">
+    <div class="section-head">
+      <div><span class="section-num">01 / THE FAMILY</span><h2>One shortest path, five ways to avoid looking everywhere</h2></div>
+      <p>“Scanning” is not a sixth competitor. It is the shared inner operation: settle the cheapest unsettled intersection, then relax—try to improve—the cost labels of its outgoing neighbors.</p>
+    </div>
+    <div class="story-flow">
+      <article class="story-card"><span class="kicker">Two waves</span><h3>Bidirectional Dijkstra</h3><span class="formula">priority = g</span><p>Search forward from the start and backward from the destination. Stop once no undiscovered route can beat the best meeting route.</p></article>
+      <article class="story-card"><span class="kicker">Aim</span><h3>ALT</h3><span class="formula">priority = g + hALT</span><p>A* uses landmark distances plus the triangle inequality. A landmark is a measuring post, not somewhere the route must visit.</p></article>
+      <article class="story-card"><span class="kicker">Hierarchy</span><h3>Reach</h3><span class="formula">prune when r(v) is too small</span><p>A local intersection should not appear in the middle of a long cross-city shortest path. Reach turns that intuition into a safe pruning rule.</p></article>
+      <article class="story-card"><span class="kicker">Compress</span><h3>Reach + Shortcuts</h3><span class="formula">u → · · · → v becomes u ⇢ v</span><p>A shortcut stores the exact cost and unpacking path of a road chain, letting a query cross an unimportant region in one relaxation.</p></article>
+      <article class="story-card"><span class="kicker">Combine</span><h3>Reach + Short + ALT</h3><span class="formula">aim + prune + jump</span><p>Landmarks say which direction matters; reach says which roads do not; shortcuts skip the roads removed from detailed consideration.</p></article>
+    </div>
+    <div class="foundation-note">
+      <div><b>Where is ordinary Dijkstra?</b> It appears in the guided lab as the one-direction foundation. The historical table uses its faster bidirectional form.</div>
+      <div><b>Where is ordinary A*?</b> It is another teaching step. ALT is A* supplied with a stronger, precomputed heuristic than straight-line distance.</div>
+    </div>
+    <div class="symbol-key"><span><code>g(v)</code> = cheapest known cost from S to v</span><span><code>h(v)</code> = proven lower bound from v to T</span><span><code>f(v)=g(v)+h(v)</code> = A* priority</span><span><code>r(v)</code> = reach label</span></div>
+  </section>
+
+  <section class="section" id="preprocess">
+    <div class="section-head">
+      <div><span class="section-num">02 / BEFORE THE QUERY</span><h2>Build knowledge once; reuse it for every trip</h2></div>
+      <p>Dijkstra needs only the road graph. ALT, reach, and shortcut methods first manufacture an index about that graph.</p>
+    </div>
+    <div class="lab-shell">
+      <div class="toolbar">
+        <button class="btn amber" id="buildBtn" type="button">Replay preprocessing</button>
+        <button class="chip-btn active" id="preLandmarksToggle" type="button" aria-pressed="true">Landmarks</button>
+        <button class="chip-btn active" id="preShortcutsToggle" type="button" aria-pressed="true">Shortcuts</button>
+        <span class="spacer"></span>
+        <span class="toolbar-label" id="preStatus">Preparing Port Meridian…</span>
+      </div>
+      <div class="preprocess-grid">
+        <div class="pre-map-wrap">
+          <canvas id="preCanvas" class="map-canvas" aria-label="Map of Port Meridian showing preprocessing landmarks and shortcuts"></canvas>
+          <div class="map-overlay"><span class="map-badge"><b id="nodeCount">—</b> intersections</span><span class="map-badge"><b id="arcCount">—</b> directed roads</span><span class="map-badge">fictional, reproducible city</span></div>
+        </div>
+        <aside class="pre-panel">
+          <p>These are real calculations on the map at left. Times depend on your browser; sizes are deterministic estimates of the numeric index structures.</p>
+          <div class="pre-stage-list" id="preStages">
+            <div class="pre-stage" data-stage="0"><span class="num">1</span><div><strong>Landmark tables</strong><small>Distances from and to six landmarks</small></div><span class="stage-value" id="landmarkTime">—</span></div>
+            <div class="pre-stage" data-stage="1"><span class="num">2</span><div><strong>Reach labels</strong><small>All-pairs classroom computation</small></div><span class="stage-value" id="reachTime">—</span></div>
+            <div class="pre-stage" data-stage="2"><span class="num">3</span><div><strong>Shortcut overlay</strong><small>Exact, unpackable skip arcs</small></div><span class="stage-value" id="shortcutTime">—</span></div>
+            <div class="pre-stage" data-stage="3"><span class="num">4</span><div><strong>Ready for queries</strong><small>The same index answers many trips</small></div><span class="stage-value" id="readyTime">—</span></div>
+          </div>
+          <div class="pre-total">
+            <div class="mini-stat"><span>ALT index</span><b id="altBytes">—</b></div>
+            <div class="mini-stat"><span>Reach labels</span><b id="reachBytes">—</b></div>
+            <div class="mini-stat"><span>Shortcut arcs</span><b id="shortcutCount">—</b></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="lab">
+    <div class="section-head">
+      <div><span class="section-num">03 / GUIDED ROUTE LAB</span><h2>Watch the priority queue decide what deserves attention</h2></div>
+      <p>Drag S or T to an intersection, choose an engine, and step through its actual sequence of scans.</p>
+    </div>
+    <div class="lab-shell">
+      <div class="toolbar">
+        <div class="toolbar-group"><span class="toolbar-label">Route</span><select id="routePreset" aria-label="Route preset"><option value="cross">Westhaven → Eastport</option><option value="airport">Old Town → Airport</option><option value="bridge">North Shore → Harbor</option><option value="local">Downtown local trip</option></select></div>
+        <span class="toolbar-sep"></span>
+        <div class="toolbar-group"><span class="toolbar-label">Engine</span><select id="algorithmSelect" aria-label="Search algorithm"><option value="dijkstra">Dijkstra (foundation)</option><option value="bidijkstra" selected>Bidirectional Dijkstra</option><option value="astar">A* · straight-line</option><option value="alt">ALT · landmarks</option><option value="reach">Reach</option><option value="reachshort">Reach + Shortcuts</option><option value="combo">Reach + Short + ALT</option></select></div>
+        <span class="toolbar-sep"></span>
+        <button class="btn primary" id="runBtn" type="button">Run</button>
+        <button class="btn icon" id="pauseBtn" type="button" aria-label="Pause or resume">Ⅱ</button>
+        <button class="btn icon" id="stepBtn" type="button" aria-label="Advance one scan">›</button>
+        <button class="btn" id="resetBtn" type="button">Reset</button>
+        <span class="spacer"></span>
+        <label class="toolbar-group"><span class="toolbar-label">Speed</span><input id="speedRange" type="range" min="1" max="10" value="5" aria-label="Animation speed"></label>
+      </div>
+      <div class="route-layout">
+        <div class="route-map-wrap">
+          <canvas id="routeCanvas" class="map-canvas" aria-label="Interactive metropolitan route-search map"></canvas>
+          <div class="route-help">Drag <b>S</b> or <b>T</b>. Blue = forward scan · coral = backward scan · red ring = reach-pruned · gold = optimal route.</div>
+        </div>
+        <aside class="route-side">
+          <div class="algorithm-head"><span class="tag" id="algorithmTag">No preprocessing</span><h3 id="algorithmTitle">Bidirectional Dijkstra</h3><p id="algorithmDescription">Two exact Dijkstra searches approach one another from opposite ends.</p><div class="formula-box" id="algorithmFormula">forward min g + backward min g ≥ best route → stop</div></div>
+          <div class="scoreboard">
+            <div class="metric"><span>Scanned</span><b id="metricScanned">0</b><small>settled vertices</small></div>
+            <div class="metric"><span>Frontier peak</span><b id="metricFrontier">0</b><small>queued entries</small></div>
+            <div class="metric"><span>Query time</span><b id="metricTime">—</b><small>measured computation</small></div>
+            <div class="metric"><span>Route cost</span><b id="metricCost">—</b><small>travel minutes</small></div>
+            <div class="metric"><span>Pruned</span><b id="metricPruned">0</b><small>by reach</small></div>
+            <div class="metric"><span>Optimality</span><b id="metricVerified">—</b><small>vs. exact baseline</small></div>
+          </div>
+          <div class="decision"><span class="label">Current decision</span><p id="decisionText">Press Run, then watch the first intersection leave the priority queue.</p></div>
+        </aside>
+      </div>
+      <div class="legend" aria-label="Map legend"><span><i style="--c:#62b9ff"></i>forward scanned</span><span><i style="--c:#ff826e"></i>backward scanned</span><span><i style="--c:#ff7d87"></i>reach-pruned</span><span><i style="--c:#ffc65b"></i>final route</span><span><i style="--c:#b8a0ff"></i>landmark / shortcut</span><span><i style="--c:#8fe6a7"></i>frontier</span></div>
+    </div>
+  </section>
+
+  <section class="section" id="race">
+    <div class="section-head">
+      <div><span class="section-num">04 / THE FIVE TABLE ROWS</span><h2>Run the same request through all five systems</h2></div>
+      <p>The maps animate in normalized time, so their search footprints can be compared even when the real computation takes only fractions of a millisecond.</p>
+    </div>
+    <div class="lab-shell">
+      <div class="toolbar">
+        <button class="btn primary" id="raceBtn" type="button">Run five-way race</button>
+        <button class="btn" id="batchBtn" type="button">Benchmark 30 routes</button>
+        <button class="btn" id="raceResetBtn" type="button">Reset</button>
+        <span class="spacer"></span><span class="toolbar-label" id="raceStatus">Current route · one query</span>
+      </div>
+      <div class="race-grid" id="raceGrid">
+        <article class="race-card" data-method="bidijkstra"><header><h3>Bidirectional Dijkstra</h3><span class="race-count">0 scans</span></header><canvas class="race-canvas" aria-label="Bidirectional Dijkstra race map"></canvas><footer><span>time<b class="race-time">—</b></span><span>cost<b class="race-cost">—</b></span></footer></article>
+        <article class="race-card" data-method="alt"><header><h3>ALT</h3><span class="race-count">0 scans</span></header><canvas class="race-canvas" aria-label="ALT race map"></canvas><footer><span>time<b class="race-time">—</b></span><span>cost<b class="race-cost">—</b></span></footer></article>
+        <article class="race-card" data-method="reach"><header><h3>Reach</h3><span class="race-count">0 scans</span></header><canvas class="race-canvas" aria-label="Reach race map"></canvas><footer><span>time<b class="race-time">—</b></span><span>cost<b class="race-cost">—</b></span></footer></article>
+        <article class="race-card" data-method="reachshort"><header><h3>Reach + Short</h3><span class="race-count">0 scans</span></header><canvas class="race-canvas" aria-label="Reach plus shortcuts race map"></canvas><footer><span>time<b class="race-time">—</b></span><span>cost<b class="race-cost">—</b></span></footer></article>
+        <article class="race-card" data-method="combo"><header><h3>Reach + Short + ALT</h3><span class="race-count">0 scans</span></header><canvas class="race-canvas" aria-label="Reach plus shortcuts plus ALT race map"></canvas><footer><span>time<b class="race-time">—</b></span><span>cost<b class="race-cost">—</b></span></footer></article>
+      </div>
+      <div class="callout race-insight" id="raceInsight"><strong>What to watch:</strong> the footprint matters more than animation speed. Every gold route should have the same cost.</div>
+      <div class="table-wrap">
+        <table aria-label="Live algorithm comparison">
+          <thead><tr><th>Live method</th><th>Preprocess</th><th>Stored index</th><th>Scanned</th><th>Peak queue</th><th>Query ms</th><th>Route</th><th>Exact?</th></tr></thead>
+          <tbody id="liveTableBody"></tbody>
+        </table>
+      </div>
+      <div class="table-caption" id="liveCaption">Live figures describe this small teaching graph. They are not a reproduction of the 30-million-vertex experiment.</div>
+      <div class="implementation-note"><strong>Miniature versus paper:</strong> this browser lab computes exact all-pairs reach labels and overlays exact, unpackable skip arcs. The 2006 implementation used substantially more sophisticated shortcut-aware reach preprocessing; its continent-scale row is reported below, not simulated.</div>
+    </div>
+  </section>
+
+  <section class="section" id="reach">
+    <div class="section-head">
+      <div><span class="section-num">05 / REACH MICROSCOPE</span><h2>How “important” is an intersection to long shortest paths?</h2></div>
+      <p>Reach is not traffic volume, popularity, or geometric centrality. It is defined only by where a vertex can sit along shortest paths.</p>
+    </div>
+    <div class="lab-shell reach-layout">
+      <div class="reach-canvas-wrap"><canvas id="reachCanvas" class="reach-canvas" aria-label="Metropolitan map colored by vertex reach"></canvas></div>
+      <aside class="reach-copy">
+        <h3 id="reachNodeName">Selected intersection</h3>
+        <p>Move the selector or click the heat map. Cool local intersections have low reach; warm bridge, arterial, and freeway vertices tend to survive longer-route searches.</p>
+        <div class="reach-value"><span>Reach label <small>(minutes)</small></span><b id="reachNodeValue">—</b></div>
+        <div class="range-row"><label for="reachSelector"><span>Intersection selector</span><span id="reachSelectorLabel">—</span></label><input id="reachSelector" type="range" min="0" max="1" value="0"></div>
+        <div class="reach-rule"><strong>Safe pruning idea</strong><div class="formula">r(v) &lt; min(g(v), lowerBound(v,T))</div><p>If the journey has already traveled farther than this vertex’s reach on both sides, that vertex cannot occupy the middle of an optimal S→T route.</p></div>
+        <div class="formula-box">r(v) = max over shortest paths P containing v<br>min(distance to P's start, distance to P's end)</div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" id="paper">
+    <div class="section-head">
+      <div><span class="section-num">06 / READ THE 30M-VERTEX TABLE</span><h2>A speed-versus-preparation ledger, not asymptotic complexity</h2></div>
+      <p>The reported graph covered North America, used random route queries, and gave ALT 16 landmarks. “Scan” means a settled vertex.</p>
+    </div>
+    <div class="historical-layout">
+      <article class="history-card">
+        <header><h3>Published experimental result</h3><p>North America · 30,000,000 vertices · random queries · 16 landmarks</p></header>
+        <div class="table-wrap">
+          <table class="historical-table" aria-label="Historical North America routing benchmark">
+            <thead><tr><th>Method</th><th>Preprocess h</th><th>GB</th><th>Average scan</th><th>Maximum scan</th><th>Query ms</th></tr></thead>
+            <tbody><tr><td>Bidirectional Dijkstra</td><td>—</td><td>0.5</td><td>10,255,356</td><td>27,166,866</td><td>7,633.9</td></tr><tr><td>ALT</td><td>1.6</td><td>2.3</td><td>250,381</td><td>3,584,377</td><td>393.4</td></tr><tr><td>Reach</td><td colspan="5">preprocessing reported as impractical</td></tr><tr><td>Reach + Short</td><td>11.3</td><td>1.8</td><td>14,684</td><td>24,618</td><td>17.4</td></tr><tr><td>Reach + Short + ALT</td><td>12.9</td><td>3.6</td><td>1,595</td><td>7,450</td><td>3.7</td></tr></tbody>
+          </table>
+        </div>
+      </article>
+      <aside class="interpret-card">
+        <header><h3>Compared with bidirectional Dijkstra</h3><p>Ratios calculated directly from the reported averages.</p></header>
+        <div class="interpret-list"><div class="interpret-item"><b>≈41×</b><span>fewer scans with ALT</span></div><div class="interpret-item"><b>≈698×</b><span>fewer scans with Reach + Short</span></div><div class="interpret-item"><b>≈6,430×</b><span>fewer scans with all three ideas</span></div><div class="interpret-item"><b>≈2,063×</b><span>lower reported query time: 7,633.9 → 3.7 ms</span></div></div>
+      </aside>
+    </div>
+    <div class="complexity-strip">
+      <div><b>Worst case</b><p>These exact algorithms may still inspect most of a graph. A stronger index changes typical work dramatically without magically deleting the worst case.</p></div>
+      <div><b>Space</b><p>Dijkstra keeps per-query labels. ALT adds roughly O(kV) landmark distances. Reach adds labels; shortcuts add arcs plus unpacking data.</p></div>
+      <div><b>The dash and 0.5 GB</b><p>“—” says no preprocessing time. The baseline still occupies memory because the road graph itself must be stored.</p></div>
+    </div>
+    <p class="callout" style="margin-top:14px"><strong>Why was plain Reach “impractical”?</strong> Its preprocessing did not scale acceptably on this particular 30M-vertex experiment. Adding shortcuts made reach preprocessing practical and queries far smaller; it did not rescue an inexact answer.</p>
+  </section>
+
+  <section class="section" id="lore">
+    <div class="section-head">
+      <div><span class="section-num">07 / LORE</span><h2>Each generation taught the search something new</h2></div>
+      <p>The mid-2000s problem was exact driving directions on continent-scale graphs, often with many queries over the same mostly static road network.</p>
+    </div>
+    <div class="timeline">
+      <article class="era"><span class="year">1959</span><h3>Dijkstra</h3><p>Let exact distance radiate outward. The next settled label is final when edge costs are nonnegative.</p></article>
+      <article class="era"><span class="year">1968</span><h3>A*</h3><p>Add an admissible estimate of what remains, directing the wave toward a goal without losing optimality.</p></article>
+      <article class="era"><span class="year">2004</span><h3>Reach</h3><p>Ron Gutman formalized a road-hierarchy signal from shortest paths and used it for safe pruning.</p></article>
+      <article class="era"><span class="year">2005</span><h3>ALT</h3><p>Andrew Goldberg and Chris Harrelson turned landmark distances and triangle inequalities into powerful A* bounds.</p></article>
+      <article class="era"><span class="year">2006</span><h3>Reach for A*</h3><p>Goldberg, Haim Kaplan, and Renato Werneck combined bidirectional reach, shortcut arcs, and A* guidance.</p></article>
+    </div>
+    <p class="source-note">Primary reading: <a href="https://www.microsoft.com/en-us/research/publication/computing-the-shortest-path-a-search-meets-graph-theory-2/" target="_blank" rel="noreferrer">Goldberg &amp; Harrelson, “Computing the Shortest Path: A* Search Meets Graph Theory” (2005)</a> · <a href="https://doi.org/10.1137/1.9781611972863.13" target="_blank" rel="noreferrer">Goldberg, Kaplan &amp; Werneck, “Reach for A*” (2006)</a>. Historical benchmark values above are transcribed from the supplied lecture slide.</p>
+  </section>
+
+  <section class="section" id="check">
+    <div class="section-head"><div><span class="section-num">08 / CHECK YOUR MODEL</span><h2>Three distinctions that make the table click</h2></div><p>The answers explain themselves immediately; nothing is graded or stored.</p></div>
+    <div class="quiz-grid">
+      <article class="question" data-answer="1"><span class="qnum">Q1</span><h3>Why can ALT be faster while returning the same path?</h3><div class="answers"><button class="answer" type="button">It accepts an approximate route</button><button class="answer" type="button">Its landmark heuristic is a proven lower bound</button><button class="answer" type="button">It always routes through a landmark</button></div><p class="feedback"></p></article>
+      <article class="question" data-answer="2"><span class="qnum">Q2</span><h3>What does a shortcut arc change?</h3><div class="answers"><button class="answer" type="button">The optimal travel cost</button><button class="answer" type="button">The city’s physical roads</button><button class="answer" type="button">How many graph steps represent a known road chain</button></div><p class="feedback"></p></article>
+      <article class="question" data-answer="0"><span class="qnum">Q3</span><h3>What is “avgscan” in the historical table?</h3><div class="answers"><button class="answer" type="button">Average settled vertices per query</button><button class="answer" type="button">An asymptotic time complexity</button><button class="answer" type="button">Average path length in roads</button></div><p class="feedback"></p></article>
+    </div>
+  </section>
+
+  <footer class="footer-note">Port Meridian is synthetic by design: every algorithm receives the identical directed, weighted road graph, while its topology is crafted to make local streets, bottlenecks, arterials, and highways legible.</footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var MAP_W = 1000, MAP_H = 620, COLS = 22, ROWS = 14, MAX_SPEED = 70;
+  var COLORS = {
+    bg: "#08151c", local: "#29404a", arterial: "#47616a", highway: "#7e8e85", bridge: "#dbb968",
+    water: "#0c3140", park: "#153b31", rail: "#302f35", forward: "#62b9ff", backward: "#ff826e",
+    frontier: "#8fe6a7", pruned: "#ff7d87", path: "#ffc65b", shortcut: "#b8a0ff", landmark: "#d6caff", teal: "#58dfc1"
+  };
+  var byId = function (id) { return document.getElementById(id); };
+  var finite = Number.isFinite;
+  var graph = null, shortGraph = null, indexes = null;
+  var routeState = { source: 0, target: 1, result: null, progress: 0, floatProgress: 0, playing: false, lastStamp: 0, drag: null };
+  var raceState = { results: null, fraction: 0, playing: false, lastStamp: 0, batch: null };
+  var preState = { stage: 3, landmarks: true, shortcuts: true, timers: [] };
+  var reachSelection = 0;
+  var allMethods = ["bidijkstra", "alt", "reach", "reachshort", "combo"];
+  var canvases = {};
+
+  var ALGORITHMS = {
+    dijkstra: {
+      title: "Dijkstra", tag: "No preprocessing", formula: "priority(v) = g(v)",
+      description: "One exact wave expands intersections in increasing known travel time. It has no idea where the destination lies."
+    },
+    bidijkstra: {
+      title: "Bidirectional Dijkstra", tag: "No preprocessing", formula: "minForward g + minBackward g ≥ best route → stop",
+      description: "Two exact Dijkstra searches approach one another from opposite ends, reducing the radius each side must cover."
+    },
+    astar: {
+      title: "A* with straight-line time", tag: "Geometry · no index", formula: "priority(v) = g(v) + straightLine(v,T) / maxSpeed",
+      description: "A geometric lower bound points the search toward T. Rivers and limited bridges can make that bound weak, but never too large."
+    },
+    alt: {
+      title: "ALT", tag: "A* · Landmarks · Triangle inequality", formula: "h(v,T) = maxL { d(L,T) − d(L,v), d(v,L) − d(T,L) }",
+      description: "Precomputed landmark distances expose graph obstacles such as the river. The route is measured with landmarks; it need not visit them."
+    },
+    reach: {
+      title: "Reach", tag: "Precomputed hierarchy", formula: "prune v when r(v) < min(g(v), lowerBound(v,T))",
+      description: "Dijkstra remains exact while low-reach intersections are refused once the trip is too long for them to belong in its middle."
+    },
+    reachshort: {
+      title: "Reach + Shortcuts", tag: "Hierarchy · skip arcs", formula: "reach pruning + exact unpackable road-chain arcs",
+      description: "Reach rejects local detail while shortcut arcs jump across known chains. Every shortcut stores its original roads for the final route."
+    },
+    combo: {
+      title: "Reach + Short + ALT", tag: "Aim · prune · jump", formula: "priority = g + hALT; prune by reach; relax shortcuts",
+      description: "Landmarks guide the queue, reach removes irrelevant local roads, and shortcuts cross retained corridors in fewer graph operations."
+    }
+  };
+
+  function MinHeap() { this.data = []; }
+  MinHeap.prototype.push = function (item) {
+    var a = this.data, i = a.length;
+    a.push(item);
+    while (i > 0) {
+      var p = (i - 1) >> 1;
+      if (a[p].key <= item.key) break;
+      a[i] = a[p]; i = p;
+    }
+    a[i] = item;
+  };
+  MinHeap.prototype.pop = function () {
+    var a = this.data;
+    if (!a.length) return null;
+    var root = a[0], last = a.pop();
+    if (a.length) {
+      var i = 0;
+      while (true) {
+        var l = i * 2 + 1, r = l + 1;
+        if (l >= a.length) break;
+        var c = r < a.length && a[r].key < a[l].key ? r : l;
+        if (a[c].key >= last.key) break;
+        a[i] = a[c]; i = c;
+      }
+      a[i] = last;
+    }
+    return root;
+  };
+  MinHeap.prototype.peek = function () { return this.data.length ? this.data[0] : null; };
+  Object.defineProperty(MinHeap.prototype, "size", { get: function () { return this.data.length; } });
+
+  function makeFilledFloat(n, value) {
+    var a = new Float64Array(n);
+    if (value !== 0) for (var i = 0; i < n; i++) a[i] = value;
+    return a;
+  }
+  function makeFilledInt(n, value) {
+    var a = new Int32Array(n);
+    if (value !== 0) for (var i = 0; i < n; i++) a[i] = value;
+    return a;
+  }
+  function rcKey(r, c) { return r + ":" + c; }
+  function arcKey(a, b) { return a + ">" + b; }
+  function blockedCell(r, c) {
+    var park = r >= 4 && r <= 6 && c >= 8 && c <= 9;
+    var rail = r >= 9 && r <= 10 && c >= 16 && c <= 18;
+    return park || rail;
+  }
+  function districtFor(r, c) {
+    if (c <= 5 && r <= 5) return "North Shore";
+    if (c <= 6 && r > 5) return "Westhaven";
+    if (c >= 17 && r <= 4) return "Airport Ward";
+    if (c >= 16 && r >= 9) return "Harbor";
+    if (c >= 14) return "Eastport";
+    if (c >= 7 && c <= 12 && r >= 2 && r <= 10) return "Old Town";
+    return "Midtown";
+  }
+  function roadType(r1, c1, r2, c2) {
+    if ((c1 === 12 && c2 === 13) || (c2 === 12 && c1 === 13)) return "bridge";
+    if (r1 === 1 || r1 === 12 || c1 === 1 || c1 === 20 || r2 === 1 || r2 === 12 || c2 === 1 || c2 === 20) return "highway";
+    if ([2, 6, 11].indexOf(r1) >= 0 || [2, 6, 11].indexOf(r2) >= 0 || [2, 7, 12, 17].indexOf(c1) >= 0 || [2, 7, 12, 17].indexOf(c2) >= 0) return "arterial";
+    return "local";
+  }
+  function speedFor(type) { return type === "highway" ? 70 : type === "bridge" ? 52 : type === "arterial" ? 45 : 28; }
+  function nearestNodeTo(nodes, x, y) {
+    var best = 0, bd = Infinity;
+    for (var i = 0; i < nodes.length; i++) {
+      var dx = nodes[i].x - x, dy = nodes[i].y - y, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = i; }
+    }
+    return best;
+  }
+
+  function buildGraph() {
+    var nodes = [], idByRC = new Map(), r, c;
+    for (r = 0; r < ROWS; r++) {
+      for (c = 0; c < COLS; c++) {
+        if (blockedCell(r, c)) continue;
+        var jitterX = ((r * 17 + c * 11) % 7 - 3) * 0.7;
+        var jitterY = ((r * 7 + c * 19) % 5 - 2) * 0.65;
+        var id = nodes.length;
+        var node = { id: id, r: r, c: c, x: 45 + c * 43.2 + jitterX, y: 45 + r * 40.4 + jitterY, district: districtFor(r, c) };
+        node.name = node.district + " · Ave " + (c + 1) + " & St " + (r + 1);
+        nodes.push(node); idByRC.set(rcKey(r, c), id);
+      }
+    }
+    var adj = Array.from({ length: nodes.length }, function () { return []; });
+    var rev = Array.from({ length: nodes.length }, function () { return []; });
+    var segments = [], baseArcs = new Map(), arcCount = 0;
+
+    function addArc(from, to, weight, type) {
+      var edge = { from: from, to: to, w: weight, type: type, shortcut: false, path: [from, to] };
+      adj[from].push(edge);
+      rev[to].push({ from: to, to: from, w: weight, type: type, shortcut: false, original: edge });
+      baseArcs.set(arcKey(from, to), edge); arcCount++;
+    }
+    function connect(a, b, type, direction, seed) {
+      var na = nodes[a], nb = nodes[b], dx = na.x - nb.x, dy = na.y - nb.y;
+      var length = Math.sqrt(dx * dx + dy * dy);
+      var factor = 1 + ((seed * 29 + 7) % 13) * 0.0017;
+      var weight = length / speedFor(type) * factor;
+      if (direction === "both" || direction === "ab") addArc(a, b, weight, type);
+      if (direction === "both" || direction === "ba") addArc(b, a, weight, type);
+      segments.push({ a: a, b: b, type: type, direction: direction });
+    }
+
+    for (r = 0; r < ROWS; r++) {
+      for (c = 0; c < COLS; c++) {
+        var a = idByRC.get(rcKey(r, c));
+        if (a === undefined) continue;
+        [[r, c + 1], [r + 1, c]].forEach(function (pair, axis) {
+          var rr = pair[0], cc = pair[1];
+          if (rr >= ROWS || cc >= COLS) return;
+          var b = idByRC.get(rcKey(rr, cc));
+          if (b === undefined) return;
+          if (axis === 0 && c === 12 && [2, 6, 11].indexOf(r) < 0) return;
+          var type = roadType(r, c, rr, cc), direction = "both";
+          var downtown = c >= 7 && c <= 12 && r >= 2 && r <= 10;
+          if (type === "local" && downtown) {
+            if (axis === 0 && r % 3 !== 0) direction = r % 3 === 1 ? "ab" : "ba";
+            if (axis === 1 && c % 3 !== 0) direction = c % 3 === 1 ? "ba" : "ab";
+          }
+          connect(a, b, type, direction, r * COLS + c + axis * 503);
+        });
+      }
+    }
+    return { nodes: nodes, adj: adj, rev: rev, segments: segments, idByRC: idByRC, baseArcs: baseArcs, arcCount: arcCount };
+  }
+
+  function dijkstraDistances(adjacency, source) {
+    var n = adjacency.length, dist = makeFilledFloat(n, Infinity), heap = new MinHeap();
+    dist[source] = 0; heap.push({ key: 0, node: source, g: 0 });
+    while (heap.size) {
+      var item = heap.pop(), u = item.node;
+      if (item.g !== dist[u]) continue;
+      var edges = adjacency[u];
+      for (var i = 0; i < edges.length; i++) {
+        var e = edges[i], nd = item.g + e.w;
+        if (nd + 1e-12 < dist[e.to]) { dist[e.to] = nd; heap.push({ key: nd, node: e.to, g: nd }); }
+      }
+    }
+    return dist;
+  }
+
+  function chooseLandmarks(g) {
+    var desired = [[70, 70], [925, 70], [70, 555], [925, 555], [505, 120], [680, 500]];
+    var chosen = [];
+    desired.forEach(function (p) {
+      var id = nearestNodeTo(g.nodes, p[0], p[1]);
+      if (chosen.indexOf(id) < 0) chosen.push(id);
+    });
+    return chosen;
+  }
+
+  function computeLandmarkIndex(g, landmarkIds) {
+    var from = [], to = [];
+    for (var i = 0; i < landmarkIds.length; i++) {
+      from.push(dijkstraDistances(g.adj, landmarkIds[i]));
+      to.push(dijkstraDistances(g.rev, landmarkIds[i]));
+    }
+    return { ids: landmarkIds, from: from, to: to };
+  }
+
+  function computeReachIndex(g) {
+    var n = g.nodes.length, allPairs = new Array(n), s, v, t;
+    for (s = 0; s < n; s++) allPairs[s] = dijkstraDistances(g.adj, s);
+    var reach = new Float64Array(n);
+    for (v = 0; v < n; v++) {
+      var best = 0, fromV = allPairs[v];
+      for (s = 0; s < n; s++) {
+        var left = allPairs[s][v];
+        if (!finite(left) || left <= best) continue;
+        var fromS = allPairs[s];
+        for (t = 0; t < n; t++) {
+          var right = fromV[t];
+          if (!finite(right) || right <= best) continue;
+          var total = fromS[t];
+          if (!finite(total)) continue;
+          var tolerance = 1e-8 * Math.max(1, total);
+          if (Math.abs(total - left - right) <= tolerance) {
+            var candidate = Math.min(left, right);
+            if (candidate > best) best = candidate;
+          }
+        }
+      }
+      reach[v] = best;
+    }
+    return { reach: reach, allPairs: allPairs };
+  }
+
+  function buildShortcutGraph(g) {
+    var adj = g.adj.map(function (list) { return list.slice(); });
+    var rev = g.rev.map(function (list) { return list.slice(); });
+    var shortcuts = [], shortcutKeys = new Set();
+    function addShortcut(path) {
+      if (path.length < 3) return;
+      var weight = 0;
+      for (var i = 0; i < path.length - 1; i++) {
+        var base = g.baseArcs.get(arcKey(path[i], path[i + 1]));
+        if (!base) return;
+        weight += base.w;
+      }
+      var from = path[0], to = path[path.length - 1], key = arcKey(from, to);
+      if (shortcutKeys.has(key) || g.baseArcs.has(key)) return;
+      shortcutKeys.add(key);
+      var edge = { from: from, to: to, w: weight, type: "shortcut", shortcut: true, path: path.slice() };
+      adj[from].unshift(edge);
+      rev[to].unshift({ from: to, to: from, w: weight, type: "shortcut", shortcut: true, original: edge });
+      shortcuts.push(edge);
+    }
+    function pathByRC(points) {
+      var path = [];
+      for (var i = 0; i < points.length; i++) {
+        var id = g.idByRC.get(rcKey(points[i][0], points[i][1]));
+        if (id === undefined) return null;
+        path.push(id);
+      }
+      return path;
+    }
+    [1, 2, 6, 11, 12].forEach(function (r) {
+      for (var c = 0; c + 4 < COLS; c += 2) {
+        var east = [], west;
+        for (var k = 0; k <= 4; k++) east.push([r, c + k]);
+        west = east.slice().reverse();
+        var ep = pathByRC(east), wp = pathByRC(west);
+        if (ep) addShortcut(ep); if (wp) addShortcut(wp);
+      }
+    });
+    [1, 2, 7, 12, 17, 20].forEach(function (c) {
+      for (var r = 0; r + 3 < ROWS; r += 2) {
+        var south = [], north;
+        for (var k = 0; k <= 3; k++) south.push([r + k, c]);
+        north = south.slice().reverse();
+        var sp = pathByRC(south), np = pathByRC(north);
+        if (sp) addShortcut(sp); if (np) addShortcut(np);
+      }
+    });
+    return { nodes: g.nodes, adj: adj, rev: rev, segments: g.segments, idByRC: g.idByRC, baseArcs: g.baseArcs, arcCount: g.arcCount + shortcuts.length, shortcuts: shortcuts };
+  }
+
+  function buildIndexes() {
+    var totalStart = performance.now();
+    var landmarkIds = chooseLandmarks(graph), t0 = performance.now();
+    var landmark = computeLandmarkIndex(graph, landmarkIds), landmarkMs = performance.now() - t0;
+    t0 = performance.now();
+    var reachResult = computeReachIndex(graph), reachMs = performance.now() - t0;
+    t0 = performance.now();
+    shortGraph = buildShortcutGraph(graph); var shortcutMs = performance.now() - t0;
+    var unpackEntries = shortGraph.shortcuts.reduce(function (sum, e) { return sum + e.path.length; }, 0);
+    indexes = {
+      landmark: landmark, reach: reachResult.reach, allPairs: reachResult.allPairs,
+      landmarkMs: landmarkMs, reachMs: reachMs, shortcutMs: shortcutMs, totalMs: performance.now() - totalStart,
+      altBytes: landmarkIds.length * graph.nodes.length * 2 * 8,
+      reachBytes: graph.nodes.length * 8,
+      shortcutBytes: shortGraph.shortcuts.length * 40 + unpackEntries * 4
+    };
+    updatePreprocessNumbers();
+  }
+
+  function euclideanHeuristic(a, b) {
+    var na = graph.nodes[a], nb = graph.nodes[b], dx = na.x - nb.x, dy = na.y - nb.y;
+    return Math.sqrt(dx * dx + dy * dy) / MAX_SPEED;
+  }
+  function altHeuristic(v, target) {
+    if (!indexes) return euclideanHeuristic(v, target);
+    var best = 0, lm = indexes.landmark;
+    for (var i = 0; i < lm.ids.length; i++) {
+      var a = lm.from[i][target] - lm.from[i][v];
+      var b = lm.to[i][v] - lm.to[i][target];
+      if (finite(a) && a > best) best = a;
+      if (finite(b) && b > best) best = b;
+    }
+    return Math.max(0, best);
+  }
+
+  function reconstructForward(parentEdge, source, target) {
+    var edges = [], cursor = target, guard = 0;
+    while (cursor !== source && guard++ < parentEdge.length + 5) {
+      var edge = parentEdge[cursor];
+      if (!edge) return [];
+      edges.push(edge); cursor = edge.from;
+    }
+    edges.reverse();
+    var route = [source];
+    edges.forEach(function (e) {
+      var p = e.path && e.path.length ? e.path : [e.from, e.to];
+      for (var i = 1; i < p.length; i++) route.push(p[i]);
+    });
+    return route;
+  }
+
+  function genericSearch(method, source, target) {
+    var n = graph.nodes.length;
+    var usesShortcuts = method === "reachshort" || method === "combo";
+    var usesReach = method === "reach" || method === "reachshort" || method === "combo";
+    var gph = usesShortcuts ? shortGraph : graph;
+    var priorityH = method === "astar" ? euclideanHeuristic : (method === "alt" || method === "combo") ? altHeuristic : function () { return 0; };
+    var pruneH = method === "combo" ? altHeuristic : euclideanHeuristic;
+    var dist = makeFilledFloat(n, Infinity), closed = new Uint8Array(n), parentEdge = new Array(n);
+    var discoveredF = makeFilledInt(n, -1), expandedF = makeFilledInt(n, -1);
+    var heap = new MinHeap(), events = [], scannedEdges = 0, pruned = 0, frontierPeak = 1;
+    dist[source] = 0; discoveredF[source] = 0;
+    heap.push({ key: priorityH(source, target), node: source, g: 0 });
+    while (heap.size) {
+      var item = heap.pop(), u = item.node;
+      if (closed[u] || Math.abs(item.g - dist[u]) > 1e-10) continue;
+      closed[u] = 1;
+      var h = priorityH(u, target), lower = usesReach ? pruneH(u, target) : h;
+      var isPruned = usesReach && u !== source && u !== target && indexes.reach[u] + 1e-9 < Math.min(dist[u], lower);
+      var eventIndex = events.length;
+      expandedF[u] = eventIndex;
+      events.push({ node: u, side: "f", g: dist[u], h: h, lower: lower, f: dist[u] + h, pruned: isPruned, reach: usesReach ? indexes.reach[u] : 0, viaShortcut: !!(parentEdge[u] && parentEdge[u].shortcut), frontier: heap.size });
+      if (isPruned) { pruned++; continue; }
+      if (u === target) break;
+      var edges = gph.adj[u];
+      scannedEdges += edges.length;
+      for (var i = 0; i < edges.length; i++) {
+        var e = edges[i], nd = dist[u] + e.w;
+        if (nd + 1e-12 < dist[e.to]) {
+          var wasNew = !finite(dist[e.to]);
+          dist[e.to] = nd; parentEdge[e.to] = e;
+          heap.push({ key: nd + priorityH(e.to, target), node: e.to, g: nd });
+          if (wasNew) discoveredF[e.to] = eventIndex;
+        }
+      }
+      if (heap.size > frontierPeak) frontierPeak = heap.size;
+    }
+    var route = finite(dist[target]) ? reconstructForward(parentEdge, source, target) : [];
+    return { method: method, source: source, target: target, events: events, route: route, cost: dist[target], expanded: events.length, pruned: pruned, scannedEdges: scannedEdges, frontierPeak: frontierPeak, discoveredF: discoveredF, expandedF: expandedF, discoveredB: null, expandedB: null, queryBytes: n * 25 + frontierPeak * 24 };
+  }
+
+  function cleanHeap(heap, dist, closed) {
+    while (heap.size) {
+      var top = heap.peek();
+      if (!closed[top.node] && Math.abs(top.g - dist[top.node]) <= 1e-10) return top;
+      heap.pop();
+    }
+    return null;
+  }
+  function bidirectionalDijkstra(source, target, method) {
+    method = method || "bidijkstra";
+    var usesReach = method === "reach" || method === "reachshort";
+    var usesShortcuts = method === "reachshort";
+    var gph = usesShortcuts ? shortGraph : graph;
+    var n = graph.nodes.length;
+    var distF = makeFilledFloat(n, Infinity), distB = makeFilledFloat(n, Infinity);
+    var closedF = new Uint8Array(n), closedB = new Uint8Array(n);
+    var parentEdgeF = new Array(n), nextEdgeB = new Array(n);
+    var discoveredF = makeFilledInt(n, -1), discoveredB = makeFilledInt(n, -1);
+    var expandedF = makeFilledInt(n, -1), expandedB = makeFilledInt(n, -1);
+    var hf = new MinHeap(), hb = new MinHeap(), events = [], mu = Infinity, meet = -1, scannedEdges = 0, peak = 2, pruned = 0;
+    distF[source] = 0; distB[target] = 0; discoveredF[source] = 0; discoveredB[target] = 0;
+    hf.push({ key: 0, node: source, g: 0 }); hb.push({ key: 0, node: target, g: 0 });
+    function consider(v) {
+      if (finite(distF[v]) && finite(distB[v]) && distF[v] + distB[v] < mu) { mu = distF[v] + distB[v]; meet = v; }
+    }
+    while (hf.size && hb.size) {
+      var tf = cleanHeap(hf, distF, closedF), tb = cleanHeap(hb, distB, closedB);
+      if (!tf || !tb || tf.key + tb.key >= mu - 1e-12) break;
+      var forward = tf.key <= tb.key;
+      var heap = forward ? hf : hb, dist = forward ? distF : distB, closed = forward ? closedF : closedB;
+      var item = heap.pop(), u = item.node;
+      if (closed[u] || Math.abs(item.g - dist[u]) > 1e-10) continue;
+      closed[u] = 1; consider(u);
+      var idx = events.length;
+      if (forward) expandedF[u] = idx; else expandedB[u] = idx;
+      var lower = forward ? euclideanHeuristic(u, target) : euclideanHeuristic(source, u);
+      var isPruned = usesReach && u !== source && u !== target && indexes.reach[u] + 1e-9 < Math.min(dist[u], lower);
+      events.push({ node: u, side: forward ? "f" : "b", g: dist[u], h: 0, lower: lower, f: dist[u], pruned: isPruned, reach: usesReach ? indexes.reach[u] : 0, frontier: hf.size + hb.size });
+      if (isPruned) { pruned++; continue; }
+      var edges = forward ? gph.adj[u] : gph.rev[u];
+      scannedEdges += edges.length;
+      for (var i = 0; i < edges.length; i++) {
+        var e = edges[i], v = e.to, nd = dist[u] + e.w;
+        if (nd + 1e-12 < dist[v]) {
+          var fresh = !finite(dist[v]);
+          dist[v] = nd; heap.push({ key: nd, node: v, g: nd });
+          if (forward) { parentEdgeF[v] = e; if (fresh) discoveredF[v] = idx; }
+          else { nextEdgeB[v] = e.original; if (fresh) discoveredB[v] = idx; }
+        }
+        consider(v);
+      }
+      if (hf.size + hb.size > peak) peak = hf.size + hb.size;
+    }
+    var route = [];
+    if (meet >= 0) {
+      var leftEdges = [], cursor = meet, guard = 0;
+      while (cursor !== source && guard++ < n + 3) {
+        var leftEdge = parentEdgeF[cursor]; if (!leftEdge) break;
+        leftEdges.push(leftEdge); cursor = leftEdge.from;
+      }
+      leftEdges.reverse(); route = [source];
+      leftEdges.forEach(function (edge) {
+        var path = edge.path || [edge.from, edge.to];
+        for (var pi = 1; pi < path.length; pi++) route.push(path[pi]);
+      });
+      cursor = meet; guard = 0;
+      while (cursor !== target && guard++ < n + 3) {
+        var rightEdge = nextEdgeB[cursor]; if (!rightEdge) break;
+        var rightPath = rightEdge.path || [rightEdge.from, rightEdge.to];
+        for (var ri = 1; ri < rightPath.length; ri++) route.push(rightPath[ri]);
+        cursor = rightEdge.to;
+      }
+      if (!route.length || route[0] !== source || route[route.length - 1] !== target) route = [];
+    }
+    return { method: method, source: source, target: target, events: events, route: route, cost: mu, expanded: events.length, pruned: pruned, scannedEdges: scannedEdges, frontierPeak: peak, discoveredF: discoveredF, expandedF: expandedF, discoveredB: discoveredB, expandedB: expandedB, queryBytes: n * 42 + peak * 24 };
+  }
+
+  function runSearch(method, source, target) {
+    var t0 = performance.now();
+    var result = (method === "bidijkstra" || method === "reach" || method === "reachshort") ? bidirectionalDijkstra(source, target, method) : genericSearch(method, source, target);
+    result.queryMs = performance.now() - t0;
+    var exact = indexes && indexes.allPairs[source] ? indexes.allPairs[source][target] : result.cost;
+    result.exactCost = exact;
+    result.verified = finite(result.cost) && Math.abs(result.cost - exact) <= 1e-7 * Math.max(1, exact);
+    return result;
+  }
+
+  function formatMs(ms) { return ms < .01 ? "<0.01 ms" : ms < 10 ? ms.toFixed(2) + " ms" : ms.toFixed(1) + " ms"; }
+  function formatBytes(bytes) {
+    if (bytes < 1024) return Math.round(bytes) + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(bytes < 10240 ? 1 : 0) + " KB";
+    return (bytes / 1048576).toFixed(1) + " MB";
+  }
+  function formatCost(cost) { return finite(cost) ? cost.toFixed(2) + " min" : "no route"; }
+  function formatCount(n) { return Math.round(n).toLocaleString(); }
+
+  function prepFor(method) {
+    if (!indexes) return { time: 0, bytes: 0 };
+    if (method === "alt") return { time: indexes.landmarkMs, bytes: indexes.altBytes };
+    if (method === "reach") return { time: indexes.reachMs, bytes: indexes.reachBytes };
+    if (method === "reachshort") return { time: indexes.reachMs + indexes.shortcutMs, bytes: indexes.reachBytes + indexes.shortcutBytes };
+    if (method === "combo") return { time: indexes.landmarkMs + indexes.reachMs + indexes.shortcutMs, bytes: indexes.altBytes + indexes.reachBytes + indexes.shortcutBytes };
+    return { time: 0, bytes: 0 };
+  }
+
+  function prepareCanvas(canvas) {
+    var rect = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(1, rect.width), h = Math.max(1, rect.height);
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(canvas.width / MAP_W, 0, 0, canvas.height / MAP_H, 0, 0);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    return ctx;
+  }
+  function roundedRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function drawStar(ctx, x, y, outer, inner, color) {
+    ctx.save(); ctx.translate(x, y); ctx.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? inner : outer;
+      var px = Math.cos(a) * r, py = Math.sin(a) * r;
+      if (!i) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = "#071118"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+  }
+  function heatColor(value, max) {
+    var t = max > 0 ? Math.log1p(value) / Math.log1p(max) : 0;
+    var hue = 174 - t * 160, light = 53 + t * 9;
+    return "hsl(" + hue.toFixed(0) + " 78% " + light.toFixed(0) + "%)";
+  }
+  function traceShortcut(ctx, edge) {
+    var a = graph.nodes[edge.from], b = graph.nodes[edge.to], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    var dx = b.x - a.x, dy = b.y - a.y, len = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+    var bend = 8, cx = mx - dy / len * bend, cy = my + dx / len * bend;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(cx, cy, b.x, b.y); ctx.stroke();
+  }
+  function drawBaseMap(ctx, opts) {
+    opts = opts || {};
+    ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, MAP_W, MAP_H);
+    ctx.fillStyle = "rgba(255,255,255,.018)";
+    for (var bx = 18; bx < MAP_W; bx += 86) for (var by = 18; by < MAP_H; by += 80) ctx.fillRect(bx, by, 58, 49);
+    ctx.fillStyle = COLORS.water; ctx.fillRect(574, 0, 27, MAP_H);
+    ctx.strokeStyle = "rgba(98,185,255,.11)"; ctx.lineWidth = 1;
+    for (var wy = 8; wy < MAP_H; wy += 18) {
+      ctx.beginPath(); ctx.moveTo(577, wy); ctx.quadraticCurveTo(587, wy - 5, 598, wy); ctx.stroke();
+    }
+    ctx.fillStyle = COLORS.park; roundedRect(ctx, 378, 188, 112, 150, 13); ctx.fill();
+    ctx.fillStyle = "rgba(143,230,167,.5)"; ctx.font = "700 10px " + getComputedStyle(document.body).fontFamily; ctx.fillText("MERIDIAN PARK", 391, 262);
+    ctx.fillStyle = COLORS.rail; roundedRect(ctx, 720, 390, 153, 105, 8); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.12)"; ctx.lineWidth = 2;
+    for (var ry = 406; ry < 487; ry += 15) { ctx.beginPath(); ctx.moveTo(730, ry); ctx.lineTo(861, ry + 7); ctx.stroke(); }
+    ctx.fillStyle = "rgba(255,255,255,.31)"; ctx.font = "700 9px " + getComputedStyle(document.body).fontFamily; ctx.fillText("RAIL YARD", 767, 448);
+    ctx.strokeStyle = "rgba(255,255,255,.11)"; ctx.lineWidth = 1; ctx.strokeRect(842, 26, 115, 63);
+    ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillText("AIRPORT", 878, 60);
+
+    var order = { local: 0, arterial: 1, highway: 2, bridge: 3 };
+    var segs = graph.segments.slice().sort(function (a, b) { return order[a.type] - order[b.type]; });
+    segs.forEach(function (seg) {
+      var a = graph.nodes[seg.a], b = graph.nodes[seg.b];
+      ctx.strokeStyle = COLORS[seg.type];
+      ctx.lineWidth = seg.type === "local" ? 1.2 : seg.type === "arterial" ? 2.3 : seg.type === "highway" ? 3.7 : 5.2;
+      ctx.globalAlpha = seg.type === "local" ? .68 : .9;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      if (opts.arrows && seg.direction !== "both" && seg.type === "local") {
+        var from = seg.direction === "ab" ? a : b, to = seg.direction === "ab" ? b : a;
+        var mx = (from.x + to.x) / 2, my = (from.y + to.y) / 2, ang = Math.atan2(to.y - from.y, to.x - from.x);
+        ctx.save(); ctx.translate(mx, my); ctx.rotate(ang); ctx.fillStyle = "rgba(242,247,245,.48)";
+        ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(-3, -2.5); ctx.lineTo(-3, 2.5); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+    });
+    ctx.globalAlpha = 1;
+    if (opts.shortcuts && shortGraph) {
+      ctx.save(); ctx.strokeStyle = COLORS.shortcut; ctx.lineWidth = opts.mini ? 1.3 : 1.7; ctx.globalAlpha = opts.mini ? .12 : .24; ctx.setLineDash([5, 5]);
+      shortGraph.shortcuts.forEach(function (edge, i) { if (!opts.mini || i % 2 === 0) traceShortcut(ctx, edge); });
+      ctx.restore();
+    }
+    if (opts.reachHeat && indexes) {
+      var maxReach = 0;
+      for (var q = 0; q < indexes.reach.length; q++) maxReach = Math.max(maxReach, indexes.reach[q]);
+      graph.nodes.forEach(function (node) {
+        ctx.fillStyle = heatColor(indexes.reach[node.id], maxReach); ctx.globalAlpha = .86;
+        ctx.beginPath(); ctx.arc(node.x, node.y, opts.mini ? 2.1 : 3.6, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+    if (opts.landmarks && indexes) {
+      indexes.landmark.ids.forEach(function (id, i) {
+        var n = graph.nodes[id]; drawStar(ctx, n.x, n.y, opts.mini ? 6 : 10, opts.mini ? 2.5 : 4.5, COLORS.landmark);
+        if (!opts.mini) {
+          ctx.fillStyle = "#071118"; ctx.font = "800 7px " + getComputedStyle(document.body).fontFamily; ctx.textAlign = "center";
+          ctx.fillText("L" + (i + 1), n.x, n.y + 2.5); ctx.textAlign = "left";
+        }
+      });
+    }
+    if (opts.labels && !opts.mini) {
+      ctx.fillStyle = "rgba(224,237,235,.28)"; ctx.font = "800 11px " + getComputedStyle(document.body).fontFamily;
+      [[85,118,"NORTH SHORE"],[70,470,"WESTHAVEN"],[375,365,"OLD TOWN"],[665,225,"EASTPORT"],[835,550,"HARBOR"]].forEach(function (l) { ctx.fillText(l[2], l[0], l[1]); });
+    }
+  }
+
+  function drawSearchOverlay(ctx, result, progress, opts) {
+    if (!result) return;
+    var events = result.events, p = Math.min(progress, events.length), n = graph.nodes.length;
+    for (var i = 0; i < n; i++) {
+      var df = result.discoveredF ? result.discoveredF[i] : -1, ef = result.expandedF ? result.expandedF[i] : -1;
+      var db = result.discoveredB ? result.discoveredB[i] : -1, eb = result.expandedB ? result.expandedB[i] : -1;
+      if ((df >= 0 && df < p && (ef < 0 || ef >= p)) || (db >= 0 && db < p && (eb < 0 || eb >= p))) {
+        var fn = graph.nodes[i]; ctx.fillStyle = COLORS.frontier; ctx.globalAlpha = opts.mini ? .55 : .7;
+        ctx.beginPath(); ctx.arc(fn.x, fn.y, opts.mini ? 2.4 : 3.1, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    for (i = 0; i < p; i++) {
+      var ev = events[i], node = graph.nodes[ev.node];
+      ctx.fillStyle = ev.side === "b" ? COLORS.backward : COLORS.forward; ctx.globalAlpha = ev.pruned ? .28 : opts.mini ? .7 : .83;
+      ctx.beginPath(); ctx.arc(node.x, node.y, opts.mini ? 3 : 4.2, 0, Math.PI * 2); ctx.fill();
+      if (ev.pruned) {
+        ctx.globalAlpha = 1; ctx.strokeStyle = COLORS.pruned; ctx.lineWidth = opts.mini ? 1.6 : 2.2;
+        ctx.beginPath(); ctx.arc(node.x, node.y, opts.mini ? 4 : 6.5, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+    if (p > 0 && p < events.length) {
+      var current = graph.nodes[events[p - 1].node]; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(current.x, current.y, opts.mini ? 5 : 8.5, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (p >= events.length && result.route.length) drawRoute(ctx, result.route, opts.mini);
+  }
+  function drawRoute(ctx, route, mini) {
+    if (route.length < 2) return;
+    ctx.save(); ctx.strokeStyle = "rgba(4,10,14,.78)"; ctx.lineWidth = mini ? 6 : 10; ctx.beginPath();
+    route.forEach(function (id, i) { var n = graph.nodes[id]; if (!i) ctx.moveTo(n.x, n.y); else ctx.lineTo(n.x, n.y); }); ctx.stroke();
+    ctx.strokeStyle = COLORS.path; ctx.lineWidth = mini ? 2.7 : 4.8; ctx.beginPath();
+    route.forEach(function (id, i) { var n = graph.nodes[id]; if (!i) ctx.moveTo(n.x, n.y); else ctx.lineTo(n.x, n.y); }); ctx.stroke(); ctx.restore();
+  }
+  function drawEndpoint(ctx, id, label, color, mini) {
+    var n = graph.nodes[id], radius = mini ? 8 : 13;
+    ctx.fillStyle = "rgba(5,14,19,.88)"; ctx.beginPath(); ctx.arc(n.x, n.y, radius + 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(n.x, n.y, radius, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#071118"; ctx.font = "900 " + (mini ? 8 : 12) + "px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(label, n.x, n.y + .5); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  }
+  function drawMap(canvas, opts) {
+    if (!graph || !canvas) return;
+    var ctx = prepareCanvas(canvas); drawBaseMap(ctx, opts);
+    if (opts.result) drawSearchOverlay(ctx, opts.result, opts.progress || 0, opts);
+    if (opts.selected !== undefined && opts.selected !== null) {
+      var sn = graph.nodes[opts.selected]; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sn.x, sn.y, 10, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (opts.endpoints) {
+      drawEndpoint(ctx, routeState.source, "S", COLORS.teal, !!opts.mini);
+      drawEndpoint(ctx, routeState.target, "T", COLORS.path, !!opts.mini);
+    }
+  }
+
+  function updatePreprocessNumbers() {
+    if (!indexes) return;
+    byId("nodeCount").textContent = formatCount(graph.nodes.length); byId("arcCount").textContent = formatCount(graph.arcCount);
+    byId("landmarkTime").textContent = formatMs(indexes.landmarkMs); byId("reachTime").textContent = formatMs(indexes.reachMs);
+    byId("shortcutTime").textContent = formatMs(indexes.shortcutMs); byId("readyTime").textContent = formatMs(indexes.totalMs);
+    byId("altBytes").textContent = formatBytes(indexes.altBytes); byId("reachBytes").textContent = formatBytes(indexes.reachBytes);
+    byId("shortcutCount").textContent = formatCount(shortGraph.shortcuts.length);
+    byId("preStatus").textContent = "Indexes ready · " + formatMs(indexes.totalMs) + " on this device";
+  }
+  function setPreStage(stage, complete) {
+    preState.stage = stage;
+    document.querySelectorAll(".pre-stage").forEach(function (el) {
+      var i = Number(el.getAttribute("data-stage"));
+      el.classList.toggle("active", !complete && i === stage); el.classList.toggle("done", complete ? i <= stage : i < stage);
+    });
+    renderPreMap();
+  }
+  function replayPreprocessing() {
+    preState.timers.forEach(clearTimeout); preState.timers = [];
+    byId("buildBtn").disabled = true; byId("preStatus").textContent = "Recomputing real indexes…";
+    setTimeout(function () {
+      buildIndexes(); resetAllSearches();
+      var labels = ["Measuring from six landmarks…", "Measuring shortest-path reach…", "Adding exact shortcut arcs…", "Index ready for repeated queries"];
+      for (var i = 0; i < 4; i++) (function (stage) {
+        preState.timers.push(setTimeout(function () {
+          setPreStage(stage, stage === 3); byId("preStatus").textContent = labels[stage];
+          if (stage === 3) { byId("buildBtn").disabled = false; updatePreprocessNumbers(); }
+        }, stage * 720));
+      })(i);
+    }, 40);
+  }
+  function renderPreMap() {
+    drawMap(canvases.pre, { labels: true, landmarks: preState.landmarks && preState.stage >= 0, reachHeat: preState.stage === 1, shortcuts: preState.shortcuts && preState.stage >= 2, endpoints: false });
+  }
+
+  function routePresets() {
+    return {
+      cross: [nearestNodeTo(graph.nodes, 110, 458), nearestNodeTo(graph.nodes, 895, 164)],
+      airport: [nearestNodeTo(graph.nodes, 430, 360), nearestNodeTo(graph.nodes, 914, 78)],
+      bridge: [nearestNodeTo(graph.nodes, 165, 90), nearestNodeTo(graph.nodes, 900, 545)],
+      local: [nearestNodeTo(graph.nodes, 355, 365), nearestNodeTo(graph.nodes, 540, 190)]
+    };
+  }
+  function applyPreset(name) {
+    var pair = routePresets()[name]; if (!pair) return;
+    routeState.source = pair[0]; routeState.target = pair[1]; resetSingle(); resetRace(); renderAll();
+  }
+  function updateAlgorithmCopy() {
+    var method = byId("algorithmSelect").value, meta = ALGORITHMS[method];
+    byId("algorithmTitle").textContent = meta.title; byId("algorithmTag").textContent = meta.tag;
+    byId("algorithmDescription").textContent = meta.description; byId("algorithmFormula").textContent = meta.formula;
+  }
+  function resetSingle() {
+    routeState.playing = false; routeState.result = null; routeState.progress = 0; routeState.floatProgress = 0;
+    byId("pauseBtn").textContent = "Ⅱ"; updateMetrics();
+  }
+  function startSingle() {
+    var method = byId("algorithmSelect").value;
+    routeState.result = runSearch(method, routeState.source, routeState.target);
+    routeState.progress = 0; routeState.floatProgress = 0; routeState.playing = true; routeState.lastStamp = performance.now();
+    byId("pauseBtn").textContent = "Ⅱ"; updateMetrics(); renderRouteMap();
+  }
+  function togglePause() {
+    if (!routeState.result) { startSingle(); return; }
+    if (routeState.progress >= routeState.result.events.length) { routeState.progress = 0; routeState.floatProgress = 0; }
+    routeState.playing = !routeState.playing; routeState.lastStamp = performance.now(); byId("pauseBtn").textContent = routeState.playing ? "Ⅱ" : "▶";
+  }
+  function stepSingle() {
+    if (!routeState.result) routeState.result = runSearch(byId("algorithmSelect").value, routeState.source, routeState.target);
+    routeState.playing = false; byId("pauseBtn").textContent = "▶";
+    routeState.progress = Math.min(routeState.result.events.length, routeState.progress + 1); routeState.floatProgress = routeState.progress;
+    updateMetrics(); renderRouteMap();
+  }
+  function speedPerSecond() { return [0, 4, 7, 12, 20, 34, 55, 88, 140, 220, 340][Number(byId("speedRange").value)]; }
+  function updateMetrics() {
+    var r = routeState.result, p = r ? Math.min(routeState.progress, r.events.length) : 0;
+    byId("metricScanned").textContent = formatCount(p); byId("metricFrontier").textContent = r ? formatCount(r.frontierPeak) : "0";
+    byId("metricTime").textContent = r ? formatMs(r.queryMs) : "—"; byId("metricCost").textContent = r && p >= r.events.length ? formatCost(r.cost) : "—";
+    var prunedNow = 0;
+    if (r) for (var i = 0; i < p; i++) if (r.events[i].pruned) prunedNow++;
+    byId("metricPruned").textContent = formatCount(prunedNow);
+    var verified = byId("metricVerified");
+    verified.textContent = r && p >= r.events.length ? (r.verified ? "YES" : "NO") : "—";
+    verified.className = r && p >= r.events.length ? (r.verified ? "verified" : "unverified") : "";
+    var text = "Press Run, then watch the first intersection leave the priority queue.";
+    if (r && p > 0) {
+      var ev = r.events[p - 1], node = graph.nodes[ev.node];
+      if (ev.pruned) text = "Prune " + node.name + ": reach " + ev.reach.toFixed(2) + " < min(traveled " + ev.g.toFixed(2) + ", remaining lower bound " + ev.lower.toFixed(2) + ").";
+      else if (ev.viaShortcut) text = "Scan " + node.name + " after arriving through an exact shortcut; its hidden road chain remains available for route unpacking.";
+      else if (ev.side === "b") text = "Backward scan " + node.name + " at g = " + ev.g.toFixed(2) + "; this wave follows incoming roads from T.";
+      else text = "Scan " + node.name + " with g = " + ev.g.toFixed(2) + (ev.h ? " and h = " + ev.h.toFixed(2) + "." : "; outgoing roads are relaxed next.");
+      if (p >= r.events.length) text = (r.verified ? "Exact route verified" : "Verification failed") + ": " + formatCost(r.cost) + " after " + formatCount(r.expanded) + " scans and " + formatCount(r.scannedEdges) + " road relaxations.";
+    }
+    byId("decisionText").textContent = text;
+  }
+  function renderRouteMap() {
+    var method = byId("algorithmSelect").value;
+    drawMap(canvases.route, { labels: true, arrows: true, landmarks: method === "alt" || method === "combo", shortcuts: method === "reachshort" || method === "combo", endpoints: true, result: routeState.result, progress: routeState.progress });
+  }
+
+  function currentRaceResults() {
+    var results = {};
+    allMethods.forEach(function (method) { results[method] = runSearch(method, routeState.source, routeState.target); });
+    return results;
+  }
+  function startRace() {
+    raceState.batch = null; raceState.results = currentRaceResults(); raceState.fraction = 0; raceState.playing = true; raceState.lastStamp = performance.now();
+    byId("raceStatus").textContent = "Current route · five exact searches"; renderLiveTable(); updateRaceInsight(); renderRaceMaps();
+  }
+  function resetRace() {
+    raceState.results = null; raceState.batch = null; raceState.fraction = 0; raceState.playing = false;
+    byId("raceStatus").textContent = "Current route · one query";
+    renderLiveTable(); updateRaceInsight(); renderRaceMaps();
+  }
+  function runBatch() {
+    var aggregate = {}, n = graph.nodes.length;
+    allMethods.forEach(function (m) { aggregate[m] = { scans: 0, maxScans: 0, peak: 0, ms: 0, cost: 0, verified: true, count: 0 }; });
+    for (var i = 0; i < 30; i++) {
+      var s = (i * 47 + 9) % n, t = ((n - 1 - i * 71) % n + n) % n;
+      if (s === t) t = (t + Math.floor(n / 2)) % n;
+      allMethods.forEach(function (m) {
+        var r = runSearch(m, s, t), a = aggregate[m];
+        a.scans += r.expanded; a.maxScans = Math.max(a.maxScans, r.expanded); a.peak = Math.max(a.peak, r.frontierPeak);
+        a.ms += r.queryMs; a.cost += r.cost; a.verified = a.verified && r.verified; a.count++;
+      });
+    }
+    raceState.batch = aggregate; raceState.playing = false;
+    byId("raceStatus").textContent = "30 deterministic routes · averages + maxima";
+    byId("liveCaption").textContent = "Scanned and query time are 30-route averages; peak queue is the maximum observed. Each result was checked against exact all-pairs distances.";
+    renderLiveTable(); updateRaceInsight();
+  }
+  function renderRaceMaps() {
+    document.querySelectorAll(".race-card").forEach(function (card) {
+      var method = card.getAttribute("data-method"), r = raceState.results && raceState.results[method];
+      var p = r ? Math.floor(raceState.fraction * r.events.length) : 0;
+      if (raceState.fraction >= 1 && r) p = r.events.length;
+      drawMap(card.querySelector("canvas"), { mini: true, landmarks: method === "alt" || method === "combo", shortcuts: method === "reachshort" || method === "combo", endpoints: true, result: r, progress: p });
+      card.querySelector(".race-count").textContent = formatCount(p) + " scans";
+      card.querySelector(".race-time").textContent = r ? formatMs(r.queryMs) : "—";
+      card.querySelector(".race-cost").textContent = r && raceState.fraction >= 1 ? formatCost(r.cost) : "—";
+    });
+  }
+  function renderLiveTable() {
+    var body = byId("liveTableBody"), html = "";
+    allMethods.forEach(function (method) {
+      var meta = ALGORITHMS[method], prep = prepFor(method), r = raceState.results && raceState.results[method], b = raceState.batch && raceState.batch[method];
+      var scans = "—", peak = "—", ms = "—", cost = "—", exact = "—";
+      if (b) {
+        scans = (b.scans / b.count).toFixed(1) + " avg / " + b.maxScans + " max"; peak = formatCount(b.peak);
+        ms = (b.ms / b.count).toFixed(3); cost = (b.cost / b.count).toFixed(2) + " avg"; exact = b.verified ? "yes" : "NO";
+      } else if (r) {
+        scans = formatCount(r.expanded); peak = formatCount(r.frontierPeak); ms = r.queryMs.toFixed(3); cost = r.cost.toFixed(2); exact = r.verified ? "yes" : "NO";
+      }
+      html += "<tr><td>" + meta.title + "</td><td>" + (prep.time ? formatMs(prep.time) : "none") + "</td><td>" + (prep.bytes ? formatBytes(prep.bytes) : "none") + "</td><td>" + scans + "</td><td>" + peak + "</td><td>" + ms + "</td><td>" + cost + "</td><td class=\"" + (exact === "yes" ? "verified" : exact === "NO" ? "unverified" : "") + "\">" + exact + "</td></tr>";
+    });
+    body.innerHTML = html;
+    if (!raceState.batch) byId("liveCaption").textContent = "Live figures describe one query on this small teaching graph. Stored index excludes the base road graph and preprocessing scratch memory.";
+  }
+  function updateRaceInsight() {
+    var el = byId("raceInsight");
+    if (!el) return;
+    if (!raceState.results && !raceState.batch) {
+      el.innerHTML = "<strong>What to watch:</strong> the footprint matters more than animation speed. Every gold route should have the same cost.";
+      return;
+    }
+    var scans = {};
+    allMethods.forEach(function (m) { scans[m] = raceState.batch ? raceState.batch[m].scans / raceState.batch[m].count : raceState.results[m].expanded; });
+    var winner = allMethods.reduce(function (best, m) { return scans[m] < scans[best] ? m : best; }, allMethods[0]);
+    var note = "<strong>Small-map result:</strong> " + ALGORITHMS[winner].title + " scans the fewest vertices here (" + scans[winner].toFixed(raceState.batch ? 1 : 0) + "). ";
+    if (scans.reachshort >= scans.reach) note += "The shortcut overlay adds a little queue overhead at this scale—preprocessing techniques earn their keep on much larger, repeatedly queried networks.";
+    else note += "The shortcut overlay reduces the reach search footprint while preserving the same unpacked road route.";
+    el.innerHTML = note;
+  }
+
+  function updateReachPanel() {
+    if (!indexes) return;
+    reachSelection = Math.max(0, Math.min(graph.nodes.length - 1, reachSelection));
+    var n = graph.nodes[reachSelection]; byId("reachNodeName").textContent = n.name;
+    byId("reachNodeValue").textContent = indexes.reach[reachSelection].toFixed(2);
+    byId("reachSelector").value = String(reachSelection); byId("reachSelectorLabel").textContent = (reachSelection + 1) + " / " + graph.nodes.length;
+    drawMap(canvases.reach, { labels: true, reachHeat: true, selected: reachSelection });
+  }
+  function nearestFromPointer(canvas, event) {
+    var rect = canvas.getBoundingClientRect(), x = (event.clientX - rect.left) / rect.width * MAP_W, y = (event.clientY - rect.top) / rect.height * MAP_H;
+    return nearestNodeTo(graph.nodes, x, y);
+  }
+
+  function resetAllSearches() { resetSingle(); resetRace(); }
+  function renderAll() { renderPreMap(); renderRouteMap(); renderRaceMaps(); updateReachPanel(); }
+  function animationLoop(stamp) {
+    if (routeState.playing && routeState.result) {
+      var dt = Math.min(80, stamp - routeState.lastStamp); routeState.lastStamp = stamp;
+      routeState.floatProgress += dt * speedPerSecond() / 1000;
+      var np = Math.min(routeState.result.events.length, Math.floor(routeState.floatProgress));
+      if (np !== routeState.progress) { routeState.progress = np; updateMetrics(); renderRouteMap(); }
+      if (routeState.progress >= routeState.result.events.length) { routeState.playing = false; byId("pauseBtn").textContent = "▶"; updateMetrics(); renderRouteMap(); }
+    }
+    if (raceState.playing && raceState.results) {
+      var rdt = Math.min(80, stamp - raceState.lastStamp); raceState.lastStamp = stamp;
+      raceState.fraction = Math.min(1, raceState.fraction + rdt / 3200); renderRaceMaps();
+      if (raceState.fraction >= 1) raceState.playing = false;
+    }
+    requestAnimationFrame(animationLoop);
+  }
+
+  function attachEvents() {
+    byId("buildBtn").addEventListener("click", replayPreprocessing);
+    [["preLandmarksToggle", "landmarks"], ["preShortcutsToggle", "shortcuts"]].forEach(function (pair) {
+      byId(pair[0]).addEventListener("click", function () {
+        preState[pair[1]] = !preState[pair[1]]; this.classList.toggle("active", preState[pair[1]]);
+        this.setAttribute("aria-pressed", String(preState[pair[1]])); renderPreMap();
+      });
+    });
+    byId("routePreset").addEventListener("change", function () { applyPreset(this.value); });
+    byId("algorithmSelect").addEventListener("change", function () { updateAlgorithmCopy(); resetSingle(); renderRouteMap(); });
+    byId("runBtn").addEventListener("click", startSingle); byId("pauseBtn").addEventListener("click", togglePause); byId("stepBtn").addEventListener("click", stepSingle);
+    byId("resetBtn").addEventListener("click", function () { resetSingle(); renderRouteMap(); });
+    byId("raceBtn").addEventListener("click", startRace); byId("batchBtn").addEventListener("click", runBatch); byId("raceResetBtn").addEventListener("click", resetRace);
+    byId("reachSelector").addEventListener("input", function () { reachSelection = Number(this.value); updateReachPanel(); });
+    canvases.reach.addEventListener("pointerdown", function (e) { reachSelection = nearestFromPointer(canvases.reach, e); updateReachPanel(); });
+    canvases.route.addEventListener("pointerdown", function (e) {
+      var id = nearestFromPointer(canvases.route, e);
+      var ds = Math.hypot(graph.nodes[id].x - graph.nodes[routeState.source].x, graph.nodes[id].y - graph.nodes[routeState.source].y);
+      var dt = Math.hypot(graph.nodes[id].x - graph.nodes[routeState.target].x, graph.nodes[id].y - graph.nodes[routeState.target].y);
+      routeState.drag = ds <= dt ? "source" : "target"; canvases.route.setPointerCapture(e.pointerId);
+      routeState[routeState.drag] = id; resetAllSearches(); renderAll();
+    });
+    canvases.route.addEventListener("pointermove", function (e) {
+      if (!routeState.drag) return;
+      var id = nearestFromPointer(canvases.route, e); if (routeState[routeState.drag] === id) return;
+      if ((routeState.drag === "source" && id === routeState.target) || (routeState.drag === "target" && id === routeState.source)) return;
+      routeState[routeState.drag] = id; resetAllSearches(); renderAll();
+    });
+    function endDrag() { routeState.drag = null; }
+    canvases.route.addEventListener("pointerup", endDrag); canvases.route.addEventListener("pointercancel", endDrag);
+    document.querySelectorAll(".question").forEach(function (question) {
+      var correct = Number(question.getAttribute("data-answer")), feedback = question.querySelector(".feedback"), answers = question.querySelectorAll(".answer");
+      answers.forEach(function (answer, i) {
+        answer.addEventListener("click", function () {
+          answers.forEach(function (a) { a.classList.remove("correct", "wrong"); });
+          if (i === correct) {
+            answer.classList.add("correct"); feedback.textContent = "Correct. The optimization changes search effort, not the exact shortest-path objective.";
+          } else {
+            answer.classList.add("wrong"); answers[correct].classList.add("correct"); feedback.textContent = "Not quite—the highlighted answer preserves the exact path while explaining the reported speedup.";
+          }
+        });
+      });
+    });
+    var resizeTimer;
+    window.addEventListener("resize", function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderAll, 80); });
+  }
+
+  function initialize() {
+    canvases.pre = byId("preCanvas"); canvases.route = byId("routeCanvas"); canvases.reach = byId("reachCanvas");
+    graph = buildGraph();
+    var presets = routePresets(); routeState.source = presets.cross[0]; routeState.target = presets.cross[1];
+    byId("nodeCount").textContent = formatCount(graph.nodes.length); byId("arcCount").textContent = formatCount(graph.arcCount);
+    attachEvents(); updateAlgorithmCopy(); renderRouteMap(); renderRaceMaps();
+    setTimeout(function () {
+      buildIndexes(); byId("reachSelector").max = String(graph.nodes.length - 1);
+      reachSelection = nearestNodeTo(graph.nodes, 584, 287); setPreStage(3, true); updateReachPanel(); renderLiveTable(); renderAll(); startRace();
+    }, 20);
+    requestAnimationFrame(animationLoop);
+  }
+
+  initialize();
+})();
+</script>
+</body>
+</html>

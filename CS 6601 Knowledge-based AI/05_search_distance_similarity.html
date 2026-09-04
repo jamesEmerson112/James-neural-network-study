@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search Needs a Compass — Distance, Heuristics, and Similarity</title>
+<style>
+:root {
+  --bg: #071018;
+  --bg-2: #0a1622;
+  --panel: #0e1c29;
+  --panel-2: #122536;
+  --line: #233a4c;
+  --ink: #edf7fb;
+  --muted: #99afbc;
+  --faint: #617b8b;
+  --cyan: #55e6d2;
+  --blue: #5ab0ff;
+  --amber: #ffc65c;
+  --violet: #b99aff;
+  --pink: #ff86bd;
+  --green: #7bea9f;
+  --red: #ff7c83;
+  --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 560px at 5% -10%, rgba(53, 132, 173, .20), transparent 62%),
+    radial-gradient(800px 600px at 105% 8%, rgba(107, 73, 170, .14), transparent 58%),
+    var(--bg);
+  font: 15px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, select, input { font: inherit; }
+button { color: inherit; }
+a { color: var(--cyan); }
+.page { width: min(1420px, 100%); margin: 0 auto; padding: 22px clamp(14px, 3vw, 40px) 70px; }
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--cyan);
+  font: 750 11px/1 var(--sans);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 16px; max-width: 980px; font-size: clamp(34px, 5.6vw, 74px); line-height: .98; letter-spacing: -.055em; font-weight: 760; }
+h1 em { color: var(--amber); font-style: normal; }
+h2 { margin-bottom: 10px; font-size: clamp(25px, 3.2vw, 42px); line-height: 1.08; letter-spacing: -.035em; }
+h3 { margin-bottom: 6px; font-size: 17px; line-height: 1.25; }
+.lede { max-width: 790px; color: var(--muted); font-size: clamp(16px, 2vw, 21px); }
+.mono { font-family: var(--mono); }
+
+.hero { padding: clamp(28px, 6vw, 76px) 0 34px; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr); gap: clamp(24px, 5vw, 70px); align-items: end; }
+.hero-note {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  background: linear-gradient(145deg, rgba(18,37,54,.94), rgba(10,22,34,.88));
+  box-shadow: 0 18px 55px rgba(0,0,0,.22);
+}
+.hero-note b { display: block; color: var(--amber); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 7px; }
+.hero-note p { margin: 0; color: var(--muted); }
+
+.lesson-nav {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 10px 0;
+  background: linear-gradient(180deg, rgba(7,16,24,.98) 72%, rgba(7,16,24,0));
+  scrollbar-width: none;
+}
+.lesson-nav::-webkit-scrollbar { display: none; }
+.nav-pill, .btn, .preset, .answer {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: transform .15s, border-color .2s, background .2s, color .2s;
+}
+.nav-pill { flex: 0 0 auto; padding: 8px 13px; color: var(--muted); font-size: 12px; text-decoration: none; }
+.nav-pill:hover, .btn:hover, .preset:hover, .answer:hover { border-color: #42647a; color: var(--ink); }
+.nav-pill:focus-visible, .btn:focus-visible, .preset:focus-visible, .answer:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.section { scroll-margin-top: 58px; margin-top: clamp(42px, 7vw, 86px); }
+.section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 430px); gap: 30px; align-items: end; margin-bottom: 22px; }
+.section-head p:last-child { margin-bottom: 0; color: var(--muted); }
+.section-num { color: var(--faint); font: 700 12px var(--mono); letter-spacing: .09em; }
+
+.concept-flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+  gap: 10px;
+  align-items: stretch;
+  margin-top: 34px;
+}
+.concept-card {
+  min-height: 155px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: rgba(14,28,41,.84);
+}
+.concept-card .number { color: var(--faint); font: 700 11px var(--mono); }
+.concept-card h3 { margin-top: 20px; }
+.concept-card p { color: var(--muted); font-size: 13px; margin-bottom: 0; }
+.concept-card.score { border-color: rgba(255,198,92,.46); background: linear-gradient(150deg, rgba(58,43,19,.55), rgba(14,28,41,.9)); }
+.concept-card.strategy { border-color: rgba(85,230,210,.45); background: linear-gradient(150deg, rgba(16,63,63,.45), rgba(14,28,41,.9)); }
+.flow-arrow { display: grid; place-items: center; color: var(--faint); font-size: 20px; }
+.thesis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.thesis > div { padding: 16px 18px; border-left: 2px solid var(--line); color: var(--muted); }
+.thesis b { display: block; margin-bottom: 3px; color: var(--ink); }
+.thesis .route { border-color: var(--blue); }
+.thesis .cube { border-color: var(--violet); }
+.thesis .embed { border-color: var(--pink); }
+
+.lab-shell {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(155deg, rgba(18,37,54,.86), rgba(8,20,30,.92));
+  box-shadow: 0 28px 80px rgba(0,0,0,.22);
+}
+.lab-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(8,19,29,.65);
+}
+.toolbar-label { color: var(--faint); font-size: 11px; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; margin-right: 3px; }
+.preset { padding: 7px 11px; color: var(--muted); font-size: 12px; }
+.preset.active { color: #071018; border-color: transparent; background: var(--amber); font-weight: 750; }
+.spacer { flex: 1 1 auto; }
+.hint { color: var(--faint); font-size: 12px; }
+.geometry-stage { display: grid; grid-template-columns: minmax(360px, 1.1fr) minmax(360px, .9fr); min-width: 0; min-height: 410px; }
+.canvas-wrap { position: relative; min-width: 0; min-height: 360px; border-right: 1px solid var(--line); background: rgba(4,13,20,.48); }
+canvas { display: block; width: 100%; max-width: 100%; height: 100%; touch-action: none; }
+.canvas-key {
+  position: absolute;
+  left: 13px;
+  bottom: 11px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  pointer-events: none;
+}
+.key-item { display: inline-flex; align-items: center; gap: 5px; }
+.key-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.score-grid { display: grid; grid-template-columns: 1fr 1fr; min-width: 0; gap: 1px; background: var(--line); }
+.score-card { min-height: 184px; padding: 16px; background: var(--panel); }
+.score-card .type { display: inline-block; margin-bottom: 13px; padding: 3px 7px; border-radius: 99px; color: var(--muted); background: rgba(255,255,255,.05); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.score-card h3 { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.score-card .value { color: var(--amber); font: 750 20px var(--mono); }
+.formula { color: var(--muted); font: 12px/1.5 var(--mono); }
+.score-card p { margin: 10px 0 0; color: var(--faint); font-size: 12px; }
+.same-value { color: var(--green); }
+.mini-manhattan {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  min-height: 0;
+  padding-block: 12px;
+}
+.mini-manhattan p { margin: 0; }
+
+.insight-strip {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 13px;
+  align-items: center;
+  padding: 15px 18px;
+  border-top: 1px solid var(--line);
+  background: rgba(255,198,92,.055);
+}
+.insight-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: #071018; background: var(--amber); font-weight: 900; }
+.insight-strip p { margin: 0; color: var(--muted); }
+.insight-strip strong { color: var(--ink); }
+
+.btn { padding: 8px 13px; color: var(--muted); font-size: 12px; }
+.btn.primary { border-color: transparent; background: var(--cyan); color: #061115; font-weight: 800; }
+.btn:disabled { cursor: default; opacity: .38; }
+.speed-wrap { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: var(--ink);
+  background: var(--panel);
+}
+.race-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); }
+.race-card { min-width: 0; background: var(--panel); }
+.race-head { padding: 14px 15px 10px; }
+.race-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.race-title h3 { margin: 0; }
+.race-title code { color: var(--muted); font: 11px var(--mono); }
+.race-copy { min-height: 39px; margin: 6px 0 0; color: var(--faint); font-size: 12px; }
+.grid-canvas { width: 100%; height: auto; aspect-ratio: 18 / 11; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #08131d; }
+.race-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); }
+.stat { min-width: 0; padding: 10px 8px; text-align: center; background: #0b1823; }
+.stat b { display: block; overflow: hidden; color: var(--ink); font: 750 17px/1.25 var(--mono); text-overflow: ellipsis; }
+.stat span { color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.race-status { padding: 10px 14px 13px; color: var(--muted); font-size: 12px; }
+.race-status.solved { color: var(--green); }
+.race-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 11px 15px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+.search-warning {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 17px 19px;
+  border: 1px solid rgba(255,134,189,.28);
+  border-radius: 16px;
+  background: rgba(255,134,189,.055);
+}
+.search-warning .mark { color: var(--pink); font: 800 23px var(--mono); }
+.search-warning p { margin: 0; color: var(--muted); }
+
+.vector-stage { display: grid; grid-template-columns: minmax(400px, 1.05fr) minmax(420px, .95fr); min-width: 0; min-height: 470px; }
+.vector-left { display: grid; grid-template-rows: minmax(330px, 1fr) auto; min-width: 0; border-right: 1px solid var(--line); }
+.vector-canvas-wrap { position: relative; min-height: 340px; background: rgba(4,13,20,.48); }
+.vector-controls { padding: 13px 15px; border-top: 1px solid var(--line); }
+.slider-row { display: grid; grid-template-columns: auto minmax(120px, 1fr) auto; align-items: center; gap: 11px; color: var(--muted); font-size: 12px; }
+input[type="range"] { width: 100%; accent-color: var(--violet); }
+.scale-readout { min-width: 48px; color: var(--violet); font: 700 12px var(--mono); text-align: right; }
+.check-row { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: var(--muted); font-size: 12px; }
+.check-row input { width: 16px; height: 16px; accent-color: var(--cyan); }
+.ranking-panel { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+.ranking-intro { padding: 15px 16px 10px; color: var(--muted); font-size: 12px; }
+.rank-methods { display: grid; gap: 1px; background: var(--line); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.rank-method { padding: 13px 15px; background: var(--panel); }
+.rank-method-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.rank-method-head h3 { margin: 0; font-size: 14px; }
+.rank-method-head span { color: var(--faint); font: 10px var(--mono); }
+.rank-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.rank-item { display: flex; justify-content: space-between; gap: 5px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font: 11px var(--mono); }
+.rank-item.winner { color: #071018; border-color: transparent; background: var(--amber); font-weight: 800; }
+.agreement { margin: 12px 15px 15px; padding: 10px 12px; border-radius: 10px; color: var(--muted); background: rgba(255,255,255,.035); font-size: 12px; }
+.agreement.yes { color: var(--green); background: rgba(123,234,159,.07); }
+
+.bridge {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+  gap: 14px;
+}
+.equation-card, .context-card, .quiz {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(150deg, rgba(18,37,54,.78), rgba(10,22,34,.84));
+}
+.equation-card { padding: clamp(20px, 4vw, 38px); }
+.equation { margin: 28px 0 24px; color: var(--amber); font: clamp(18px, 3vw, 33px)/1.3 var(--mono); letter-spacing: -.035em; text-align: center; }
+.equation-card p { color: var(--muted); }
+.equation-card .takeaway { margin-bottom: 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--ink); }
+.contexts { display: grid; gap: 10px; }
+.context-card { padding: 17px 18px; }
+.context-card .context-tag { display: inline-block; margin-bottom: 9px; color: var(--faint); font: 750 10px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+.context-card p { margin: 0; color: var(--muted); font-size: 13px; }
+.context-card.route { border-left: 3px solid var(--blue); }
+.context-card.cube { border-left: 3px solid var(--violet); }
+.context-card.embedding { border-left: 3px solid var(--pink); }
+
+.quiz { margin-top: 14px; padding: clamp(20px, 4vw, 34px); }
+.quiz-top { display: flex; justify-content: space-between; gap: 15px; align-items: start; }
+.quiz-top p { color: var(--muted); margin-bottom: 0; }
+.quiz-score { color: var(--cyan); font: 750 13px var(--mono); white-space: nowrap; }
+.question { margin-top: 23px; padding-top: 20px; border-top: 1px solid var(--line); }
+.question:first-of-type { margin-top: 18px; }
+.question p { margin-bottom: 10px; color: var(--ink); }
+.answers { display: flex; flex-wrap: wrap; gap: 7px; }
+.answer { padding: 8px 13px; color: var(--muted); font-size: 12px; }
+.answer.correct { border-color: var(--green); color: var(--green); background: rgba(123,234,159,.08); }
+.answer.wrong { border-color: var(--red); color: var(--red); background: rgba(255,124,131,.07); }
+.feedback { min-height: 22px; margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+
+.footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12px; }
+
+@media (max-width: 1040px) {
+  .hero-grid, .section-head { grid-template-columns: 1fr; }
+  .concept-flow { grid-template-columns: 1fr 26px 1fr; }
+  .concept-flow .flow-arrow:nth-of-type(4) { display: none; }
+  .geometry-stage, .vector-stage { grid-template-columns: 1fr; }
+  .canvas-wrap, .vector-left { border-right: 0; border-bottom: 1px solid var(--line); }
+  .race-grid { grid-template-columns: 1fr; }
+  .race-card + .race-card { border-top: 1px solid var(--line); }
+  .grid-canvas { max-height: 330px; }
+}
+
+@media (max-width: 720px) {
+  .page { padding-inline: 12px; }
+  .hero { padding-top: 38px; }
+  .hero-note { padding: 15px; }
+  .concept-flow { grid-template-columns: 1fr; }
+  .flow-arrow { transform: rotate(90deg); min-height: 18px; }
+  .thesis, .bridge { grid-template-columns: 1fr; }
+  .geometry-stage { min-height: 0; }
+  .canvas-wrap { min-height: 335px; }
+  .score-grid { grid-template-columns: 1fr; }
+  .score-card { min-height: 0; }
+  .mini-manhattan { grid-column: auto; display: block; }
+  .vector-stage { min-height: 0; }
+  .vector-left { grid-template-rows: 340px auto; }
+  .rank-list { grid-template-columns: 1fr; }
+  .lab-toolbar .hint { flex-basis: 100%; }
+  .quiz-top { display: block; }
+  .quiz-score { display: block; margin-top: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="hero" id="top">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">Knowledge-based AI · Search foundations</p>
+        <h1>Search needs a strategy—and sometimes a <em>compass.</em></h1>
+        <p class="lede">A* is a way to explore possibilities. Euclidean distance, Manhattan distance, dot product, and cosine are ways to score relationships. They are connected, but they are not interchangeable.</p>
+      </div>
+      <aside class="hero-note">
+        <b>The word that causes the confusion</b>
+        <p>AI uses “search” for both <strong>finding a path through states</strong> and <strong>retrieving a nearby vector</strong>. Only the first one necessarily has a route.</p>
+      </aside>
+    </div>
+    <nav class="lesson-nav" aria-label="Lesson sections">
+      <a class="nav-pill" href="#map">1 · The map</a>
+      <a class="nav-pill" href="#geometry">2 · Measure lab</a>
+      <a class="nav-pill" href="#astar">3 · A* race</a>
+      <a class="nav-pill" href="#vectors">4 · Vector search</a>
+      <a class="nav-pill" href="#bridge">5 · Connect it</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="section" id="map">
+      <div class="section-head">
+        <div>
+          <p class="section-num">01 / FIRST, SEPARATE THE JOBS</p>
+          <h2>A score does not perform the search.</h2>
+        </div>
+        <p>The search strategy decides what to examine next. The score supplies information the strategy may use. A* combines the cost already paid with an estimate of what remains.</p>
+      </div>
+
+      <div class="concept-flow" aria-label="Search process">
+        <article class="concept-card">
+          <span class="number">INPUT</span>
+          <h3>Problem representation</h3>
+          <p>Locations on a map, configurations of a cube, or vectors representing documents.</p>
+        </article>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+        <article class="concept-card score">
+          <span class="number">INFORMATION</span>
+          <h3>Cost or score</h3>
+          <p>Edge cost, heuristic estimate, Euclidean distance, pattern lookup, or similarity.</p>
+        </article>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+        <article class="concept-card strategy">
+          <span class="number">POLICY</span>
+          <h3>Search strategy</h3>
+          <p>BFS, greedy best-first, A*, IDA*, or a nearest-neighbor index chooses what to inspect.</p>
+        </article>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+        <article class="concept-card">
+          <span class="number">OUTPUT</span>
+          <h3>Result</h3>
+          <p>A path, a sequence of moves, or a ranked list of relevant items.</p>
+        </article>
+      </div>
+
+      <div class="thesis">
+        <div class="route"><b>Route search</b><span>“How cheaply can I reach that state?”</span></div>
+        <div class="cube"><b>Rubik’s Cube search</b><span>“How many moves might remain?”</span></div>
+        <div class="embed"><b>Embedding search</b><span>“Which stored vector is most similar?”</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="geometry">
+      <div class="section-head">
+        <div>
+          <p class="section-num">02 / MEASURE LAB</p>
+          <h2>Same two arrows. Different questions.</h2>
+        </div>
+        <p>Drag the cyan and violet arrowheads. Watch which formulas measure separation and which measure alignment. Lower is closer for distance; higher is more similar for dot product and cosine.</p>
+      </div>
+
+      <div class="lab-shell">
+        <div class="lab-toolbar">
+          <span class="toolbar-label">Preset</span>
+          <button class="preset active" type="button" data-geo="triangle">3–4–5 triangle</button>
+          <button class="preset" type="button" data-geo="aligned">Same direction</button>
+          <button class="preset" type="button" data-geo="opposite">Opposite</button>
+          <button class="preset" type="button" data-geo="perpendicular">Right angle</button>
+          <span class="spacer"></span>
+          <span class="hint">Drag either arrowhead</span>
+        </div>
+        <div class="geometry-stage">
+          <div class="canvas-wrap">
+            <canvas id="geometryCanvas" width="720" height="440" aria-label="Interactive coordinate plane with two draggable vectors"></canvas>
+            <div class="canvas-key" aria-hidden="true">
+              <span class="key-item" style="color:var(--cyan)"><i class="key-dot"></i>vector a</span>
+              <span class="key-item" style="color:var(--violet)"><i class="key-dot"></i>vector b</span>
+              <span class="key-item" style="color:var(--amber)"><i class="key-dot"></i>separation</span>
+            </div>
+          </div>
+          <div class="score-grid" aria-live="polite">
+            <article class="score-card">
+              <span class="type">Construction</span>
+              <h3>Pythagorean theorem <span class="value" id="pythValue">5.00</span></h3>
+              <div class="formula" id="pythFormula">√(Δx² + Δy²)</div>
+              <p>Explains how the straight-line length is calculated. It is not a competing search method.</p>
+            </article>
+            <article class="score-card">
+              <span class="type">Metric distance · lower wins</span>
+              <h3>Euclidean <span class="value same-value" id="euclidValue">5.00</span></h3>
+              <div class="formula">d(a,b) = ||a − b||₂</div>
+              <p>The generalized Pythagorean distance. Here it is exactly the same number as the card at left.</p>
+            </article>
+            <article class="score-card">
+              <span class="type">Similarity · higher wins</span>
+              <h3>Dot product <span class="value" id="dotValue">0.00</span></h3>
+              <div class="formula">a · b = |a||b| cos(θ)</div>
+              <p>Rewards alignment and magnitude. Scaling a vector changes the score even when its direction stays fixed.</p>
+            </article>
+            <article class="score-card">
+              <span class="type">Similarity · higher wins</span>
+              <h3>Cosine <span class="value" id="cosValue">0.00</span></h3>
+              <div class="formula">cos(θ) = (a · b) / (|a||b|)</div>
+              <p>Removes magnitude and keeps direction: 1 aligned, 0 perpendicular, −1 opposite.</p>
+            </article>
+            <article class="score-card mini-manhattan">
+              <div>
+                <span class="type">Metric distance · lower wins</span>
+                <h3>Manhattan <span class="value" id="manhattanValue">7.00</span></h3>
+              </div>
+              <p><span class="formula">|Δx| + |Δy|</span><br>Counts axis-aligned travel—the natural estimate when moves are restricted to a four-way grid.</p>
+            </article>
+          </div>
+        </div>
+        <div class="insight-strip">
+          <div class="insight-icon">!</div>
+          <p id="geometryInsight"><strong>Pythagoras and Euclidean are not rivals.</strong> Pythagoras gives the calculation; “Euclidean distance” names the resulting metric.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="astar">
+      <div class="section-head">
+        <div>
+          <p class="section-num">03 / CLASSICAL STATE-SPACE SEARCH</p>
+          <h2>Give A* three different compasses.</h2>
+        </div>
+        <p>Each panel runs real A* on the same four-way grid. Only <em>h</em> changes. All three find an optimal route; a more informative safe estimate usually examines fewer cells.</p>
+      </div>
+
+      <div class="lab-shell">
+        <div class="lab-toolbar">
+          <button class="btn primary" id="racePlay" type="button">Run race</button>
+          <button class="btn" id="raceStep" type="button">One expansion</button>
+          <button class="btn" id="raceReset" type="button">Reset</button>
+          <span class="toolbar-label" style="margin-left:7px">Map</span>
+          <button class="preset active" type="button" data-map="barriers">Barriers</button>
+          <button class="preset" type="button" data-map="corridor">Corridor</button>
+          <button class="preset" type="button" data-map="open">Open field</button>
+          <span class="spacer"></span>
+          <label class="speed-wrap">Speed
+            <select id="raceSpeed" aria-label="Animation speed">
+              <option value="220">Slow</option>
+              <option value="90" selected>Normal</option>
+              <option value="24">Fast</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="race-grid">
+          <article class="race-card" data-runner="zero">
+            <div class="race-head">
+              <div class="race-title"><h3>No heuristic</h3><code>h(n) = 0</code></div>
+              <p class="race-copy">A* becomes uniform-cost search. With unit edges, this behaves like breadth-first search.</p>
+            </div>
+            <canvas class="grid-canvas" id="gridZero" width="540" height="330" aria-label="A star using no heuristic"></canvas>
+            <div class="race-stats">
+              <div class="stat"><b id="zeroExpanded">0</b><span>expanded</span></div>
+              <div class="stat"><b id="zeroFrontier">1</b><span>frontier</span></div>
+              <div class="stat"><b id="zeroCost">—</b><span>path cost</span></div>
+            </div>
+            <div class="race-status" id="zeroStatus">Ready · knows only distance already travelled</div>
+          </article>
+
+          <article class="race-card" data-runner="euclidean">
+            <div class="race-head">
+              <div class="race-title"><h3>Euclidean heuristic</h3><code>h(n) = straight line</code></div>
+              <p class="race-copy">A safe lower bound: obstacles can make the real route longer, never shorter than a straight line.</p>
+            </div>
+            <canvas class="grid-canvas" id="gridEuclidean" width="540" height="330" aria-label="A star using Euclidean distance heuristic"></canvas>
+            <div class="race-stats">
+              <div class="stat"><b id="euclideanExpanded">0</b><span>expanded</span></div>
+              <div class="stat"><b id="euclideanFrontier">1</b><span>frontier</span></div>
+              <div class="stat"><b id="euclideanCost">—</b><span>path cost</span></div>
+            </div>
+            <div class="race-status" id="euclideanStatus">Ready · points toward the goal</div>
+          </article>
+
+          <article class="race-card" data-runner="manhattan">
+            <div class="race-head">
+              <div class="race-title"><h3>Manhattan heuristic</h3><code>h(n) = |Δx| + |Δy|</code></div>
+              <p class="race-copy">Matches the movement rules: every step changes exactly one coordinate by one square.</p>
+            </div>
+            <canvas class="grid-canvas" id="gridManhattan" width="540" height="330" aria-label="A star using Manhattan distance heuristic"></canvas>
+            <div class="race-stats">
+              <div class="stat"><b id="manhattanExpanded">0</b><span>expanded</span></div>
+              <div class="stat"><b id="manhattanFrontier">1</b><span>frontier</span></div>
+              <div class="stat"><b id="manhattanCost">—</b><span>path cost</span></div>
+            </div>
+            <div class="race-status" id="manhattanStatus">Ready · tailored to four-way movement</div>
+          </article>
+        </div>
+
+        <div class="race-legend" aria-label="Grid legend">
+          <span><i class="swatch" style="background:#213b4d"></i>expanded</span>
+          <span><i class="swatch" style="background:#47768a"></i>frontier</span>
+          <span><i class="swatch" style="background:var(--green)"></i>final path</span>
+          <span><i class="swatch" style="background:#314553"></i>wall</span>
+        </div>
+      </div>
+
+      <aside class="search-warning">
+        <div class="mark">≠</div>
+        <p><strong>Why not put dot product into A*?</strong> A heuristic must estimate remaining path cost and ideally be zero at the goal. A raw dot product measures origin-dependent alignment, can be negative, and does not behave like travel cost. It is useful elsewhere—not as a drop-in replacement here.</p>
+      </aside>
+    </section>
+
+    <section class="section" id="vectors">
+      <div class="section-head">
+        <div>
+          <p class="section-num">04 / VECTOR RETRIEVAL</p>
+          <h2>Here, “search” means ranking neighbors.</h2>
+        </div>
+        <p>Imagine the arrows are embeddings. There is no route from the query to a document: the system scores stored vectors and returns the best-ranked items.</p>
+      </div>
+
+      <div class="lab-shell">
+        <div class="lab-toolbar">
+          <span class="toolbar-label">Experiment</span>
+          <button class="preset active" type="button" data-vector="magnitude">Magnitude trap</button>
+          <button class="preset" type="button" data-vector="angles">Different meanings</button>
+          <button class="preset" type="button" data-vector="nearby">Nearby endpoints</button>
+          <span class="spacer"></span>
+          <span class="hint">Drag q, A, B, or C</span>
+        </div>
+
+        <div class="vector-stage">
+          <div class="vector-left">
+            <div class="vector-canvas-wrap">
+              <canvas id="vectorCanvas" width="720" height="460" aria-label="Interactive query and candidate vectors"></canvas>
+            </div>
+            <div class="vector-controls">
+              <div class="slider-row">
+                <label for="candidateScale">Scale candidate B</label>
+                <input id="candidateScale" type="range" min="30" max="220" value="100">
+                <output class="scale-readout" id="candidateScaleValue" for="candidateScale">1.00×</output>
+              </div>
+              <label class="check-row"><input id="normalizeVectors" type="checkbox"> Normalize every vector before ranking</label>
+            </div>
+          </div>
+
+          <div class="ranking-panel" aria-live="polite">
+            <div class="ranking-intro">Each row ranks the same candidates. Gold is the winner. Change B’s length without changing its direction.</div>
+            <div class="rank-methods">
+              <article class="rank-method">
+                <div class="rank-method-head"><h3>Euclidean distance</h3><span>ascending ↓</span></div>
+                <div class="rank-list" id="rankEuclidean"></div>
+              </article>
+              <article class="rank-method">
+                <div class="rank-method-head"><h3>Dot product</h3><span>descending ↑</span></div>
+                <div class="rank-list" id="rankDot"></div>
+              </article>
+              <article class="rank-method">
+                <div class="rank-method-head"><h3>Cosine similarity</h3><span>descending ↑</span></div>
+                <div class="rank-list" id="rankCosine"></div>
+              </article>
+            </div>
+            <div class="agreement" id="rankingAgreement">The methods currently disagree because they value length and direction differently.</div>
+          </div>
+        </div>
+        <div class="insight-strip">
+          <div class="insight-icon">↗</div>
+          <p id="vectorInsight"><strong>Try moving the scale slider.</strong> B keeps the same direction, so its cosine score stays fixed. Its dot product and Euclidean distance change.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="bridge">
+      <div class="section-head">
+        <div>
+          <p class="section-num">05 / PUT THE CONTEXT BACK</p>
+          <h2>The representation decides what “near” means.</h2>
+        </div>
+        <p>There is no universally best distance function. A useful score must reflect the legal actions or the semantic structure of the problem being searched.</p>
+      </div>
+
+      <div class="bridge">
+        <article class="equation-card">
+          <p class="eyebrow">Why vector databases sometimes treat them as interchangeable</p>
+          <h3>On unit-length vectors, the rankings meet.</h3>
+          <div class="equation">||q̂ − x̂||² = 2 − 2(q̂ · x̂)</div>
+          <p>After normalization, dot product equals cosine similarity. The equation above also makes smaller Euclidean distance correspond to larger dot product. That means all three produce the same ordering—under this specific condition.</p>
+          <p class="takeaway"><strong>Important:</strong> mathematical equivalence after normalization does not mean that “dot product is a distance” or that these scores suit every search problem.</p>
+        </article>
+
+        <div class="contexts">
+          <article class="context-card route">
+            <span class="context-tag">Maps and grids</span>
+            <h3>A route has accumulated cost.</h3>
+            <p>A* ranks states with <span class="mono">f = g + h</span>. Euclidean or Manhattan distance can provide <span class="mono">h</span> when the movement model makes it a safe lower bound.</p>
+          </article>
+          <article class="context-card cube">
+            <span class="context-tag">Rubik’s Cube</span>
+            <h3>Sticker coordinates are misleading.</h3>
+            <p>Distance means moves to a solved configuration. IDA* therefore benefits from pattern databases or cube-specific lower bounds, not geometric distance between stickers.</p>
+          </article>
+          <article class="context-card embedding">
+            <span class="context-tag">Embedding retrieval</span>
+            <h3>Usually there is no path at all.</h3>
+            <p>The system ranks stored vectors by closeness or similarity. Cosine and dot product are common because vector direction and magnitude can encode useful signals.</p>
+          </article>
+        </div>
+      </div>
+
+      <section class="quiz" aria-labelledby="quizTitle">
+        <div class="quiz-top">
+          <div><p class="eyebrow">Three-check exit ticket</p><h3 id="quizTitle">Can you keep the layers separate?</h3><p>Choose one answer per question. Feedback appears immediately.</p></div>
+          <output class="quiz-score" id="quizScore">0 / 3 correct</output>
+        </div>
+
+        <div class="question" data-answer="astar">
+          <p><strong>1.</strong> Which one is a search strategy rather than a distance or similarity formula?</p>
+          <div class="answers">
+            <button class="answer" type="button" data-choice="euclidean">Euclidean</button>
+            <button class="answer" type="button" data-choice="astar">A*</button>
+            <button class="answer" type="button" data-choice="cosine">Cosine</button>
+          </div>
+          <p class="feedback"></p>
+        </div>
+
+        <div class="question" data-answer="manhattan">
+          <p><strong>2.</strong> On an empty four-way grid, which heuristic exactly matches the remaining shortest path length?</p>
+          <div class="answers">
+            <button class="answer" type="button" data-choice="dot">Dot product</button>
+            <button class="answer" type="button" data-choice="manhattan">Manhattan distance</button>
+            <button class="answer" type="button" data-choice="zero">Always zero</button>
+          </div>
+          <p class="feedback"></p>
+        </div>
+
+        <div class="question" data-answer="cosine">
+          <p><strong>3.</strong> Which score stays unchanged if a document vector doubles in length but keeps its direction?</p>
+          <div class="answers">
+            <button class="answer" type="button" data-choice="euclidean">Euclidean</button>
+            <button class="answer" type="button" data-choice="dot">Dot product</button>
+            <button class="answer" type="button" data-choice="cosine">Cosine similarity</button>
+          </div>
+          <p class="feedback"></p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">Companion lessons: <a href="04_iterative_deepening_a_star.html">IDA* and the Rubik’s Cube</a> · <a href="../notes/23_scaled_dot_product_attention.md">Scaled dot-product attention notes</a></footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var COLORS = {
+    bg: "#08131d", grid: "#193040", axis: "#486474", ink: "#edf7fb",
+    muted: "#99afbc", cyan: "#55e6d2", violet: "#b99aff", amber: "#ffc65c",
+    pink: "#ff86bd", green: "#7bea9f", wall: "#314553", closed: "#213b4d",
+    frontier: "#47768a", current: "#ffffff"
+  };
+
+  function byId(id) { return document.getElementById(id); }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function fmt(v, digits) {
+    if (!isFinite(v)) return "—";
+    var d = digits == null ? 2 : digits;
+    return Number(v).toFixed(d).replace("-0.00", "0.00");
+  }
+  function magnitude(v) { return Math.hypot(v.x, v.y); }
+  function dot(a, b) { return a.x * b.x + a.y * b.y; }
+  function normalized(v) {
+    var m = magnitude(v);
+    return m < 1e-9 ? { x: 0, y: 0 } : { x: v.x / m, y: v.y / m };
+  }
+  function cosine(a, b) {
+    var denom = magnitude(a) * magnitude(b);
+    return denom < 1e-9 ? 0 : dot(a, b) / denom;
+  }
+  function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+  function prepareCanvas(canvas) {
+    var rect = canvas.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(300, Math.round(rect.width));
+    var h = Math.max(260, Math.round(rect.height));
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, w: w, h: h };
+  }
+
+  function drawArrow(ctx, x1, y1, x2, y2, color, width) {
+    var angle = Math.atan2(y2 - y1, x2 - x1);
+    var head = 10 + width;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(angle - Math.PI / 6), y2 - head * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(x2 - head * Math.cos(angle + Math.PI / 6), y2 - head * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawPlane(ctx, w, h, origin, scale) {
+    ctx.fillStyle = COLORS.bg;
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 1;
+    for (var x = origin.x % scale; x < w; x += scale) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (var y = origin.y % scale; y < h; y += scale) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    ctx.strokeStyle = COLORS.axis;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, origin.y); ctx.lineTo(w, origin.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(origin.x, 0); ctx.lineTo(origin.x, h); ctx.stroke();
+    ctx.fillStyle = COLORS.muted;
+    ctx.beginPath(); ctx.arc(origin.x, origin.y, 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  /* ---------- geometry lab ---------- */
+  var geometry = {
+    a: { x: 1, y: 4 }, b: { x: 4, y: 0 }, drag: null,
+    presets: {
+      triangle: [{ x: 1, y: 4 }, { x: 4, y: 0 }],
+      aligned: [{ x: 2, y: 1.5 }, { x: 4, y: 3 }],
+      opposite: [{ x: 3.5, y: 1.5 }, { x: -3.5, y: -1.5 }],
+      perpendicular: [{ x: 4, y: 0 }, { x: 0, y: 4 }]
+    }
+  };
+
+  function geometryLayout() {
+    var p = prepareCanvas(byId("geometryCanvas"));
+    return { p: p, origin: { x: p.w / 2, y: p.h / 2 }, scale: Math.min(p.w / 14, p.h / 10) };
+  }
+  function toScreen(v, origin, scale) { return { x: origin.x + v.x * scale, y: origin.y - v.y * scale }; }
+  function fromScreen(x, y, origin, scale) { return { x: (x - origin.x) / scale, y: (origin.y - y) / scale }; }
+
+  function renderGeometry() {
+    var layout = geometryLayout(), ctx = layout.p.ctx, w = layout.p.w, h = layout.p.h;
+    var origin = layout.origin, scale = layout.scale;
+    drawPlane(ctx, w, h, origin, scale);
+    var a = toScreen(geometry.a, origin, scale), b = toScreen(geometry.b, origin, scale);
+
+    ctx.setLineDash([6, 5]);
+    ctx.strokeStyle = "rgba(255,198,92,.66)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = COLORS.amber;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+
+    var ma = magnitude(geometry.a), mb = magnitude(geometry.b);
+    if (ma > .2 && mb > .2) {
+      var aa = Math.atan2(-geometry.a.y, geometry.a.x);
+      var ab = Math.atan2(-geometry.b.y, geometry.b.x);
+      var delta = ab - aa;
+      while (delta > Math.PI) delta -= Math.PI * 2;
+      while (delta < -Math.PI) delta += Math.PI * 2;
+      ctx.strokeStyle = "rgba(255,134,189,.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(origin.x, origin.y, 31, aa, aa + delta, delta < 0); ctx.stroke();
+    }
+
+    drawArrow(ctx, origin.x, origin.y, a.x, a.y, COLORS.cyan, 4);
+    drawArrow(ctx, origin.x, origin.y, b.x, b.y, COLORS.violet, 4);
+    [
+      { p: a, name: "a", color: COLORS.cyan },
+      { p: b, name: "b", color: COLORS.violet }
+    ].forEach(function (item) {
+      ctx.fillStyle = item.color;
+      ctx.beginPath(); ctx.arc(item.p.x, item.p.y, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = COLORS.ink;
+      ctx.font = "700 13px " + getComputedStyle(document.body).fontFamily;
+      ctx.fillText(item.name, item.p.x + 11, item.p.y - 10);
+    });
+
+    var dx = geometry.a.x - geometry.b.x, dy = geometry.a.y - geometry.b.y;
+    var euclid = Math.hypot(dx, dy), manhattan = Math.abs(dx) + Math.abs(dy);
+    var dp = dot(geometry.a, geometry.b), cos = cosine(geometry.a, geometry.b);
+    byId("pythValue").textContent = fmt(euclid);
+    byId("euclidValue").textContent = fmt(euclid);
+    byId("pythFormula").textContent = "√(" + fmt(Math.abs(dx), 1) + "² + " + fmt(Math.abs(dy), 1) + "²)";
+    byId("dotValue").textContent = fmt(dp);
+    byId("cosValue").textContent = fmt(cos);
+    byId("manhattanValue").textContent = fmt(manhattan);
+
+    var insight;
+    if (cos > .96) insight = "<strong>The arrows point almost the same way.</strong> Cosine is near 1. Their dot product also grows with either arrow’s length.";
+    else if (cos < -.96) insight = "<strong>The arrows point in opposite directions.</strong> Cosine is near −1 and the dot product is negative, even though Euclidean distance is always nonnegative.";
+    else if (Math.abs(cos) < .08) insight = "<strong>The arrows are nearly perpendicular.</strong> Their dot product and cosine are near zero; that says alignment, not physical separation.";
+    else insight = "<strong>Pythagoras and Euclidean are not rivals.</strong> Pythagoras gives the calculation; “Euclidean distance” names the resulting metric.";
+    byId("geometryInsight").innerHTML = insight;
+  }
+
+  function geometryPointer(event) {
+    var canvas = byId("geometryCanvas"), rect = canvas.getBoundingClientRect();
+    var layout = geometryLayout();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top, origin: layout.origin, scale: layout.scale };
+  }
+  byId("geometryCanvas").addEventListener("pointerdown", function (event) {
+    var p = geometryPointer(event);
+    var a = toScreen(geometry.a, p.origin, p.scale), b = toScreen(geometry.b, p.origin, p.scale);
+    geometry.drag = Math.hypot(p.x - a.x, p.y - a.y) < Math.hypot(p.x - b.x, p.y - b.y) ? "a" : "b";
+    this.setPointerCapture(event.pointerId);
+  });
+  byId("geometryCanvas").addEventListener("pointermove", function (event) {
+    if (!geometry.drag) return;
+    var p = geometryPointer(event), v = fromScreen(p.x, p.y, p.origin, p.scale);
+    geometry[geometry.drag] = { x: clamp(v.x, -6.2, 6.2), y: clamp(v.y, -4.3, 4.3) };
+    document.querySelectorAll("[data-geo]").forEach(function (b) { b.classList.remove("active"); });
+    renderGeometry();
+  });
+  function endGeometryDrag() { geometry.drag = null; }
+  byId("geometryCanvas").addEventListener("pointerup", endGeometryDrag);
+  byId("geometryCanvas").addEventListener("pointercancel", endGeometryDrag);
+  document.querySelectorAll("[data-geo]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var pair = geometry.presets[this.dataset.geo];
+      geometry.a = { x: pair[0].x, y: pair[0].y };
+      geometry.b = { x: pair[1].x, y: pair[1].y };
+      document.querySelectorAll("[data-geo]").forEach(function (b) { b.classList.remove("active"); });
+      this.classList.add("active");
+      renderGeometry();
+    });
+  });
+
+  /* ---------- A* race ---------- */
+  var GRID_W = 18, GRID_H = 11;
+  var START = { x: 1, y: 9 }, GOAL = { x: 16, y: 1 };
+  var mapName = "barriers", runners = {}, raceTimer = null;
+  var maps = {
+    barriers: [
+      "..................",
+      ".........#........",
+      "..######.#.#####..",
+      ".......#.#.....#..",
+      ".#####.#.#####.#..",
+      ".....#.#.....#.#..",
+      ".###.#.#####.#.#..",
+      ".#...#.....#.#....",
+      ".#.#######.#.####.",
+      "...........#......",
+      ".................."
+    ],
+    corridor: [
+      "..................",
+      ".###############..",
+      ".#................",
+      ".#.##############.",
+      ".#.#..............",
+      ".#.#.############.",
+      ".#.#.#............",
+      ".#.#.#.##########.",
+      ".#.#.#............",
+      "...#..............",
+      ".................."
+    ],
+    open: [
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      ".................."
+    ]
+  };
+
+  function cellKey(x, y) { return x + "," + y; }
+  function isWall(x, y) { return maps[mapName][y].charAt(x) === "#"; }
+  function heuristicFor(kind, x, y) {
+    var dx = Math.abs(GOAL.x - x), dy = Math.abs(GOAL.y - y);
+    if (kind === "euclidean") return Math.hypot(dx, dy);
+    if (kind === "manhattan") return dx + dy;
+    return 0;
+  }
+  function newRunner(kind) {
+    var root = { x: START.x, y: START.y, g: 0, h: heuristicFor(kind, START.x, START.y), parent: null, seq: 0 };
+    return { kind: kind, open: [root], best: new Map([[cellKey(START.x, START.y), 0]]), closed: new Set(), current: null, path: [], expanded: 0, status: "ready", seq: 1 };
+  }
+  function resetRace() {
+    if (raceTimer) clearInterval(raceTimer);
+    raceTimer = null;
+    byId("racePlay").textContent = "Run race";
+    runners = { zero: newRunner("zero"), euclidean: newRunner("euclidean"), manhattan: newRunner("manhattan") };
+    renderRace();
+  }
+  function popBest(r) {
+    var bestIndex = 0;
+    for (var i = 1; i < r.open.length; i++) {
+      var a = r.open[i], b = r.open[bestIndex];
+      var af = a.g + a.h, bf = b.g + b.h;
+      if (af < bf - 1e-9 || (Math.abs(af - bf) < 1e-9 && (a.h < b.h - 1e-9 || (Math.abs(a.h - b.h) < 1e-9 && a.seq < b.seq)))) bestIndex = i;
+    }
+    return r.open.splice(bestIndex, 1)[0];
+  }
+  function reconstruct(node) {
+    var path = [];
+    while (node) { path.push(cellKey(node.x, node.y)); node = node.parent; }
+    return path.reverse();
+  }
+  function stepRunner(r) {
+    if (r.status === "solved" || r.status === "failed") return;
+    r.status = "running";
+    var node;
+    while (r.open.length) {
+      node = popBest(r);
+      var nk = cellKey(node.x, node.y);
+      if (!r.closed.has(nk) && r.best.get(nk) === node.g) break;
+      node = null;
+    }
+    if (!node) { r.status = "failed"; return; }
+    r.current = node;
+    r.closed.add(cellKey(node.x, node.y));
+    r.expanded++;
+    if (node.x === GOAL.x && node.y === GOAL.y) {
+      r.status = "solved";
+      r.path = reconstruct(node);
+      return;
+    }
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function (d) {
+      var x = node.x + d[0], y = node.y + d[1];
+      if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H || isWall(x, y)) return;
+      var key = cellKey(x, y), ng = node.g + 1;
+      if (r.closed.has(key) || (r.best.has(key) && r.best.get(key) <= ng)) return;
+      r.best.set(key, ng);
+      r.open.push({ x: x, y: y, g: ng, h: heuristicFor(r.kind, x, y), parent: node, seq: r.seq++ });
+    });
+  }
+  function raceComplete() { return Object.keys(runners).every(function (k) { return runners[k].status === "solved" || runners[k].status === "failed"; }); }
+  function raceTick() {
+    Object.keys(runners).forEach(function (k) { stepRunner(runners[k]); });
+    renderRace();
+    if (raceComplete()) {
+      clearInterval(raceTimer); raceTimer = null; byId("racePlay").textContent = "Run again";
+    }
+  }
+  function drawGrid(canvas, r) {
+    var ctx = canvas.getContext("2d"), cw = canvas.width / GRID_W, ch = canvas.height / GRID_H;
+    ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var frontier = new Set(r.open.map(function (n) { return cellKey(n.x, n.y); }));
+    var path = new Set(r.path);
+    for (var y = 0; y < GRID_H; y++) {
+      for (var x = 0; x < GRID_W; x++) {
+        var key = cellKey(x, y), fill = "#0b1924";
+        if (isWall(x, y)) fill = COLORS.wall;
+        else if (r.closed.has(key)) fill = COLORS.closed;
+        if (frontier.has(key)) fill = COLORS.frontier;
+        if (path.has(key)) fill = COLORS.green;
+        if (r.current && r.current.x === x && r.current.y === y && r.status !== "solved") fill = COLORS.current;
+        ctx.fillStyle = fill;
+        ctx.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2);
+      }
+    }
+    function endpoint(p, color, label) {
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc((p.x + .5) * cw, (p.y + .5) * ch, Math.min(cw, ch) * .3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#061115"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "800 " + Math.max(10, Math.floor(ch * .42)) + "px sans-serif"; ctx.fillText(label, (p.x + .5) * cw, (p.y + .52) * ch);
+    }
+    endpoint(START, COLORS.cyan, "S"); endpoint(GOAL, COLORS.amber, "G");
+  }
+  function renderRace() {
+    Object.keys(runners).forEach(function (kind) {
+      var r = runners[kind];
+      drawGrid(byId("grid" + kind.charAt(0).toUpperCase() + kind.slice(1)), r);
+      byId(kind + "Expanded").textContent = r.expanded.toLocaleString();
+      byId(kind + "Frontier").textContent = r.open.length.toLocaleString();
+      byId(kind + "Cost").textContent = r.status === "solved" ? String(r.path.length - 1) : "—";
+      var status = byId(kind + "Status");
+      status.classList.toggle("solved", r.status === "solved");
+      if (r.status === "solved") status.textContent = "Solved optimally after " + r.expanded + " expansions";
+      else if (r.status === "running") status.textContent = "Searching · current f = " + fmt(r.current.g + r.current.h, 1);
+      else if (r.status === "failed") status.textContent = "No path exists on this map";
+      else {
+        status.textContent = kind === "zero" ? "Ready · knows only distance already travelled" : kind === "euclidean" ? "Ready · points toward the goal" : "Ready · tailored to four-way movement";
+      }
+    });
+  }
+  byId("racePlay").addEventListener("click", function () {
+    if (raceComplete()) resetRace();
+    if (raceTimer) { clearInterval(raceTimer); raceTimer = null; this.textContent = "Resume race"; return; }
+    this.textContent = "Pause";
+    raceTimer = setInterval(raceTick, Number(byId("raceSpeed").value));
+  });
+  byId("raceStep").addEventListener("click", function () {
+    if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
+    if (raceComplete()) resetRace();
+    byId("racePlay").textContent = "Resume race";
+    raceTick();
+    if (!raceComplete()) byId("racePlay").textContent = "Resume race";
+  });
+  byId("raceReset").addEventListener("click", resetRace);
+  byId("raceSpeed").addEventListener("change", function () {
+    if (!raceTimer) return;
+    clearInterval(raceTimer);
+    raceTimer = setInterval(raceTick, Number(this.value));
+  });
+  document.querySelectorAll("[data-map]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      mapName = this.dataset.map;
+      document.querySelectorAll("[data-map]").forEach(function (b) { b.classList.remove("active"); });
+      this.classList.add("active");
+      resetRace();
+    });
+  });
+
+  /* ---------- vector search ---------- */
+  var vectorLab = {
+    q: { x: 3.6, y: 2.4 },
+    points: [{ name: "A", x: 2.6, y: 2.0, color: COLORS.cyan }, { name: "B", x: 4.7, y: 1.8, color: COLORS.violet }, { name: "C", x: -.5, y: 4.1, color: COLORS.pink }],
+    bBase: { x: 4.7, y: 1.8 }, scaleB: 1, drag: null,
+    presets: {
+      magnitude: { q: [3.6,2.4], points: [[2.6,2],[4.7,1.8],[-.5,4.1]] },
+      angles: { q: [4,1], points: [[3.2,1.2],[1.8,3.8],[-2.5,2.8]] },
+      nearby: { q: [3.5,2.8], points: [[3,2.7],[4.1,2.4],[2.8,3.6]] }
+    }
+  };
+  function vectorLayout() {
+    var p = prepareCanvas(byId("vectorCanvas"));
+    return { p: p, origin: { x: p.w * .47, y: p.h * .56 }, scale: Math.min(p.w / 14, p.h / 10) };
+  }
+  function effectivePoints() {
+    return vectorLab.points.map(function (p, i) {
+      if (i !== 1) return { name: p.name, x: p.x, y: p.y, color: p.color };
+      return { name: p.name, x: vectorLab.bBase.x * vectorLab.scaleB, y: vectorLab.bBase.y * vectorLab.scaleB, color: p.color };
+    });
+  }
+  function renderRankList(id, rows, descending) {
+    rows.sort(function (a, b) { return descending ? b.value - a.value : a.value - b.value; });
+    byId(id).innerHTML = rows.map(function (row, index) {
+      return '<div class="rank-item' + (index === 0 ? " winner" : "") + '"><span>' + (index + 1) + ' · ' + row.name + '</span><span>' + fmt(row.value) + '</span></div>';
+    }).join("");
+    return rows.map(function (r) { return r.name; }).join("");
+  }
+  function renderVectors() {
+    var layout = vectorLayout(), ctx = layout.p.ctx, w = layout.p.w, h = layout.p.h;
+    drawPlane(ctx, w, h, layout.origin, layout.scale);
+    var rawQ = vectorLab.q, rawPoints = effectivePoints();
+    var normalize = byId("normalizeVectors").checked;
+    var scoringQ = normalize ? normalized(rawQ) : rawQ;
+
+    rawPoints.forEach(function (p) {
+      var screen = toScreen(p, layout.origin, layout.scale);
+      drawArrow(ctx, layout.origin.x, layout.origin.y, screen.x, screen.y, p.color, 3);
+      ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(screen.x, screen.y, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = COLORS.ink; ctx.font = "750 13px sans-serif"; ctx.fillText(p.name, screen.x + 10, screen.y - 10);
+    });
+    var qScreen = toScreen(rawQ, layout.origin, layout.scale);
+    drawArrow(ctx, layout.origin.x, layout.origin.y, qScreen.x, qScreen.y, COLORS.amber, 5);
+    ctx.fillStyle = COLORS.amber; ctx.beginPath(); ctx.arc(qScreen.x, qScreen.y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = COLORS.ink; ctx.font = "800 13px sans-serif"; ctx.fillText("q · query", qScreen.x + 12, qScreen.y - 12);
+
+    var euclideanRows = [], dotRows = [], cosineRows = [];
+    rawPoints.forEach(function (p) {
+      var scoringP = normalize ? normalized(p) : p;
+      euclideanRows.push({ name: p.name, value: distance(scoringQ, scoringP) });
+      dotRows.push({ name: p.name, value: dot(scoringQ, scoringP) });
+      cosineRows.push({ name: p.name, value: cosine(scoringQ, scoringP) });
+    });
+    var eOrder = renderRankList("rankEuclidean", euclideanRows, false);
+    var dOrder = renderRankList("rankDot", dotRows, true);
+    var cOrder = renderRankList("rankCosine", cosineRows, true);
+    var agree = eOrder === dOrder && dOrder === cOrder;
+    var box = byId("rankingAgreement");
+    box.classList.toggle("yes", agree);
+    if (normalize && agree) box.innerHTML = "<strong>All three rankings agree.</strong> Normalization activates the unit-vector equivalence shown below.";
+    else if (agree) box.innerHTML = "<strong>All three happen to agree for these positions.</strong> Move or scale a vector—the agreement is not guaranteed without normalization.";
+    else box.textContent = "The methods currently disagree because they value length and direction differently.";
+    byId("candidateScaleValue").textContent = fmt(vectorLab.scaleB) + "×";
+    byId("vectorInsight").innerHTML = normalize
+      ? "<strong>Normalization is on.</strong> Length has been removed before scoring, so Euclidean, dot product, and cosine produce the same ranking."
+      : "<strong>Try moving the scale slider.</strong> B keeps the same direction, so its cosine score stays fixed. Its dot product and Euclidean distance change.";
+  }
+  function vectorPointer(event) {
+    var canvas = byId("vectorCanvas"), rect = canvas.getBoundingClientRect(), layout = vectorLayout();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top, origin: layout.origin, scale: layout.scale };
+  }
+  byId("vectorCanvas").addEventListener("pointerdown", function (event) {
+    var p = vectorPointer(event), candidates = [{ id: "q", v: vectorLab.q }].concat(effectivePoints().map(function (v, i) { return { id: i, v: v }; }));
+    candidates.sort(function (a, b) {
+      var as = toScreen(a.v, p.origin, p.scale), bs = toScreen(b.v, p.origin, p.scale);
+      return Math.hypot(p.x - as.x, p.y - as.y) - Math.hypot(p.x - bs.x, p.y - bs.y);
+    });
+    var nearest = candidates[0], nearestScreen = toScreen(nearest.v, p.origin, p.scale);
+    if (Math.hypot(p.x - nearestScreen.x, p.y - nearestScreen.y) < 34) {
+      vectorLab.drag = nearest.id;
+      this.setPointerCapture(event.pointerId);
+    }
+  });
+  byId("vectorCanvas").addEventListener("pointermove", function (event) {
+    if (vectorLab.drag === null) return;
+    var p = vectorPointer(event), v = fromScreen(p.x, p.y, p.origin, p.scale);
+    v.x = clamp(v.x, -6.1, 6.1); v.y = clamp(v.y, -4.1, 4.1);
+    if (vectorLab.drag === "q") vectorLab.q = v;
+    else if (vectorLab.drag === 1) {
+      vectorLab.bBase = { x: v.x / vectorLab.scaleB, y: v.y / vectorLab.scaleB };
+      vectorLab.points[1].x = vectorLab.bBase.x; vectorLab.points[1].y = vectorLab.bBase.y;
+    } else {
+      vectorLab.points[vectorLab.drag].x = v.x; vectorLab.points[vectorLab.drag].y = v.y;
+    }
+    document.querySelectorAll("[data-vector]").forEach(function (b) { b.classList.remove("active"); });
+    renderVectors();
+  });
+  function endVectorDrag() { vectorLab.drag = null; }
+  byId("vectorCanvas").addEventListener("pointerup", endVectorDrag);
+  byId("vectorCanvas").addEventListener("pointercancel", endVectorDrag);
+  byId("candidateScale").addEventListener("input", function () { vectorLab.scaleB = Number(this.value) / 100; renderVectors(); });
+  byId("normalizeVectors").addEventListener("change", renderVectors);
+  document.querySelectorAll("[data-vector]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var preset = vectorLab.presets[this.dataset.vector];
+      vectorLab.q = { x: preset.q[0], y: preset.q[1] };
+      preset.points.forEach(function (p, i) { vectorLab.points[i].x = p[0]; vectorLab.points[i].y = p[1]; });
+      vectorLab.bBase = { x: preset.points[1][0], y: preset.points[1][1] };
+      vectorLab.scaleB = 1; byId("candidateScale").value = "100"; byId("normalizeVectors").checked = false;
+      document.querySelectorAll("[data-vector]").forEach(function (b) { b.classList.remove("active"); });
+      this.classList.add("active"); renderVectors();
+    });
+  });
+
+  /* ---------- quiz ---------- */
+  var answered = new Map();
+  document.querySelectorAll(".question").forEach(function (question, index) {
+    question.querySelectorAll(".answer").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var correct = question.dataset.answer, choice = this.dataset.choice;
+        question.querySelectorAll(".answer").forEach(function (b) { b.classList.remove("correct", "wrong"); });
+        this.classList.add(choice === correct ? "correct" : "wrong");
+        if (choice !== correct) question.querySelector('[data-choice="' + correct + '"]').classList.add("correct");
+        answered.set(index, choice === correct);
+        var feedback = question.querySelector(".feedback");
+        if (index === 0) feedback.textContent = choice === correct ? "Correct. A* controls exploration; it may consume a heuristic score." : "A distance or similarity formula supplies a score. A* is the strategy.";
+        if (index === 1) feedback.textContent = choice === correct ? "Correct. Four-way motion requires |Δx| horizontal plus |Δy| vertical steps." : "On a four-way grid, Manhattan distance matches the unobstructed number of moves.";
+        if (index === 2) feedback.textContent = choice === correct ? "Correct. Cosine divides out both vector lengths." : "Cosine measures direction after removing magnitude.";
+        var score = 0; answered.forEach(function (v) { if (v) score++; });
+        byId("quizScore").textContent = score + " / 3 correct";
+      });
+    });
+  });
+
+  /* ---------- lifecycle ---------- */
+  function renderResponsive() { renderGeometry(); renderVectors(); }
+  var resizeTimer;
+  window.addEventListener("resize", function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderResponsive, 90); });
+  renderGeometry();
+  resetRace();
+  renderVectors();
+})();
+</script>
+</body>
+</html>

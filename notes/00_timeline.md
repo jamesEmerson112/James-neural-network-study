@@ -13,6 +13,10 @@
 | Pre-1962 Visual Map | [00d](00d_timeline_pre1962_visual_map.md) |
 | Study Guide — Deep Dives & Detailed Notes | [00e](00e_timeline_study_guide.md) |
 
+## Supplementary Computing History
+
+- [This Week in Computing History: August 31–September 6](00f_this_week_in_computing_history_aug_31-sep_6.md) — seven events connecting desktop publishing, digital libraries, AI, computer architecture, and programming languages
+
 ## The Eras at a Glance
 
 ```
