@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulated Annealing - Interactive Delivery Route Lab</title>
+<style>
+:root{
+  --bg:#071016;
+  --panel:#0d1921;
+  --panel-2:#111f29;
+  --panel-3:#0a151d;
+  --line:#243641;
+  --line-soft:#1a2a34;
+  --ink:#eef5f1;
+  --muted:#9baca8;
+  --faint:#667a78;
+  --cyan:#55d8d0;
+  --cyan-soft:rgba(85,216,208,.12);
+  --amber:#ffb85c;
+  --amber-soft:rgba(255,184,92,.12);
+  --red:#ff796f;
+  --green:#72d99c;
+  --blue:#72a9ff;
+  --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  font:14px/1.5 var(--sans);
+  background:
+    radial-gradient(900px 520px at 8% -8%,rgba(85,216,208,.12),transparent 62%),
+    radial-gradient(800px 560px at 100% 20%,rgba(255,184,92,.09),transparent 64%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+button,select{font:inherit}
+button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.app{width:min(1500px,100%);margin:0 auto;padding:22px clamp(14px,2.4vw,34px) 42px}
+
+header{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap;margin-bottom:17px}
+.heading{max-width:820px}
+.eyebrow{color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;margin-bottom:5px}
+h1{margin:0;font-size:clamp(25px,3vw,42px);line-height:1.05;letter-spacing:-.045em}
+h1 span{color:var(--muted);font-weight:450}
+.subtitle{margin:8px 0 0;color:var(--muted);font-size:13px;max-width:720px}
+.practical-tag{margin-left:auto;display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #3b4137;border-radius:12px;background:rgba(255,184,92,.07);color:#d8c5a4;font-size:11px}
+.practical-tag svg{width:18px;color:var(--amber)}
+.practical-tag strong{display:block;color:var(--amber);font-size:9px;letter-spacing:.11em;text-transform:uppercase}
+
+.card{background:linear-gradient(180deg,rgba(17,31,41,.94),rgba(9,20,27,.96));border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 55px rgba(0,0,0,.17)}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;margin-bottom:12px}
+.toolbar-note{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11.5px;margin-right:auto;padding:0 5px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px rgba(85,216,208,.8)}
+.control{height:34px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);padding:0 11px;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;font-size:11.5px;font-weight:700;transition:.18s ease}
+.control:hover{color:var(--ink);border-color:#46606d;background:#162832}
+.control.primary{min-width:78px;color:#071415;background:linear-gradient(180deg,#7ce7df,var(--cyan));border-color:transparent}
+.control.primary:hover{filter:brightness(1.08)}
+.control svg{width:14px;height:14px}
+.control:disabled{opacity:.4;cursor:not-allowed}
+.select-label{height:34px;display:flex;align-items:center;gap:7px;color:var(--faint);font-size:10.5px;padding-left:4px}
+.select-label select{height:32px;border:1px solid var(--line);border-radius:8px;background:#0a161e;color:var(--muted);padding:0 7px;cursor:pointer}
+
+.brief{display:grid;grid-template-columns:minmax(260px,1.3fr) repeat(4,minmax(105px,.55fr));gap:8px;padding:12px;margin-bottom:12px}
+.brief-copy{padding:5px 7px}
+.brief-kicker{color:var(--amber);font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.brief-copy h2{font-size:16px;margin:3px 0 4px;letter-spacing:-.02em}
+.brief-copy p{margin:0;color:var(--muted);font-size:11px;max-width:560px}
+.mapping{padding:9px 10px;border:1px solid var(--line-soft);border-radius:10px;background:rgba(7,16,22,.5)}
+.mapping-label{color:var(--faint);font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.mapping-value{color:#cbd7d2;font-size:11px;font-weight:700;margin-top:3px}
+.mapping-value em{color:var(--cyan);font-style:normal}
+
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.algorithm-card{overflow:hidden;position:relative}
+.algorithm-card.hill{--accent:var(--blue);--accent-soft:rgba(114,169,255,.11)}
+.algorithm-card.anneal{--accent:var(--amber);--accent-soft:rgba(255,184,92,.11)}
+.algo-head{display:flex;align-items:flex-start;gap:12px;padding:14px 15px 12px;border-bottom:1px solid var(--line-soft)}
+.algo-icon{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--accent) 44%,transparent);border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+.algo-icon svg{width:19px;height:19px}
+.algo-title{min-width:0}
+.algo-title h2{font-size:15px;margin:0;letter-spacing:-.01em}
+.algo-title p{margin:2px 0 0;color:var(--muted);font-size:10.5px}
+.mode-pill{margin-left:auto;border:1px solid var(--line);border-radius:99px;padding:5px 8px;color:var(--faint);font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.algo-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line-soft)}
+.stat{padding:9px 10px;border-right:1px solid var(--line-soft)}
+.stat:last-child{border-right:0}
+.stat-label{display:block;color:var(--faint);font-size:8px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.stat-value{display:block;color:#dce6e1;font:700 13px/1.3 var(--mono);margin-top:3px}
+.stat-value.accent{color:var(--accent)}
+.map-wrap{position:relative;padding:8px 10px 5px;background:linear-gradient(180deg,rgba(4,12,17,.4),rgba(7,16,22,.1))}
+.route-map{width:100%;height:auto;display:block;aspect-ratio:640/370}
+.map-legend{position:absolute;left:19px;bottom:16px;display:flex;gap:12px;color:#70837f;font-size:8.5px;text-transform:uppercase;letter-spacing:.07em;pointer-events:none}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-line{width:18px;height:2px;background:var(--accent);border-radius:2px}
+.legend-line.ghost{height:0;border-top:1px dashed #899792;background:none}
+.decision{min-height:79px;margin:0 12px 12px;padding:10px 11px;border:1px solid var(--line-soft);border-radius:11px;background:#09141b}
+.decision-top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.decision-name{color:var(--faint);font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.decision-badge{margin-left:auto;border-radius:99px;padding:3px 7px;font-size:8px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;background:#15232b;color:var(--muted)}
+.decision-badge.accept{color:var(--green);background:rgba(114,217,156,.11)}
+.decision-badge.reject{color:var(--red);background:rgba(255,121,111,.1)}
+.decision-badge.explore{color:var(--amber);background:rgba(255,184,92,.11)}
+.decision-main{color:#cbd7d2;font-size:11.5px;font-weight:680}
+.decision-detail{color:var(--faint);font-size:9.5px;margin-top:3px;font-family:var(--mono)}
+
+.lesson-row{display:grid;grid-template-columns:1.25fr .75fr;gap:12px;margin-top:12px}
+.insight{padding:15px 16px;display:grid;grid-template-columns:38px 1fr;gap:11px;align-items:start;min-height:132px}
+.insight-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--cyan);background:var(--cyan-soft);border:1px solid rgba(85,216,208,.22)}
+.insight-icon svg{width:20px}
+.insight-label{color:var(--cyan);font-size:8.5px;font-weight:850;letter-spacing:.13em;text-transform:uppercase}
+#insightTitle{font-size:15px;margin:3px 0 4px}
+#insightText{margin:0;color:var(--muted);font-size:11.5px}
+.formula-panel{padding:14px 15px;min-height:132px}
+.formula-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.formula-label{color:var(--faint);font-size:8.5px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
+#phaseLabel{color:var(--amber);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.thermometer{height:7px;margin:9px 0 10px;background:#14242c;border-radius:20px;overflow:hidden}
+#tempFill{height:100%;width:100%;background:linear-gradient(90deg,var(--cyan),var(--amber),var(--red));border-radius:inherit;transition:width .25s ease}
+.formula{font:700 16px/1.3 var(--mono);color:#e8ddd0}
+.formula-note{margin-top:4px;color:var(--muted);font-size:10px}
+.formula-values{display:flex;gap:12px;margin-top:8px;color:var(--faint);font:9px var(--mono)}
+.formula-values strong{color:#c9d3cf;font-weight:700}
+
+.history-card{margin-top:12px;padding:14px 15px 11px}
+.section-head{display:flex;align-items:flex-end;gap:14px;margin-bottom:7px}
+.section-head h2{font-size:14px;margin:0}
+.section-head p{margin:0;color:var(--faint);font-size:10px}
+.chart-legend{margin-left:auto;display:flex;gap:13px;color:var(--faint);font-size:9px}
+.chart-legend span{display:flex;align-items:center;gap:5px}
+.chart-dot{width:16px;height:2px;border-radius:2px;background:var(--blue)}
+.chart-dot.anneal{background:var(--amber)}
+#historyChart{display:block;width:100%;height:168px}
+
+.explain-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.explain-card{padding:16px}
+.explain-card h2{margin:0 0 5px;font-size:15px}
+.explain-card>p{margin:0;color:var(--muted);font-size:11px}
+.mountain{margin-top:12px;padding:12px;border:1px solid var(--line-soft);border-radius:12px;background:#09141b}
+.mountain svg{width:100%;height:115px;display:block}
+.mountain-caption{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;color:var(--faint);font-size:9px;margin-top:3px}
+.mountain-caption span:nth-child(2){color:var(--amber);text-align:center}
+.mountain-caption span:last-child{text-align:right;color:var(--cyan)}
+.method-list{display:grid;gap:7px;margin-top:12px}
+.method{display:grid;grid-template-columns:105px 1fr;gap:10px;padding:9px 10px;border:1px solid var(--line-soft);border-radius:10px;background:#09141b}
+.method-name{font-size:10px;font-weight:800;color:#d4dfda}
+.method-desc{font-size:10px;color:var(--muted)}
+.method:nth-child(2) .method-name{color:var(--blue)}
+.method:nth-child(3) .method-name{color:var(--amber)}
+.footer-note{margin-top:12px;text-align:center;color:#5f7471;font-size:9.5px}
+
+@media(max-width:980px){
+  .brief{grid-template-columns:1fr 1fr 1fr}.brief-copy{grid-column:1/-1}.compare-grid,.lesson-row,.explain-grid{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .app{padding:14px 10px 30px}header{align-items:flex-start}.practical-tag{margin-left:0}
+  .toolbar-note{width:100%}.brief{grid-template-columns:1fr 1fr}.brief-copy{grid-column:1/-1}
+  .algo-stats{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:0}.stat:nth-child(-n+2){border-bottom:1px solid var(--line-soft)}
+  .map-legend{display:none}.lesson-row{display:block}.formula-panel{margin-top:12px}
+  .section-head{align-items:flex-start;flex-wrap:wrap}.chart-legend{margin-left:0}.method{grid-template-columns:86px 1fr}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="heading">
+      <div class="eyebrow">CS 6601 / Local search lab</div>
+      <h1>Why take a worse route? <span>Watch annealing escape.</span></h1>
+      <p class="subtitle">Hill climbing and simulated annealing solve the same route problem side by side. Step through their decisions and watch one rule create very different behavior.</p>
+    </div>
+    <div class="practical-tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM6 17a2 2 0 1 0 4 0m6 0a2 2 0 1 0 4 0M6 7V4h5v3"/></svg>
+      <div><strong>Practical problem</strong>Medical-supply delivery routing</div>
+    </div>
+  </header>
+
+  <section class="toolbar card" aria-label="Simulation controls">
+    <div class="toolbar-note"><span class="live-dot"></span><span id="runStatus">Ready: the first step is a guided comparison.</span></div>
+    <button class="control" id="resetBtn" title="Replay the same stops">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M5.5 16a8 8 0 1 0 .5-9l-2 3"/></svg>Reset
+    </button>
+    <button class="control" id="newBtn" title="Generate a new set of delivery stops">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/></svg>New stops
+    </button>
+    <button class="control" id="stepBtn" title="Test one neighboring route">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 5 9 7-9 7V5Zm11 0v14"/></svg>Step once
+    </button>
+    <button class="control primary" id="playBtn">
+      <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 11 7-11 7V5Z"/></svg><span id="playLabel">Play</span>
+    </button>
+    <label class="select-label">Cooling
+      <select id="coolingSelect" aria-label="Cooling schedule">
+        <option value="slow">Slow / exploratory</option>
+        <option value="balanced" selected>Balanced</option>
+        <option value="fast">Fast / greedy</option>
+      </select>
+    </label>
+    <label class="select-label">Speed
+      <select id="speedSelect" aria-label="Animation speed">
+        <option value="650">1x</option>
+        <option value="230" selected>3x</option>
+        <option value="70">10x</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="brief card" aria-label="Problem definition">
+    <div class="brief-copy">
+      <div class="brief-kicker">The assignment</div>
+      <h2>Leave the depot, visit every clinic once, and return.</h2>
+      <p>A route is one candidate state. Shorter is better. Both drivers begin with exactly the same route and test the same segment reversal on every iteration.</p>
+    </div>
+    <div class="mapping"><div class="mapping-label">State</div><div class="mapping-value">One complete <em>route</em></div></div>
+    <div class="mapping"><div class="mapping-label">Neighbor</div><div class="mapping-value">Reverse one <em>segment</em></div></div>
+    <div class="mapping"><div class="mapping-label">Cost / energy</div><div class="mapping-value">Total <em>kilometers</em></div></div>
+    <div class="mapping"><div class="mapping-label">Goal</div><div class="mapping-value">Lowest cost <em>found</em></div></div>
+  </section>
+
+  <main class="compare-grid">
+    <article class="algorithm-card hill card" aria-labelledby="hillTitle">
+      <div class="algo-head">
+        <div class="algo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 19 9 9l4 5 3-4 5 9M9 9l2 2"/></svg></div>
+        <div class="algo-title"><h2 id="hillTitle">Hill climbing</h2><p>Accept only a route that is immediately shorter.</p></div>
+        <div class="mode-pill">Greedy baseline</div>
+      </div>
+      <div class="algo-stats">
+        <div class="stat"><span class="stat-label">Current</span><span class="stat-value" id="hillCurrent">--</span></div>
+        <div class="stat"><span class="stat-label">Best found</span><span class="stat-value accent" id="hillBest">--</span></div>
+        <div class="stat"><span class="stat-label">Moves kept</span><span class="stat-value" id="hillKept">0</span></div>
+        <div class="stat"><span class="stat-label">Worse kept</span><span class="stat-value" id="hillWorse">0</span></div>
+      </div>
+      <div class="map-wrap">
+        <svg class="route-map" id="hillMap" viewBox="0 0 640 370" role="img" aria-label="Hill climbing delivery route"></svg>
+        <div class="map-legend"><span class="legend-item"><i class="legend-line"></i>current route</span><span class="legend-item"><i class="legend-line ghost"></i>rejected proposal</span></div>
+      </div>
+      <div class="decision" id="hillDecision">
+        <div class="decision-top"><span class="decision-name">Latest decision</span><span class="decision-badge" id="hillBadge">Waiting</span></div>
+        <div class="decision-main" id="hillDecisionMain">No neighboring route tested yet.</div>
+        <div class="decision-detail" id="hillDecisionDetail">Rule: accept only when Delta cost &lt; 0</div>
+      </div>
+    </article>
+
+    <article class="algorithm-card anneal card" aria-labelledby="annealTitle">
+      <div class="algo-head">
+        <div class="algo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2c1 4-2 5-2 8 0 2 1 3 3 3 3 0 4-3 3-6 3 3 4 6 3 9-1 4-4 6-8 6s-8-3-8-8c0-4 2-7 5-9-1 4 1 6 3 5 2-1 1-5 1-8Z"/></svg></div>
+        <div class="algo-title"><h2 id="annealTitle">Simulated annealing</h2><p>Usually improve; sometimes explore a longer route.</p></div>
+        <div class="mode-pill" id="annealMode">Hot / exploring</div>
+      </div>
+      <div class="algo-stats">
+        <div class="stat"><span class="stat-label">Current</span><span class="stat-value" id="annealCurrent">--</span></div>
+        <div class="stat"><span class="stat-label">Best found</span><span class="stat-value accent" id="annealBest">--</span></div>
+        <div class="stat"><span class="stat-label">Temperature</span><span class="stat-value" id="annealTemp">--</span></div>
+        <div class="stat"><span class="stat-label">Worse kept</span><span class="stat-value" id="annealWorse">0</span></div>
+      </div>
+      <div class="map-wrap">
+        <svg class="route-map" id="annealMap" viewBox="0 0 640 370" role="img" aria-label="Simulated annealing delivery route"></svg>
+        <div class="map-legend"><span class="legend-item"><i class="legend-line"></i>current route</span><span class="legend-item"><i class="legend-line ghost"></i>rejected proposal</span></div>
+      </div>
+      <div class="decision" id="annealDecision">
+        <div class="decision-top"><span class="decision-name">Latest decision</span><span class="decision-badge" id="annealBadge">Waiting</span></div>
+        <div class="decision-main" id="annealDecisionMain">No neighboring route tested yet.</div>
+        <div class="decision-detail" id="annealDecisionDetail">Worse move rule: random draw &lt; exp(-Delta cost / T)</div>
+      </div>
+    </article>
+  </main>
+
+  <section class="lesson-row">
+    <article class="insight card" aria-live="polite">
+      <div class="insight-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18h6M10 22h4M8.5 15.5C7 14.4 6 12.7 6 10.5a6 6 0 1 1 12 0c0 2.2-1 3.9-2.5 5L15 17H9l-.5-1.5Z"/><path d="M12 2V0m8 4 1.5-1.5M4 4 2.5 2.5"/></svg></div>
+      <div><div class="insight-label">What to notice</div><h2 id="insightTitle">Same starting point, one different rule</h2><p id="insightText">Press <strong>Step once</strong>. The guided first proposal is slightly longer: hill climbing will reject it, while the hot annealer will accept it to demonstrate the escape mechanism.</p></div>
+    </article>
+    <article class="formula-panel card">
+      <div class="formula-top"><span class="formula-label">Annealer's willingness to explore</span><span id="phaseLabel">Hot</span></div>
+      <div class="thermometer" aria-hidden="true"><div id="tempFill"></div></div>
+      <div class="formula">P(accept worse) = e<sup>-&Delta;/T</sup></div>
+      <div class="formula-note">Only used when the proposed route is longer (&Delta; &gt; 0).</div>
+      <div class="formula-values"><span>&Delta; = <strong id="formulaDelta">--</strong></span><span>T = <strong id="formulaTemp">--</strong></span><span>P = <strong id="formulaProbability">--</strong></span></div>
+    </article>
+  </section>
+
+  <section class="history-card card">
+    <div class="section-head">
+      <div><h2>Current route cost over time</h2><p>Down is better. Annealing may rise temporarily; hill climbing cannot.</p></div>
+      <div class="chart-legend"><span><i class="chart-dot"></i>Hill climbing</span><span><i class="chart-dot anneal"></i>Annealing</span></div>
+    </div>
+    <svg id="historyChart" viewBox="0 0 1200 170" role="img" aria-label="Line chart comparing route cost over iterations"></svg>
+  </section>
+
+  <section class="explain-grid">
+    <article class="explain-card card">
+      <div class="eyebrow">Translate the lecture drawing</div>
+      <h2>The mountain is a metaphor, not a literal map</h2>
+      <p>A delivery route is a point in a huge configuration space. Neighboring points differ by one small edit. The vertical height in the lecture is solution quality; here we show cost, so lower is better.</p>
+      <div class="mountain">
+        <svg viewBox="0 0 560 125" aria-hidden="true">
+          <defs><linearGradient id="hillFill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#55d8d0" stop-opacity=".19"/><stop offset="1" stop-color="#55d8d0" stop-opacity="0"/></linearGradient></defs>
+          <path d="M8 111 C48 106 66 75 98 65 C128 55 145 72 163 76 C192 82 208 28 255 21 C300 15 318 96 355 98 C390 100 401 55 433 52 C474 48 486 102 552 109 L552 120 L8 120Z" fill="url(#hillFill)"/>
+          <path d="M8 111 C48 106 66 75 98 65 C128 55 145 72 163 76 C192 82 208 28 255 21 C300 15 318 96 355 98 C390 100 401 55 433 52 C474 48 486 102 552 109" fill="none" stroke="#627b79" stroke-width="2"/>
+          <circle cx="113" cy="62" r="5" fill="#72a9ff"/><path d="M118 61 C145 55 156 69 170 75" fill="none" stroke="#72a9ff" stroke-width="2" stroke-dasharray="4 4"/>
+          <circle cx="433" cy="52" r="5" fill="#ffb85c"/><path d="M428 54 C401 66 395 94 356 98 C320 100 316 38 275 24" fill="none" stroke="#ffb85c" stroke-width="2" stroke-dasharray="5 4"/>
+        </svg>
+        <div class="mountain-caption"><span>Hill climbing gets stuck</span><span>accept worse / cross valley</span><span>reach a better region</span></div>
+      </div>
+    </article>
+
+    <article class="explain-card card">
+      <div class="eyebrow">Why gradient descent was mentioned</div>
+      <h2>All three make local improvements</h2>
+      <p>They differ mainly in how a neighboring solution and movement direction are chosen.</p>
+      <div class="method-list">
+        <div class="method"><div class="method-name">Hill climbing</div><div class="method-desc">Try neighboring states; keep only an immediate improvement. No derivative required.</div></div>
+        <div class="method"><div class="method-name">Gradient descent</div><div class="method-desc">For differentiable continuous problems, use the slope to reduce a loss. It is a directed local method.</div></div>
+        <div class="method"><div class="method-name">Annealing</div><div class="method-desc">Try a random neighbor and sometimes keep a worse one. Temperature controls how adventurous it is.</div></div>
+      </div>
+    </article>
+  </section>
+
+  <div class="footer-note">One-file interactive study aid - no libraries or network connection required.</div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const clinicNames = ["DEPOT","A","B","C","D","E","F","G","H","I","J","K"];
+  const coolingModes = {
+    slow: { alpha: .992, maxIterations: 560, label: "Slow / exploratory" },
+    balanced: { alpha: .982, maxIterations: 330, label: "Balanced" },
+    fast: { alpha: .955, maxIterations: 170, label: "Fast / greedy" }
+  };
+
+  const els = {};
+  [
+    "runStatus","resetBtn","newBtn","stepBtn","playBtn","playIcon","playLabel","coolingSelect","speedSelect",
+    "hillMap","annealMap","hillCurrent","hillBest","hillKept","hillWorse","annealCurrent","annealBest",
+    "annealTemp","annealWorse","annealMode","hillBadge","hillDecisionMain","hillDecisionDetail","annealBadge",
+    "annealDecisionMain","annealDecisionDetail","insightTitle","insightText","phaseLabel","tempFill",
+    "formulaDelta","formulaTemp","formulaProbability","historyChart"
+  ].forEach(id => els[id] = document.getElementById(id));
+
+  let layoutSeed = 6601;
+  let cities = [];
+  let initialRoute = [];
+  let hill;
+  let anneal;
+  let iteration = 0;
+  let startTemperature = 26;
+  let temperature = startTemperature;
+  let history = { hill: [], anneal: [] };
+  let lastMove = null;
+  let running = false;
+  let timer = null;
+  let rng = mulberry32(layoutSeed);
+
+  function mulberry32(seed) {
+    return function() {
+      let value = seed += 0x6D2B79F5;
+      value = Math.imul(value ^ value >>> 15, value | 1);
+      value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+      return ((value ^ value >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function randomBetween(min, max) {
+    return min + rng() * (max - min);
+  }
+
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y) * .061;
+  }
+
+  function routeCost(route) {
+    let total = 0;
+    for (let i = 0; i < route.length; i++) {
+      total += distance(cities[route[i]], cities[route[(i + 1) % route.length]]);
+    }
+    return total;
+  }
+
+  function reverseSegment(route, left, right) {
+    const next = route.slice();
+    const reversed = next.slice(left, right + 1).reverse();
+    next.splice(left, reversed.length, ...reversed);
+    return next;
+  }
+
+  function shuffledRoute() {
+    const rest = Array.from({length: cities.length - 1}, (_, index) => index + 1);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    return [0, ...rest];
+  }
+
+  function generateCities() {
+    rng = mulberry32(layoutSeed);
+    const generated = [{x: 78, y: 188, name: clinicNames[0]}];
+    let attempts = 0;
+    while (generated.length < clinicNames.length && attempts < 4000) {
+      attempts++;
+      const candidate = {
+        x: randomBetween(78, 575),
+        y: randomBetween(54, 320),
+        name: clinicNames[generated.length]
+      };
+      const enoughSpace = generated.every(point => Math.hypot(point.x - candidate.x, point.y - candidate.y) > 66);
+      if (enoughSpace) generated.push(candidate);
+    }
+    if (generated.length < clinicNames.length) {
+      return [
+        {x:78,y:188,name:"DEPOT"},{x:128,y:68,name:"A"},{x:235,y:101,name:"B"},{x:320,y:51,name:"C"},
+        {x:442,y:88,name:"D"},{x:560,y:61,name:"E"},{x:574,y:192,name:"F"},{x:526,y:310,name:"G"},
+        {x:402,y:286,name:"H"},{x:305,y:326,name:"I"},{x:207,y:274,name:"J"},{x:132,y:316,name:"K"}
+      ];
+    }
+    return generated;
+  }
+
+  function makeSearchState(route) {
+    const cost = routeCost(route);
+    return {
+      route: route.slice(), current: cost, best: cost, bestRoute: route.slice(),
+      kept: 0, worseKept: 0, rejected: 0, candidateRoute: null, lastAccepted: null
+    };
+  }
+
+  function chooseGuidedMove(route) {
+    const base = routeCost(route);
+    const choices = [];
+    for (let left = 1; left < route.length - 1; left++) {
+      for (let right = left + 1; right < route.length; right++) {
+        const candidate = reverseSegment(route, left, right);
+        const delta = routeCost(candidate) - base;
+        if (delta > 1.5) choices.push({left, right, delta});
+      }
+    }
+    choices.sort((a, b) => a.delta - b.delta);
+    return choices[Math.min(2, choices.length - 1)] || {left: 2, right: 4, delta: 1};
+  }
+
+  function resetSimulation(newLayout) {
+    pause();
+    if (newLayout) layoutSeed += 7919;
+    cities = generateCities();
+    initialRoute = shuffledRoute();
+    hill = makeSearchState(initialRoute);
+    anneal = makeSearchState(initialRoute);
+    iteration = 0;
+    startTemperature = Math.max(18, hill.current * .105);
+    temperature = startTemperature;
+    history = { hill: [hill.current], anneal: [anneal.current] };
+    lastMove = null;
+    els.runStatus.textContent = "Ready: the first step is a guided comparison.";
+    setWaitingDecision("hill");
+    setWaitingDecision("anneal");
+    els.insightTitle.textContent = "Same starting point, one different rule";
+    els.insightText.innerHTML = "Press <strong>Step once</strong>. The guided first proposal is slightly longer: hill climbing will reject it, while the hot annealer will accept it to demonstrate the escape mechanism.";
+    render();
+  }
+
+  function setWaitingDecision(kind) {
+    const cap = kind === "hill" ? "hill" : "anneal";
+    els[cap + "Badge"].className = "decision-badge";
+    els[cap + "Badge"].textContent = "Waiting";
+    els[cap + "DecisionMain"].textContent = "No neighboring route tested yet.";
+    els[cap + "DecisionDetail"].textContent = kind === "hill"
+      ? "Rule: accept only when Delta cost < 0"
+      : "Worse move rule: random draw < exp(-Delta cost / T)";
+  }
+
+  function proposePair() {
+    if (iteration === 0) {
+      const guided = chooseGuidedMove(initialRoute);
+      return { left: guided.left, right: guided.right, guided: true };
+    }
+    let left = 1 + Math.floor(rng() * (cities.length - 2));
+    let right = left + 1 + Math.floor(rng() * (cities.length - left - 1));
+    if (right >= cities.length) right = cities.length - 1;
+    return {left, right, guided: false};
+  }
+
+  function evaluate(state, pair, type, roll) {
+    const before = state.current;
+    const candidateRoute = reverseSegment(state.route, pair.left, pair.right);
+    const candidate = routeCost(candidateRoute);
+    const delta = candidate - before;
+    let probability = delta <= 0 ? 1 : 0;
+    let accepted = delta < -.00001;
+    let exploratory = false;
+
+    if (type === "anneal") {
+      if (delta <= 0) {
+        accepted = true;
+      } else {
+        probability = Math.exp(-delta / Math.max(temperature, .001));
+        accepted = roll < probability;
+        exploratory = accepted;
+      }
+    }
+
+    state.candidateRoute = accepted ? null : candidateRoute;
+    state.lastAccepted = accepted;
+    if (accepted) {
+      state.route = candidateRoute;
+      state.current = candidate;
+      state.kept++;
+      if (delta > 0) state.worseKept++;
+      if (candidate < state.best) {
+        state.best = candidate;
+        state.bestRoute = candidateRoute.slice();
+      }
+    } else {
+      state.rejected++;
+    }
+    return {before, candidate, delta, probability, accepted, exploratory};
+  }
+
+  function advance() {
+    const mode = coolingModes[els.coolingSelect.value];
+    if (iteration >= mode.maxIterations) {
+      finishRun();
+      return;
+    }
+
+    const pair = proposePair();
+    let roll = rng();
+    if (pair.guided) {
+      const guidedCandidate = reverseSegment(initialRoute, pair.left, pair.right);
+      const guidedDelta = routeCost(guidedCandidate) - routeCost(initialRoute);
+      const guidedProbability = Math.exp(-guidedDelta / temperature);
+      roll = Math.min(.18, guidedProbability * .5);
+    }
+
+    const decisionTemperature = temperature;
+    const hillResult = evaluate(hill, pair, "hill", roll);
+    const annealResult = evaluate(anneal, pair, "anneal", roll);
+    iteration++;
+    lastMove = {pair, roll, hill: hillResult, anneal: annealResult, temperature: decisionTemperature};
+    history.hill.push(hill.current);
+    history.anneal.push(anneal.current);
+    temperature = Math.max(.015, startTemperature * Math.pow(mode.alpha, iteration));
+
+    updateDecision("hill", hillResult, pair, roll);
+    updateDecision("anneal", annealResult, pair, roll);
+    updateInsight();
+    els.runStatus.textContent = `Iteration ${iteration} of ${mode.maxIterations} - testing one segment reversal`;
+    render();
+
+    if (iteration >= mode.maxIterations) finishRun();
+  }
+
+  function updateDecision(type, result, pair, roll) {
+    const isHill = type === "hill";
+    const badge = isHill ? els.hillBadge : els.annealBadge;
+    const main = isHill ? els.hillDecisionMain : els.annealDecisionMain;
+    const detail = isHill ? els.hillDecisionDetail : els.annealDecisionDetail;
+    const deltaText = signedKm(result.delta);
+    const segment = `${pair.left}-${pair.right}`;
+
+    if (result.accepted && result.delta > 0) {
+      badge.className = "decision-badge explore";
+      badge.textContent = "Accepted worse";
+      main.textContent = `Kept a route ${deltaText} longer to explore.`;
+    } else if (result.accepted) {
+      badge.className = "decision-badge accept";
+      badge.textContent = "Accepted";
+      main.textContent = `Kept a route ${Math.abs(result.delta).toFixed(1)} km shorter.`;
+    } else {
+      badge.className = "decision-badge reject";
+      badge.textContent = "Rejected";
+      main.textContent = `Discarded a route ${deltaText} ${result.delta >= 0 ? "longer" : "different"}.`;
+    }
+
+    if (isHill) {
+      detail.textContent = `reverse[${segment}]  Delta=${deltaText} km  rule: Delta < 0`;
+    } else if (result.delta > 0) {
+      detail.textContent = `P=e^(-${result.delta.toFixed(1)}/${temperatureForDecision().toFixed(1)})=${percent(result.probability)}  random=${roll.toFixed(2)}`;
+    } else {
+      detail.textContent = `reverse[${segment}]  Delta=${deltaText} km  improvement: always accept`;
+    }
+  }
+
+  function temperatureForDecision() {
+    return lastMove ? lastMove.temperature : startTemperature;
+  }
+
+  function updateInsight() {
+    const a = lastMove.anneal;
+    const h = lastMove.hill;
+    if (a.exploratory) {
+      els.insightTitle.textContent = lastMove.pair.guided ? "There it is: the one rule annealing adds" : "Annealing deliberately moved the wrong way";
+      els.insightText.innerHTML = `The candidate was <strong>${a.delta.toFixed(1)} km longer</strong>. Hill climbing rejected it. Annealing accepted it with probability ${percent(a.probability)} while hot, so it can leave the current basin and search another region.`;
+    } else if (a.delta > 0) {
+      els.insightTitle.textContent = "Cooling makes annealing increasingly greedy";
+      els.insightText.innerHTML = `This worse route had acceptance probability <strong>${percent(a.probability)}</strong>; the random draw was ${lastMove.roll.toFixed(2)}, so annealing rejected it. As temperature falls, that probability approaches zero.`;
+    } else if (a.accepted && h.accepted) {
+      els.insightTitle.textContent = "Both methods agree when the move improves";
+      els.insightText.innerHTML = `The reversal shortened both current routes. Better moves are always accepted; temperature matters only for a <strong>worse</strong> proposal.`;
+    } else {
+      els.insightTitle.textContent = "Same edit, different current neighborhoods";
+      els.insightText.innerHTML = "The two searches have diverged, so reversing the same positions can have different costs. Each algorithm now occupies a different point in the route configuration space.";
+    }
+  }
+
+  function finishRun() {
+    pause();
+    hill.route = hill.bestRoute.slice();
+    hill.current = hill.best;
+    anneal.route = anneal.bestRoute.slice();
+    anneal.current = anneal.best;
+    els.runStatus.textContent = `Finished ${iteration} iterations - displaying each algorithm's best route.`;
+    const difference = hill.best - anneal.best;
+    if (difference > .05) {
+      els.insightTitle.textContent = "Annealing found the shorter route in this run";
+      els.insightText.innerHTML = `Its best route is <strong>${difference.toFixed(1)} km shorter</strong>. Temporary setbacks helped it reach a region the greedy search did not reach. This is useful evidence, not a guarantee for every run.`;
+    } else if (difference < -.05) {
+      els.insightTitle.textContent = "Exploration is not a guarantee";
+      els.insightText.innerHTML = `Hill climbing finished <strong>${Math.abs(difference).toFixed(1)} km shorter</strong> in this run. Annealing changes the odds of escaping local optima; randomness and the cooling schedule still matter.`;
+    } else {
+      els.insightTitle.textContent = "Both searches found routes of similar quality";
+      els.insightText.innerHTML = "Annealing's value is probabilistic: it can cross barriers that hill climbing cannot, but it does not promise a different answer on every small instance.";
+    }
+    render();
+  }
+
+  function play() {
+    if (running) {
+      pause();
+      return;
+    }
+    const mode = coolingModes[els.coolingSelect.value];
+    if (iteration >= mode.maxIterations) resetSimulation(false);
+    running = true;
+    els.playLabel.textContent = "Pause";
+    els.playIcon.innerHTML = '<path d="M7 5h4v14H7zM14 5h4v14h-4z"/>';
+    advance();
+    if (!running) return;
+    timer = window.setInterval(advance, Number(els.speedSelect.value));
+  }
+
+  function pause() {
+    running = false;
+    if (timer !== null) window.clearInterval(timer);
+    timer = null;
+    if (els.playLabel) els.playLabel.textContent = "Play";
+    if (els.playIcon) els.playIcon.innerHTML = '<path d="m8 5 11 7-11 7V5Z"/>';
+  }
+
+  function render() {
+    renderMap(els.hillMap, hill, "#72a9ff", "hill");
+    renderMap(els.annealMap, anneal, "#ffb85c", "anneal");
+    els.hillCurrent.textContent = km(hill.current);
+    els.hillBest.textContent = km(hill.best);
+    els.hillKept.textContent = hill.kept;
+    els.hillWorse.textContent = hill.worseKept;
+    els.annealCurrent.textContent = km(anneal.current);
+    els.annealBest.textContent = km(anneal.best);
+    els.annealTemp.textContent = temperature.toFixed(2);
+    els.annealWorse.textContent = anneal.worseKept;
+    updateTemperatureUI();
+    renderChart();
+  }
+
+  function renderMap(svg, state, color, prefix) {
+    const currentPath = pathFor(state.route);
+    const ghostPath = state.candidateRoute ? pathFor(state.candidateRoute) : "";
+    const orderLookup = new Map(state.route.map((cityIndex, order) => [cityIndex, order]));
+    let html = `
+      <defs>
+        <pattern id="${prefix}Grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" fill="none" stroke="#152731" stroke-width="1"/></pattern>
+      </defs>
+      <rect x="8" y="8" width="624" height="348" rx="15" fill="#08141b" stroke="#1c3039"/>
+      <rect x="9" y="9" width="622" height="346" rx="14" fill="url(#${prefix}Grid)" opacity=".62"/>
+      <path d="M15 250 C120 230 145 170 250 178 S410 246 630 205M216 9 C230 76 208 134 270 190 S355 296 344 356M475 9 C463 91 493 147 464 218 S451 296 491 356" fill="none" stroke="#122a34" stroke-width="12" opacity=".65"/>
+      <path d="M15 250 C120 230 145 170 250 178 S410 246 630 205M216 9 C230 76 208 134 270 190 S355 296 344 356M475 9 C463 91 493 147 464 218 S451 296 491 356" fill="none" stroke="#28404a" stroke-width="1" stroke-dasharray="5 8" opacity=".55"/>
+      ${ghostPath ? `<path d="${ghostPath}" fill="none" stroke="#93a19d" stroke-width="2" stroke-dasharray="5 6" opacity=".48"/>` : ""}
+      <path d="${currentPath}" fill="none" stroke="${color}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>
+    `;
+
+    cities.forEach((city, index) => {
+      const order = orderLookup.get(index);
+      if (index === 0) {
+        html += `<g transform="translate(${city.x} ${city.y})"><rect x="-19" y="-15" width="38" height="30" rx="8" fill="#10272a" stroke="#55d8d0" stroke-width="2"/><path d="M-8 4V-5H8V4M-4-5v-5h8v5" fill="none" stroke="#9aeee8" stroke-width="1.5"/><text y="27" text-anchor="middle" fill="#89a7a3" font-size="9" font-family="sans-serif">DEPOT</text></g>`;
+      } else {
+        html += `<g transform="translate(${city.x} ${city.y})"><circle r="12" fill="#102029" stroke="#557078" stroke-width="1.4"/><text y="3.5" text-anchor="middle" fill="#e6efeb" font-size="10" font-weight="700" font-family="sans-serif">${city.name}</text><circle cx="10" cy="-10" r="7" fill="${color}"/><text x="10" y="-7.2" text-anchor="middle" fill="#071016" font-size="7" font-weight="800" font-family="sans-serif">${order}</text></g>`;
+      }
+    });
+    svg.innerHTML = html;
+  }
+
+  function pathFor(route) {
+    const points = [...route, route[0]].map(index => cities[index]);
+    return points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  }
+
+  function updateTemperatureUI() {
+    const ratio = Math.max(0, Math.min(1, temperature / startTemperature));
+    els.tempFill.style.width = `${ratio * 100}%`;
+    let phase;
+    if (ratio > .65) phase = "Hot / exploring";
+    else if (ratio > .25) phase = "Cooling / selective";
+    else if (ratio > .035) phase = "Cold / nearly greedy";
+    else phase = "Frozen";
+    els.phaseLabel.textContent = phase.split(" /")[0];
+    els.annealMode.textContent = phase;
+    els.formulaTemp.textContent = temperatureForDecision().toFixed(2);
+    if (lastMove && lastMove.anneal.delta > 0) {
+      els.formulaDelta.textContent = `${lastMove.anneal.delta.toFixed(2)} km`;
+      els.formulaProbability.textContent = percent(lastMove.anneal.probability);
+    } else {
+      els.formulaDelta.textContent = lastMove ? "improvement" : "--";
+      els.formulaProbability.textContent = lastMove ? "1 (automatic)" : "--";
+    }
+  }
+
+  function renderChart() {
+    const svg = els.historyChart;
+    const width = 1200, height = 170;
+    const pad = {left: 49, right: 17, top: 12, bottom: 25};
+    const all = [...history.hill, ...history.anneal];
+    let min = Math.min(...all), max = Math.max(...all);
+    const spread = Math.max(8, max - min);
+    min -= spread * .14;
+    max += spread * .12;
+    const maxPoints = Math.max(30, coolingModes[els.coolingSelect.value].maxIterations);
+    const x = index => pad.left + (index / maxPoints) * (width - pad.left - pad.right);
+    const y = value => pad.top + ((max - value) / (max - min)) * (height - pad.top - pad.bottom);
+    const makePoints = values => values.map((value, index) => `${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(" ");
+    const tickValues = [max, (max + min) / 2, min];
+    let html = "";
+    tickValues.forEach(value => {
+      const py = y(value);
+      html += `<line x1="${pad.left}" y1="${py}" x2="${width-pad.right}" y2="${py}" stroke="#20333c" stroke-width="1"/><text x="${pad.left-8}" y="${py+3}" text-anchor="end" fill="#617774" font-size="9" font-family="monospace">${value.toFixed(0)}</text>`;
+    });
+    html += `<line x1="${pad.left}" y1="${height-pad.bottom}" x2="${width-pad.right}" y2="${height-pad.bottom}" stroke="#30434b"/><text x="${pad.left}" y="${height-6}" fill="#617774" font-size="9">0</text><text x="${width-pad.right}" y="${height-6}" text-anchor="end" fill="#617774" font-size="9">${maxPoints} iterations</text><text x="8" y="18" fill="#617774" font-size="9">km</text>`;
+    html += `<polyline points="${makePoints(history.hill)}" fill="none" stroke="#72a9ff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    html += `<polyline points="${makePoints(history.anneal)}" fill="none" stroke="#ffb85c" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (history.hill.length) {
+      const hi = history.hill.length - 1;
+      html += `<circle cx="${x(hi)}" cy="${y(history.hill[hi])}" r="3.5" fill="#72a9ff"/><circle cx="${x(hi)}" cy="${y(history.anneal[hi])}" r="3.5" fill="#ffb85c"/>`;
+    }
+    svg.innerHTML = html;
+  }
+
+  function km(value) {
+    return `${value.toFixed(1)} km`;
+  }
+
+  function signedKm(value) {
+    return `${value >= 0 ? "+" : ""}${value.toFixed(1)}`;
+  }
+
+  function percent(value) {
+    if (value < .0005) return "<0.1%";
+    return `${(value * 100).toFixed(value < .1 ? 1 : 0)}%`;
+  }
+
+  els.resetBtn.addEventListener("click", () => resetSimulation(false));
+  els.newBtn.addEventListener("click", () => resetSimulation(true));
+  els.stepBtn.addEventListener("click", () => { pause(); advance(); });
+  els.playBtn.addEventListener("click", play);
+  els.coolingSelect.addEventListener("change", () => resetSimulation(false));
+  els.speedSelect.addEventListener("change", () => {
+    if (running) {
+      window.clearInterval(timer);
+      timer = window.setInterval(advance, Number(els.speedSelect.value));
+    }
+  });
+  document.addEventListener("keydown", event => {
+    if (event.code === "Space" && !/select|button/i.test(document.activeElement.tagName)) {
+      event.preventDefault();
+      play();
+    }
+    if (event.code === "ArrowRight" && !/select/i.test(document.activeElement.tagName)) {
+      event.preventDefault();
+      pause();
+      advance();
+    }
+  });
+
+  resetSimulation(false);
+})();
+</script>
+</body>
+</html>

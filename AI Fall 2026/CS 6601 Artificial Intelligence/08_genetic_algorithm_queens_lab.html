@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genetic Algorithms - Interactive 8-Queens Walkthrough</title>
+<style>
+:root{
+  --bg:#080d16;
+  --panel:#101824;
+  --panel-2:#141f2d;
+  --panel-3:#0b131e;
+  --line:#283648;
+  --line-soft:#1c2a39;
+  --ink:#f2f4ef;
+  --muted:#a3adad;
+  --faint:#697985;
+  --cyan:#60d7d0;
+  --blue:#79aaff;
+  --amber:#f4ba59;
+  --violet:#b69aff;
+  --coral:#ff7f77;
+  --green:#76d79d;
+  --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  font:14px/1.48 var(--sans);
+  background:
+    radial-gradient(850px 520px at 5% -8%,rgba(96,215,208,.11),transparent 62%),
+    radial-gradient(760px 540px at 105% 15%,rgba(182,154,255,.1),transparent 64%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+button,select{font:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.app{width:min(1440px,100%);margin:0 auto;padding:22px clamp(13px,2.3vw,32px) 40px}
+.card{background:linear-gradient(180deg,rgba(20,31,45,.94),rgba(11,20,30,.97));border:1px solid var(--line);border-radius:18px;box-shadow:0 22px 58px rgba(0,0,0,.17)}
+
+header{display:flex;align-items:flex-end;gap:25px;flex-wrap:wrap;margin-bottom:15px}
+.heading{max-width:850px}
+.eyebrow{color:var(--cyan);font-size:9.5px;font-weight:850;letter-spacing:.16em;text-transform:uppercase;margin-bottom:5px}
+h1{margin:0;font-size:clamp(25px,3vw,41px);line-height:1.07;letter-spacing:-.045em}
+h1 span{color:var(--muted);font-weight:450}
+.subtitle{margin:8px 0 0;color:var(--muted);font-size:12.5px;max-width:760px}
+.one-line{margin-left:auto;max-width:300px;padding:10px 13px;border:1px solid #3c3b4c;border-radius:12px;background:rgba(182,154,255,.07);font-size:10.5px;color:#c9c0dc}
+.one-line strong{display:block;color:var(--violet);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
+
+.big-picture{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:8px;padding:11px;margin-bottom:12px}
+.picture-intro{padding:6px 8px}
+.picture-intro strong{display:block;font-size:14px;letter-spacing:-.01em}
+.picture-intro span{color:var(--muted);font-size:10.5px}
+.idea-chip{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line-soft);border-radius:11px;background:rgba(8,13,22,.46)}
+.idea-number{width:24px;height:24px;flex:0 0 24px;border-radius:8px;display:grid;place-items:center;background:rgba(96,215,208,.1);color:var(--cyan);font:800 10px var(--mono)}
+.idea-chip b{display:block;font-size:10.5px}.idea-chip span{display:block;color:var(--faint);font-size:9px;margin-top:1px}
+
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;margin-bottom:12px}
+.progress-copy{margin-right:auto;min-width:230px}
+.progress-kicker{color:var(--cyan);font-size:8.5px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
+#progressLabel{font-size:11.5px;font-weight:700;margin-top:2px}
+.dots{display:flex;gap:5px;margin-right:10px}
+.dot{width:22px;height:5px;border:0;border-radius:10px;background:#263543;padding:0;cursor:pointer;transition:.2s}
+.dot.done{background:#436f73}.dot.active{width:35px;background:var(--cyan);box-shadow:0 0 10px rgba(96,215,208,.28)}
+.control{height:34px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);padding:0 11px;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;font-size:11px;font-weight:750;transition:.18s}
+.control:hover{color:var(--ink);border-color:#4a6175;background:#1a2939}.control:disabled{opacity:.35;cursor:not-allowed}
+.control.primary{min-width:92px;color:#071415;background:linear-gradient(180deg,#83e6df,var(--cyan));border-color:transparent}.control.primary:hover{filter:brightness(1.07)}
+.control svg{width:13px;height:13px}
+
+.workspace{display:grid;grid-template-columns:minmax(400px,.78fr) minmax(540px,1.22fr);gap:12px;align-items:stretch}
+.board-card{padding:14px;overflow:hidden}
+.card-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.card-head h2{font-size:15px;margin:0}.card-head p{margin:2px 0 0;color:var(--muted);font-size:10px}
+.candidate-picker{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--faint);font-size:9px}
+.candidate-picker select{height:29px;border:1px solid var(--line);border-radius:8px;background:#0b141e;color:#cad3d1;padding:0 7px;font:700 10px var(--mono)}
+.board-shell{display:grid;grid-template-columns:minmax(260px,1fr) 142px;gap:12px;align-items:start}
+#queenBoard{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:13px;background:#0a121c}
+.board-side{display:flex;flex-direction:column;gap:7px}
+.score-box{padding:10px;border:1px solid var(--line-soft);border-radius:11px;background:#0b141f}
+.score-label{color:var(--faint);font-size:8px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}
+.score-value{margin-top:2px;font:800 23px/1 var(--mono);color:var(--green)}
+.score-value small{color:var(--faint);font-size:10px}.score-explain{color:var(--muted);font-size:9px;margin-top:6px;line-height:1.4}
+.attack-key{display:grid;gap:5px;padding:9px;border:1px solid var(--line-soft);border-radius:11px;background:#0b141f;color:var(--faint);font-size:8.5px}
+.attack-key span{display:flex;align-items:center;gap:6px}.key-line{display:inline-block;width:17px;border-top:2px solid var(--coral)}.key-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.toggle{width:100%;height:31px;border:1px solid var(--line);border-radius:8px;background:#111d29;color:var(--muted);cursor:pointer;font-size:9.5px;font-weight:750}.toggle[aria-pressed="true"]{color:var(--coral);border-color:rgba(255,127,119,.35);background:rgba(255,127,119,.08)}
+.chromosome-label{margin-top:12px;color:var(--faint);font-size:8.5px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}
+.gene-strip{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:6px}
+.gene{position:relative;height:43px;border:1px solid #344657;border-radius:9px;background:#0c1722;color:#dfe7e3;display:grid;place-items:center;font:800 17px var(--mono);cursor:default}
+.gene::after{content:attr(data-column);position:absolute;bottom:2px;color:#5f727c;font:700 6.5px var(--sans);letter-spacing:.05em;text-transform:uppercase}
+.gene.focus{border-color:var(--cyan);background:rgba(96,215,208,.11);color:var(--cyan);box-shadow:0 0 10px rgba(96,215,208,.12)}
+.decode{margin-top:8px;padding:8px 9px;border-left:2px solid var(--cyan);background:rgba(96,215,208,.05);color:var(--muted);font-size:9.5px}
+.decode strong{color:#d8e3df}
+
+.lesson-card{min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.lesson-head{padding:16px 17px 13px;border-bottom:1px solid var(--line-soft)}
+.phase-tag{display:inline-flex;align-items:center;gap:6px;color:var(--violet);font-size:8.5px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.phase-tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+#phaseTitle{font-size:20px;margin:6px 0 4px;letter-spacing:-.025em}
+#phaseDescription{margin:0;color:var(--muted);font-size:11.5px;max-width:780px;min-height:34px}
+.mechanism{flex:1;min-height:390px;padding:14px 16px;background:rgba(7,13,21,.23)}
+.mechanism-label{color:var(--faint);font-size:8px;font-weight:850;letter-spacing:.11em;text-transform:uppercase;margin-bottom:8px}
+.population-list{display:grid;gap:7px}
+.population-row{display:grid;grid-template-columns:28px minmax(150px,1fr) 62px 145px;gap:8px;align-items:center;padding:9px 10px;border:1px solid var(--line-soft);border-radius:11px;background:#0b141f;cursor:pointer;transition:.17s}
+.population-row:hover,.population-row.active{border-color:var(--row-color);background:color-mix(in srgb,var(--row-color) 7%,#0b141f)}
+.member-id{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:color-mix(in srgb,var(--row-color) 14%,transparent);color:var(--row-color);font:850 9px var(--mono)}
+.member-genes{font:800 clamp(13px,1.5vw,18px) var(--mono);letter-spacing:.11em;white-space:nowrap}
+.fitness{font:800 15px var(--mono);text-align:right;color:#dbe4df}.fitness small{display:block;color:var(--faint);font:700 6.5px var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.chance-wrap{display:flex;align-items:center;gap:7px}.chance-track{height:6px;flex:1;background:#1c2a35;border-radius:8px;overflow:hidden}.chance-fill{height:100%;background:var(--row-color);border-radius:inherit}.chance{width:32px;text-align:right;font:800 10px var(--mono);color:var(--row-color)}
+.hidden-value{filter:blur(5px);opacity:.3;user-select:none}
+.fitness-equation{margin-top:10px;padding:10px 12px;border:1px solid rgba(118,215,157,.2);border-radius:11px;background:rgba(118,215,157,.055);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fitness-equation code{font:800 13px var(--mono);color:var(--green)}.fitness-equation span{color:var(--muted);font-size:9.5px}
+.roulette{margin:5px 0 14px;padding:12px;border:1px solid var(--line-soft);border-radius:12px;background:#0a131d}
+.roulette-title{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:9.5px;margin-bottom:9px}.roulette-title strong{color:#dce4e1}
+.roulette-track{height:47px;display:flex;overflow:hidden;border:2px solid #334351;border-radius:10px;position:relative}
+.roulette-slice{height:100%;display:grid;place-items:center;color:#081017;font:900 12px var(--mono);position:relative}.roulette-slice small{display:block;font:800 7px var(--sans);text-align:center}
+.pointer{position:absolute;top:-8px;bottom:-8px;width:2px;background:#fff;box-shadow:0 0 8px #fff;left:44%;z-index:3}.pointer::before{content:"";position:absolute;top:0;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fff}
+.probability-note{color:var(--faint);font-size:9.5px;margin-top:8px}
+.draws{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.draw-card{padding:9px;border:1px solid var(--line-soft);border-radius:10px;background:#0b141f;text-align:center}.draw-card span{display:block;color:var(--faint);font-size:7.5px;text-transform:uppercase;letter-spacing:.08em}.draw-card strong{display:block;margin-top:4px;font:800 13px var(--mono)}
+.draw-card.duplicate{border-color:rgba(121,170,255,.45);box-shadow:inset 0 0 0 1px rgba(121,170,255,.08)}
+.selection-callout{margin-top:9px;padding:9px 10px;border-left:2px solid var(--blue);background:rgba(121,170,255,.05);color:var(--muted);font-size:9.5px}.selection-callout strong{color:var(--blue)}
+.cross-area{display:grid;gap:11px}
+.cross-label{color:var(--faint);font-size:8px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}
+.cross-row{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:9px}.cross-name{color:var(--muted);font-size:9px}.mini-genes{display:grid;grid-template-columns:repeat(8,minmax(29px,1fr));gap:3px;position:relative}.mini-gene{height:36px;border:1px solid color-mix(in srgb,var(--source) 45%,#314252);border-radius:6px;background:color-mix(in srgb,var(--source) 14%,#0b141f);display:grid;place-items:center;color:#e4e9e6;font:800 14px var(--mono)}
+.mini-genes.cut-3::after,.mini-genes.cut-5::after{content:"CUT";position:absolute;top:-18px;bottom:-5px;border-left:2px dashed var(--coral);color:var(--coral);font:800 6.5px var(--sans);letter-spacing:.06em;padding-left:3px}.mini-genes.cut-3::after{left:37.5%}.mini-genes.cut-5::after{left:62.5%}
+.cross-arrow{text-align:center;color:var(--coral);font-size:18px;line-height:1}.children{padding-top:10px;border-top:1px solid var(--line-soft)}
+.offspring-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.offspring{padding:10px;border:1px solid var(--line-soft);border-radius:11px;background:#0b141f}.offspring-label{display:flex;justify-content:space-between;color:var(--faint);font-size:7.5px;text-transform:uppercase;letter-spacing:.07em}.offspring-label strong{color:var(--green);font:800 10px var(--mono)}
+.offspring-code{font:850 clamp(14px,1.5vw,18px) var(--mono);letter-spacing:.11em;margin-top:5px;white-space:nowrap}
+.mutation-list{display:grid;gap:8px}
+.mutation-row{display:grid;grid-template-columns:104px minmax(125px,1fr) 22px minmax(125px,1fr) 105px;gap:8px;align-items:center;padding:10px;border:1px solid var(--line-soft);border-radius:11px;background:#0b141f}
+.mutation-name{font-size:9px;font-weight:800;color:#d7e0dc}.mutation-name span{display:block;color:var(--faint);font-size:7.5px;font-weight:650;margin-top:2px}
+.mutation-code{font:850 clamp(13px,1.4vw,18px) var(--mono);letter-spacing:.09em;white-space:nowrap}.mutation-arrow{text-align:center;color:var(--cyan);font-size:14px}
+.mutated-gene{display:inline-block;color:#081016;background:var(--coral);border-radius:3px;padding:0 2px;margin:0 -2px;box-shadow:0 0 9px rgba(255,127,119,.25)}
+.fitness-change{text-align:right;font:800 10px var(--mono);color:var(--green)}.fitness-change.worse{color:var(--coral)}.fitness-change.same{color:var(--faint)}.fitness-change small{display:block;font:650 7px var(--sans);color:var(--faint);letter-spacing:.05em;text-transform:uppercase}
+.mutation-note{margin-top:10px;padding:10px 11px;border-left:2px solid var(--coral);background:rgba(255,127,119,.055);color:var(--muted);font-size:9.5px}.mutation-note strong{color:var(--coral)}
+.final-population{display:grid;grid-template-columns:1fr 1fr;gap:8px}.final-member{padding:10px;border:1px solid var(--line-soft);border-radius:11px;background:#0b141f}.final-top{display:flex;justify-content:space-between;gap:8px;color:var(--faint);font-size:7.5px;text-transform:uppercase;letter-spacing:.07em}.final-top strong{color:var(--green);font:800 10px var(--mono)}
+.final-bottom{display:flex;align-items:center;gap:10px;margin-top:7px}.final-code{font:850 clamp(14px,1.5vw,18px) var(--mono);letter-spacing:.09em;white-space:nowrap}.final-chance{margin-left:auto;color:var(--violet);font:800 10px var(--mono)}
+.repeat-loop{margin-top:13px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;align-items:center}.loop-step{padding:9px 5px;border:1px solid var(--line-soft);border-radius:9px;background:#0b141f;text-align:center;color:var(--muted);font-size:8.5px}.loop-arrow{text-align:center;color:var(--cyan);font-size:12px}.repeat-loop .loop-step:last-child{border-color:rgba(96,215,208,.32);color:var(--cyan)}
+.lesson-foot{padding:11px 16px;border-top:1px solid var(--line-soft);display:flex;gap:9px;align-items:flex-start;background:#0b141f}
+.bulb{width:26px;height:26px;flex:0 0 26px;border-radius:8px;display:grid;place-items:center;background:rgba(244,186,89,.1);color:var(--amber);font-size:14px}
+#plainEnglish{color:var(--muted);font-size:10.5px}.lesson-foot strong{color:#e2e7e3}
+
+.analogy-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.analogy-card{padding:15px 16px}.analogy-card h2{font-size:15px;margin:0 0 5px}.analogy-card>p{margin:0;color:var(--muted);font-size:10.5px}
+.comparison{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}.compare-item{padding:9px;border:1px solid var(--line-soft);border-radius:10px;background:#0b141f}.compare-item strong{display:block;font-size:9.5px}.compare-item span{display:block;color:var(--faint);font-size:8.5px;margin-top:2px}.compare-item:nth-child(2) strong{color:var(--amber)}.compare-item:nth-child(3) strong{color:var(--violet)}
+.translation{display:grid;grid-template-columns:112px 20px 1fr;gap:6px;align-items:center;margin-top:11px}.translation div{padding:6px 8px;border-radius:8px;background:#0b141f;border:1px solid var(--line-soft);font-size:9px}.translation .arrow{border:0;background:transparent;text-align:center;color:var(--cyan);padding:0}.translation b{color:#dce4e0}
+.footer{text-align:center;color:#5f707a;font-size:9px;margin-top:12px}
+
+@media(max-width:1020px){
+  .big-picture{grid-template-columns:1fr 1fr}.picture-intro{grid-column:1/-1}.workspace{grid-template-columns:1fr}.board-shell{grid-template-columns:minmax(280px,470px) 1fr}.mechanism{min-height:360px}
+}
+@media(max-width:650px){
+  .app{padding:14px 10px 30px}.one-line{margin-left:0}.big-picture{grid-template-columns:1fr}.picture-intro{grid-column:auto}.dots{order:3;width:100%;margin:3px 0 0}.dot{flex:1}.board-shell{grid-template-columns:1fr}.board-side{display:grid;grid-template-columns:1fr 1fr}.population-row{grid-template-columns:25px 1fr 55px}.chance-wrap{grid-column:2/-1}.mechanism{padding:12px 10px}.draws,.offspring-grid,.final-population{grid-template-columns:1fr 1fr}.cross-row{grid-template-columns:54px 1fr}.mini-gene{height:31px;font-size:12px}.mutation-row{grid-template-columns:72px 1fr 16px 1fr}.fitness-change{grid-column:2/-1;text-align:left}.repeat-loop{grid-template-columns:1fr}.loop-arrow{transform:rotate(90deg)}.analogy-grid{grid-template-columns:1fr}.comparison{grid-template-columns:1fr}.translation{grid-template-columns:92px 16px 1fr}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="heading">
+      <div class="eyebrow">CS 6601 / Population-based search</div>
+      <h1>Genetic algorithms, decoded. <span>One slide at a time.</span></h1>
+      <p class="subtitle">This walkthrough rebuilds the lecture's exact 8-Queens example. You will see what each digit means, where 31% comes from, why a parent appears twice, how crossover makes children, and what mutation changes.</p>
+    </div>
+    <div class="one-line"><strong>The entire idea in one sentence</strong>Keep several guesses, give better guesses more chances to reproduce, mix their pieces, and repeat.</div>
+  </header>
+
+  <section class="big-picture card" aria-label="Genetic algorithm overview">
+    <div class="picture-intro"><strong>Do not start with the genetics metaphor.</strong><span>Think of this as a search team maintaining several candidate answers.</span></div>
+    <div class="idea-chip"><span class="idea-number">1</span><div><b>Keep many guesses</b><span>A population, not one route</span></div></div>
+    <div class="idea-chip"><span class="idea-number">2</span><div><b>Favor useful pieces</b><span>Fitness changes the odds</span></div></div>
+    <div class="idea-chip"><span class="idea-number">3</span><div><b>Mix and retry</b><span>Crossover plus mutation</span></div></div>
+  </section>
+
+  <nav class="toolbar card" aria-label="Walkthrough controls">
+    <div class="progress-copy"><div class="progress-kicker">Guided walkthrough</div><div id="progressLabel">Step 1 of 8</div></div>
+    <div class="dots" id="progressDots" aria-label="Choose walkthrough step"></div>
+    <button class="control" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+    <button class="control" id="resetBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M5.5 16a8 8 0 1 0 .5-9l-2 3"/></svg>Reset</button>
+    <button class="control primary" id="nextBtn"><span id="nextLabel">Next idea</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+  </nav>
+
+  <main class="workspace">
+    <section class="board-card card" aria-labelledby="boardTitle">
+      <div class="card-head">
+        <div><h2 id="boardTitle">Decode one chromosome</h2><p>Click a candidate in the lesson panel to inspect its board.</p></div>
+        <label class="candidate-picker">Candidate
+          <select id="candidateSelect" aria-label="Candidate chromosome"></select>
+        </label>
+      </div>
+      <div class="board-shell">
+        <svg id="queenBoard" viewBox="0 0 450 450" role="img" aria-label="Eight queens board"></svg>
+        <aside class="board-side">
+          <div class="score-box"><div class="score-label">Fitness</div><div class="score-value"><span id="fitnessValue">24</span><small> / 28</small></div><div class="score-explain"><strong id="safePairs">24</strong> safe pairs<br><strong id="attackPairs">4</strong> attacking pairs</div></div>
+          <div class="attack-key"><span><i class="key-line"></i>Queens that attack</span><span><i class="key-dot"></i>Higher score is better</span></div>
+          <button class="toggle" id="attackToggle" aria-pressed="true">Attack lines: visible</button>
+        </aside>
+      </div>
+      <div class="chromosome-label">Chromosome: position = column, digit = row</div>
+      <div class="gene-strip" id="geneStrip"></div>
+      <div class="decode" id="decodeText"><strong>First digit 2</strong> means: put the queen in column 1 on row 2.</div>
+    </section>
+
+    <section class="lesson-card card" aria-labelledby="phaseTitle">
+      <div class="lesson-head">
+        <div class="phase-tag" id="phaseTag">The setup</div>
+        <h2 id="phaseTitle">A population is just several candidate answers</h2>
+        <p id="phaseDescription">Instead of improving one board, the genetic algorithm starts with four different boards. The digit strings are compressed board descriptions.</p>
+      </div>
+      <div class="mechanism" id="mechanismView"></div>
+      <div class="lesson-foot"><div class="bulb">!</div><div id="plainEnglish"><strong>Plain English:</strong> four searchers begin in four different parts of the solution space.</div></div>
+    </section>
+  </main>
+
+  <section class="analogy-grid">
+    <article class="analogy-card card">
+      <div class="eyebrow">Connection to the previous lesson</div>
+      <h2>What changed from hill climbing and annealing?</h2>
+      <p>All three optimize a score. The difference is how many candidates they keep and how they explore.</p>
+      <div class="comparison">
+        <div class="compare-item"><strong>Hill climbing</strong><span>One candidate; accept only improvement</span></div>
+        <div class="compare-item"><strong>Annealing</strong><span>One candidate; sometimes accept worse</span></div>
+        <div class="compare-item"><strong>Genetic algorithm</strong><span>Many candidates; select and mix them</span></div>
+      </div>
+    </article>
+    <article class="analogy-card card">
+      <div class="eyebrow">Practical translation</div>
+      <h2>The same pattern can optimize a staff schedule</h2>
+      <p>The genes need not represent queens. They could describe assignments in a weekly schedule.</p>
+      <div class="translation"><div><b>Chromosome</b><br>worker assignments</div><div class="arrow">&rarr;</div><div><b>Candidate schedule</b></div><div><b>Fitness</b><br>coverage minus conflicts</div><div class="arrow">&rarr;</div><div><b>Schedule quality</b></div><div><b>Crossover</b><br>combine two weeks</div><div class="arrow">&rarr;</div><div><b>New candidate schedules</b></div></div>
+    </article>
+  </section>
+
+  <div class="footer">Use Left/Right arrow keys to move through the walkthrough. No libraries or network connection required.</div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const colors = ["#f4ba59", "#79aaff", "#b69aff", "#ff7f77"];
+  const population = [
+    {id:"A", genes:[2,4,7,4,8,5,5,2], shownFitness:24},
+    {id:"B", genes:[3,2,7,5,2,4,1,1], shownFitness:23},
+    {id:"C", genes:[2,4,4,1,5,1,2,4], shownFitness:20},
+    {id:"D", genes:[3,2,5,4,3,2,1,3], shownFitness:11}
+  ];
+  const selectedIndices = [1,0,1,2];
+  const totalFitness = population.reduce((sum, member) => sum + member.shownFitness, 0);
+  const offspring = [
+    {genes:[3,2,7,4,8,5,5,2], sources:[1,1,1,0,0,0,0,0], label:"Child 1"},
+    {genes:[2,4,7,5,2,4,1,1], sources:[0,0,0,1,1,1,1,1], label:"Child 2"},
+    {genes:[3,2,7,5,2,1,2,4], sources:[1,1,1,1,1,2,2,2], label:"Child 3"},
+    {genes:[2,4,4,1,5,4,1,1], sources:[2,2,2,2,2,1,1,1], label:"Child 4"}
+  ];
+  const mutatedOffspring = [
+    {genes:[3,2,7,4,8,1,5,2], mutationIndex:5, label:"Child 1"},
+    {genes:[2,4,7,5,2,4,1,1], mutationIndex:null, label:"Child 2"},
+    {genes:[3,2,2,5,2,1,2,4], mutationIndex:2, label:"Child 3"},
+    {genes:[2,4,4,1,5,4,1,7], mutationIndex:7, label:"Child 4"}
+  ];
+
+  const phases = [
+    {
+      tag:"The setup", title:"A population is just several candidate answers",
+      description:"Instead of improving one board, the genetic algorithm starts with four different boards. The digit strings are compressed board descriptions.",
+      plain:"<strong>Plain English:</strong> four searchers begin in four different parts of the solution space.", view:"population", reveal:0
+    },
+    {
+      tag:"Encoding", title:"The digits tell us where to place the queens",
+      description:"There is one digit for each board column. The digit's value is the queen's row. That is all a chromosome means in this example.",
+      plain:"<strong>Read 24748552 as instructions:</strong> column 1 row 2, column 2 row 4, column 3 row 7, and so on.", view:"population", reveal:1
+    },
+    {
+      tag:"Evaluation", title:"Fitness turns a board into one comparable number",
+      description:"Eight queens form 28 pairs. Count how many pairs do not attack one another. A perfect solution scores 28; candidate A scores 24.",
+      plain:"<strong>Fitness is the judge:</strong> it does not modify a board. It only says how promising that board currently looks.", view:"population", reveal:2
+    },
+    {
+      tag:"Selection odds", title:"A fitness score becomes tickets in a raffle",
+      description:"The scores total 78. Candidate A owns 24 of those 78 tickets, so its probability is 24 / 78 = 30.8%, rounded to 31%.",
+      plain:"<strong>Higher fitness means more chances, not guaranteed survival.</strong> Even candidate D still owns 14% of the wheel.", view:"roulette", reveal:3
+    },
+    {
+      tag:"Selection", title:"Draw four parents, with replacement",
+      description:"The slide's random draws select B, A, B, and C. Candidate B appears twice because each draw starts from the same probability wheel.",
+      plain:"<strong>With replacement:</strong> selecting B does not remove it from the raffle. It can be selected again as another parent.", view:"selection", reveal:4
+    },
+    {
+      tag:"Crossover / pair 1", title:"Cut two parents and exchange their tails",
+      description:"Parents B and A are cut after digit 3. The left part stays; the right parts swap. This produces children 32748552 and 24752411.",
+      plain:"<strong>Crossover is structured mixing:</strong> each child inherits a prefix from one parent and a suffix from the other.", view:"cross1", reveal:5
+    },
+    {
+      tag:"Crossover / pair 2", title:"The second pair uses a different cut",
+      description:"Parents B and C are cut after digit 5. Swapping tails produces 32752124 and 24415411, completing the four-child population.",
+      plain:"<strong>The cut point is random.</strong> Different cuts preserve and recombine different chunks of each candidate.", view:"cross2", reveal:6
+    },
+    {
+      tag:"Crossover result", title:"Crossover produced four children",
+      description:"These are the four children before mutation. They contain pieces copied from the selected parents, but crossover alone introduces no brand-new row value at a gene.",
+      plain:"<strong>Crossover rearranges existing material.</strong> It can create a better or worse combination, but it does not deliberately fix conflicts.", view:"offspring", reveal:7
+    },
+    {
+      tag:"Mutation", title:"Mutation randomly changes individual genes",
+      description:"The updated slide changes three digits: child 1 moves its column-6 queen from row 5 to 1; child 3 changes column 3 from 7 to 2; child 4 changes column 8 from 1 to 7.",
+      plain:"<strong>Mutation creates fresh variation.</strong> It is a random edit, so it can improve fitness, damage fitness, or leave a child unchanged.", view:"mutation", reveal:8
+    },
+    {
+      tag:"Next generation", title:"Evaluate the mutated children and repeat",
+      description:"The mutated children become the new candidate population. Score them, derive new selection probabilities, choose parents, cross, mutate, and continue.",
+      plain:"<strong>Evolution happens across generations:</strong> selection supplies pressure toward quality; crossover and mutation supply variation.", view:"nextGeneration", reveal:9
+    }
+  ];
+
+  const els = {};
+  ["progressLabel","progressDots","backBtn","resetBtn","nextBtn","nextLabel","candidateSelect","queenBoard","fitnessValue","safePairs","attackPairs","attackToggle","geneStrip","decodeText","phaseTag","phaseTitle","phaseDescription","mechanismView","plainEnglish"].forEach(id => els[id] = document.getElementById(id));
+  let phaseIndex = 0;
+  let candidateIndex = 0;
+  let showAttacks = true;
+  let focusedGene = 0;
+
+  function genesText(genes) {
+    return genes.join("");
+  }
+
+  function attackPairs(genes) {
+    const attacks = [];
+    for (let first = 0; first < genes.length; first++) {
+      for (let second = first + 1; second < genes.length; second++) {
+        const sameRow = genes[first] === genes[second];
+        const sameDiagonal = Math.abs(genes[first] - genes[second]) === Math.abs(first - second);
+        if (sameRow || sameDiagonal) attacks.push([first, second]);
+      }
+    }
+    return attacks;
+  }
+
+  function calculatedFitness(genes) {
+    return 28 - attackPairs(genes).length;
+  }
+
+  function renderBoard() {
+    const member = population[candidateIndex];
+    const genes = member.genes;
+    const attacks = attackPairs(genes);
+    const cell = 48;
+    const origin = 33;
+    let html = `<rect x="0" y="0" width="450" height="450" rx="14" fill="#09121c"/>`;
+    for (let row = 0; row < 8; row++) {
+      for (let column = 0; column < 8; column++) {
+        const light = (row + column) % 2 === 0;
+        html += `<rect x="${origin + column*cell}" y="${origin + row*cell}" width="${cell}" height="${cell}" fill="${light ? "#283747" : "#152331"}"/>`;
+      }
+    }
+    for (let index = 0; index < 8; index++) {
+      html += `<text x="${origin + index*cell + cell/2}" y="24" text-anchor="middle" fill="#61737f" font-size="9" font-family="sans-serif">${index+1}</text>`;
+      html += `<text x="18" y="${origin + index*cell + cell/2 + 3}" text-anchor="middle" fill="#61737f" font-size="9" font-family="sans-serif">${index+1}</text>`;
+    }
+    if (showAttacks) {
+      attacks.forEach(([first, second]) => {
+        const x1 = origin + first*cell + cell/2;
+        const y1 = origin + (genes[first]-1)*cell + cell/2;
+        const x2 = origin + second*cell + cell/2;
+        const y2 = origin + (genes[second]-1)*cell + cell/2;
+        html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ff7f77" stroke-width="4" stroke-linecap="round" opacity=".72"/>`;
+      });
+    }
+    genes.forEach((rowValue, column) => {
+      const x = origin + column*cell + cell/2;
+      const y = origin + (rowValue-1)*cell + cell/2;
+      const involved = attacks.some(pair => pair.includes(column));
+      const focused = column === focusedGene;
+      html += `<circle cx="${x}" cy="${y}" r="${focused ? 19 : 16}" fill="${focused ? "#60d7d0" : involved && showAttacks ? "#351f29" : "#142b2c"}" stroke="${focused ? "#b8fff9" : involved && showAttacks ? "#ff7f77" : "#76d79d"}" stroke-width="${focused ? 3 : 2}"/>`;
+      html += `<text x="${x}" y="${y+5}" text-anchor="middle" fill="${focused ? "#071315" : "#f0f4f0"}" font-size="14" font-weight="850" font-family="sans-serif">Q</text>`;
+    });
+    html += `<rect x="${origin+.5}" y="${origin+.5}" width="${cell*8-1}" height="${cell*8-1}" fill="none" stroke="#526474"/>`;
+    els.queenBoard.innerHTML = html;
+    const fitness = calculatedFitness(genes);
+    els.fitnessValue.textContent = fitness;
+    els.safePairs.textContent = fitness;
+    els.attackPairs.textContent = attacks.length;
+  }
+
+  function renderGeneStrip() {
+    const genes = population[candidateIndex].genes;
+    els.geneStrip.innerHTML = genes.map((gene,index) => `<button class="gene ${index===focusedGene ? "focus" : ""}" data-index="${index}" data-column="col ${index+1}" aria-label="Column ${index+1}, row ${gene}">${gene}</button>`).join("");
+    els.geneStrip.querySelectorAll(".gene").forEach(button => button.addEventListener("click", () => {
+      focusedGene = Number(button.dataset.index);
+      updateDecode();
+      renderGeneStrip();
+      renderBoard();
+    }));
+    updateDecode();
+  }
+
+  function updateDecode() {
+    const gene = population[candidateIndex].genes[focusedGene];
+    const ordinal = ["First","Second","Third","Fourth","Fifth","Sixth","Seventh","Eighth"][focusedGene];
+    els.decodeText.innerHTML = `<strong>${ordinal} digit ${gene}</strong> means: put the queen in column ${focusedGene+1} on row ${gene}.`;
+  }
+
+  function memberRow(member, index, reveal) {
+    const chance = member.shownFitness / totalFitness;
+    const active = index === candidateIndex ? "active" : "";
+    const fitnessHidden = reveal < 2 ? "hidden-value" : "";
+    const chanceHidden = reveal < 3 ? "hidden-value" : "";
+    return `<div class="population-row ${active}" data-index="${index}" style="--row-color:${colors[index]}" tabindex="0" role="button" aria-label="Inspect candidate ${member.id}">
+      <div class="member-id">${member.id}</div>
+      <div class="member-genes">${genesText(member.genes)}</div>
+      <div class="fitness ${fitnessHidden}">${member.shownFitness}<small>fitness</small></div>
+      <div class="chance-wrap ${chanceHidden}"><div class="chance-track"><div class="chance-fill" style="width:${chance*100}%"></div></div><span class="chance">${Math.round(chance*100)}%</span></div>
+    </div>`;
+  }
+
+  function populationView(reveal) {
+    return `<div class="mechanism-label">The four candidates shown on the lecture slide</div>
+      <div class="population-list">${population.map((member,index) => memberRow(member,index,reveal)).join("")}</div>
+      ${reveal >= 2 ? `<div class="fitness-equation"><code>fitness = 28 possible pairs - attacking pairs</code><span>Candidate A: 28 - 4 = 24</span></div>` : ""}`;
+  }
+
+  function rouletteView(withDraws) {
+    const slices = population.map((member,index) => {
+      const pct = member.shownFitness / totalFitness * 100;
+      return `<div class="roulette-slice" style="width:${pct}%;background:${colors[index]}">${member.id}<small>${Math.round(pct)}%</small></div>`;
+    }).join("");
+    const drawCards = selectedIndices.map((index,draw) => `<div class="draw-card ${draw===2 ? "duplicate" : ""}"><span>Draw ${draw+1}</span><strong style="color:${colors[index]}">${population[index].id}: ${genesText(population[index].genes)}</strong></div>`).join("");
+    return `<div class="mechanism-label">Fitness-proportional selection</div>
+      <div class="roulette">
+        <div class="roulette-title"><strong>The 78-ticket probability wheel</strong><span>24 + 23 + 20 + 11 = 78</span></div>
+        <div class="roulette-track">${slices}<i class="pointer" aria-hidden="true"></i></div>
+        <div class="probability-note">Example: candidate A owns 24 / 78 = 30.8% of the wheel. The pointer represents one random draw.</div>
+      </div>
+      ${withDraws ? `<div class="mechanism-label">The four random draws used by the slide</div><div class="draws">${drawCards}</div><div class="selection-callout">Candidate <strong>B appears twice</strong>. Candidate D gets no copy this time. Probability influences reproduction; it does not dictate it.</div>` : populationView(3)}`;
+  }
+
+  function geneRow(genes, sources, label, cut) {
+    return `<div class="cross-row"><div class="cross-name">${label}</div><div class="mini-genes ${cut ? `cut-${cut}` : ""}">${genes.map((gene,index) => `<span class="mini-gene" style="--source:${colors[sources[index]]}">${gene}</span>`).join("")}</div></div>`;
+  }
+
+  function crossoverView(pairNumber) {
+    const second = pairNumber === 2;
+    const p1 = population[1];
+    const p2 = second ? population[2] : population[0];
+    const cut = second ? 5 : 3;
+    const childStart = second ? 2 : 0;
+    const p1Sources = Array(8).fill(1);
+    const p2Sources = Array(8).fill(second ? 2 : 0);
+    return `<div class="mechanism-label">Pair ${pairNumber}: cut after gene ${cut}, then swap everything to the right</div>
+      <div class="cross-area">
+        ${geneRow(p1.genes,p1Sources,`Parent B`,cut)}
+        ${geneRow(p2.genes,p2Sources,`Parent ${p2.id}`,cut)}
+        <div class="cross-arrow">tails swap &darr;</div>
+        <div class="children">
+          ${geneRow(offspring[childStart].genes,offspring[childStart].sources,offspring[childStart].label,0)}
+          <div style="height:6px"></div>
+          ${geneRow(offspring[childStart+1].genes,offspring[childStart+1].sources,offspring[childStart+1].label,0)}
+        </div>
+      </div>`;
+  }
+
+  function offspringView() {
+    return `<div class="mechanism-label">The four children after crossover, before mutation</div>
+      <div class="offspring-grid">${offspring.map(child => `<div class="offspring"><div class="offspring-label"><span>${child.label}</span><strong>fitness ${calculatedFitness(child.genes)} / 28</strong></div><div class="offspring-code">${child.genes.map((gene,index) => `<span style="color:${colors[child.sources[index]]}">${gene}</span>`).join("")}</div></div>`).join("")}</div>
+      <div class="fitness-equation"><code>Blue genes came from B; yellow/purple genes came from the other parent</code><span>The colors track inheritance. No digit has mutated yet.</span></div>`;
+  }
+
+  function mutationCode(genes, mutationIndex) {
+    return genes.map((gene,index) => `<span class="${index === mutationIndex ? "mutated-gene" : ""}">${gene}</span>`).join("");
+  }
+
+  function mutationView() {
+    const rows = mutatedOffspring.map((mutated,index) => {
+      const before = offspring[index];
+      const beforeFitness = calculatedFitness(before.genes);
+      const afterFitness = calculatedFitness(mutated.genes);
+      const delta = afterFitness - beforeFitness;
+      const changed = mutated.mutationIndex !== null;
+      const oldGene = changed ? before.genes[mutated.mutationIndex] : null;
+      const newGene = changed ? mutated.genes[mutated.mutationIndex] : null;
+      const changeClass = delta > 0 ? "" : delta < 0 ? "worse" : "same";
+      const changeText = delta > 0 ? `+${delta}` : String(delta);
+      const detail = changed ? `column ${mutated.mutationIndex+1}: ${oldGene} to ${newGene}` : "no gene changed";
+      return `<div class="mutation-row">
+        <div class="mutation-name">${mutated.label}<span>${detail}</span></div>
+        <div class="mutation-code">${genesText(before.genes)}</div>
+        <div class="mutation-arrow">&rarr;</div>
+        <div class="mutation-code">${mutationCode(mutated.genes,mutated.mutationIndex)}</div>
+        <div class="fitness-change ${changeClass}">${beforeFitness} &rarr; ${afterFitness} (${changeText})<small>fitness change</small></div>
+      </div>`;
+    }).join("");
+    return `<div class="mechanism-label">Red digits are the random mutations shown on the updated slide</div>
+      <div class="mutation-list">${rows}</div>
+      <div class="mutation-note"><strong>Mutation is not a repair operation.</strong> Child 1 improves, child 3 gets worse, child 4 improves, and child 2 stays unchanged. The slide uses a conspicuous rate for teaching; practical mutation rates are usually kept low and tuned to the representation.</div>`;
+  }
+
+  function nextGenerationView() {
+    const total = mutatedOffspring.reduce((sum,child) => sum + calculatedFitness(child.genes), 0);
+    const cards = mutatedOffspring.map(child => {
+      const fitness = calculatedFitness(child.genes);
+      const chance = fitness / total * 100;
+      return `<div class="final-member">
+        <div class="final-top"><span>${child.label}</span><strong>fitness ${fitness} / 28</strong></div>
+        <div class="final-bottom"><div class="final-code">${mutationCode(child.genes,child.mutationIndex)}</div><div class="final-chance">${chance.toFixed(1)}%</div></div>
+      </div>`;
+    }).join("");
+    return `<div class="mechanism-label">A possible new probability pool: fitness total = ${total}</div>
+      <div class="final-population">${cards}</div>
+      <div class="fitness-equation"><code>Fitness still controls probability, not destiny</code><span>Mutation changed the scores, so it also changed each child's share of the next selection wheel.</span></div>
+      <div class="repeat-loop"><div class="loop-step">Evaluate fitness</div><div class="loop-arrow">&rarr;</div><div class="loop-step">Select parents</div><div class="loop-arrow">&rarr;</div><div class="loop-step">Cross + mutate + repeat</div></div>`;
+  }
+
+  function attachPopulationEvents() {
+    els.mechanismView.querySelectorAll(".population-row").forEach(row => {
+      const choose = () => {
+        candidateIndex = Number(row.dataset.index);
+        focusedGene = 0;
+        els.candidateSelect.value = candidateIndex;
+        renderBoard();
+        renderGeneStrip();
+        renderMechanism();
+      };
+      row.addEventListener("click", choose);
+      row.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } });
+    });
+  }
+
+  function renderMechanism() {
+    const phase = phases[phaseIndex];
+    if (phase.view === "population") els.mechanismView.innerHTML = populationView(phase.reveal);
+    if (phase.view === "roulette") els.mechanismView.innerHTML = rouletteView(false);
+    if (phase.view === "selection") els.mechanismView.innerHTML = rouletteView(true);
+    if (phase.view === "cross1") els.mechanismView.innerHTML = crossoverView(1);
+    if (phase.view === "cross2") els.mechanismView.innerHTML = crossoverView(2);
+    if (phase.view === "offspring") els.mechanismView.innerHTML = offspringView();
+    if (phase.view === "mutation") els.mechanismView.innerHTML = mutationView();
+    if (phase.view === "nextGeneration") els.mechanismView.innerHTML = nextGenerationView();
+    attachPopulationEvents();
+  }
+
+  function renderPhase() {
+    const phase = phases[phaseIndex];
+    els.phaseTag.textContent = phase.tag;
+    els.phaseTitle.textContent = phase.title;
+    els.phaseDescription.textContent = phase.description;
+    els.plainEnglish.innerHTML = phase.plain;
+    els.progressLabel.textContent = `Step ${phaseIndex+1} of ${phases.length}`;
+    els.backBtn.disabled = phaseIndex === 0;
+    els.nextLabel.textContent = phaseIndex === phases.length-1 ? "Start again" : "Next idea";
+    els.progressDots.querySelectorAll(".dot").forEach((dot,index) => {
+      dot.classList.toggle("active", index === phaseIndex);
+      dot.classList.toggle("done", index < phaseIndex);
+      dot.setAttribute("aria-current", index === phaseIndex ? "step" : "false");
+    });
+    if (phaseIndex === 1) focusedGene = 0;
+    if (phaseIndex === 2) showAttacks = true;
+    updateAttackToggle();
+    renderBoard();
+    renderGeneStrip();
+    renderMechanism();
+  }
+
+  function goToPhase(index) {
+    phaseIndex = Math.max(0, Math.min(phases.length-1, index));
+    renderPhase();
+  }
+
+  function updateAttackToggle() {
+    els.attackToggle.setAttribute("aria-pressed", String(showAttacks));
+    els.attackToggle.textContent = `Attack lines: ${showAttacks ? "visible" : "hidden"}`;
+  }
+
+  population.forEach((member,index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = `${member.id}: ${genesText(member.genes)}`;
+    els.candidateSelect.append(option);
+  });
+  phases.forEach((phase,index) => {
+    const button = document.createElement("button");
+    button.className = "dot";
+    button.type = "button";
+    button.title = `Step ${index+1}: ${phase.tag}`;
+    button.setAttribute("aria-label", `Go to step ${index+1}: ${phase.tag}`);
+    button.addEventListener("click", () => goToPhase(index));
+    els.progressDots.append(button);
+  });
+
+  els.candidateSelect.addEventListener("change", () => {
+    candidateIndex = Number(els.candidateSelect.value);
+    focusedGene = 0;
+    renderBoard();
+    renderGeneStrip();
+    renderMechanism();
+  });
+  els.attackToggle.addEventListener("click", () => {
+    showAttacks = !showAttacks;
+    updateAttackToggle();
+    renderBoard();
+  });
+  els.backBtn.addEventListener("click", () => goToPhase(phaseIndex-1));
+  els.resetBtn.addEventListener("click", () => {
+    candidateIndex = 0;
+    focusedGene = 0;
+    showAttacks = true;
+    els.candidateSelect.value = "0";
+    goToPhase(0);
+  });
+  els.nextBtn.addEventListener("click", () => goToPhase(phaseIndex === phases.length-1 ? 0 : phaseIndex+1));
+  document.addEventListener("keydown", event => {
+    if (/select|button/i.test(document.activeElement.tagName)) return;
+    if (event.key === "ArrowRight") goToPhase(phaseIndex === phases.length-1 ? 0 : phaseIndex+1);
+    if (event.key === "ArrowLeft") goToPhase(phaseIndex-1);
+  });
+
+  population.forEach(member => {
+    if (calculatedFitness(member.genes) !== member.shownFitness) console.warn(`Fitness mismatch for candidate ${member.id}`);
+  });
+  renderPhase();
+})();
+</script>
+</body>
+</html>
