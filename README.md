@@ -18,10 +18,11 @@ Papers in folders have been read. Papers in the root are on the to-read list.
 | 6 | Multi-View Higher-Order Information Bottleneck for Brain Disorder Diagnosis | Neuro AI |
 | 7 | On Generative Spoken Language Modeling from Raw Audio | Speech / NLP |
 | 8 | Performance Analysis and Tuning for General Purpose Graphics Processing Units - GPGPU | GPU Computing |
-| 9 | RL for Reasoning in LLMs with One Training Example | LLMs / RL |
-| 10 | SpeechGPT | Speech / NLP |
-| 11 | The Era of Agentic Organization - Learning to Organize with Language Models | Agentic AI |
-| 12 | Why Language Models Hallucinate | LLMs |
+| 9 | ReAct - Synergizing Reasoning and Acting in Language Models | Agentic AI |
+| 10 | RL for Reasoning in LLMs with One Training Example | LLMs / RL |
+| 11 | SpeechGPT | Speech / NLP |
+| 12 | The Era of Agentic Organization - Learning to Organize with Language Models | Agentic AI |
+| 13 | Why Language Models Hallucinate | LLMs |
 
 ---
 
