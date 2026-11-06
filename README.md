@@ -12,17 +12,21 @@ Papers in folders have been read. Papers in the root are on the to-read list.
 |---|-------|-------|
 | 1 | AI-Driven Clinical Decision Support - Enhancing Disease Diagnosis Exploiting Patients Similarity | Clinical AI |
 | 2 | Attention Is All You Need | Transformers |
-| 3 | CNN Biases from Human vs ML | Cognitive Bias / ML |
-| 4 | Generative Spoken Dialogue Language Modeling | Speech / NLP |
-| 5 | How Do Language Models Track State | LLMs |
-| 6 | Multi-View Higher-Order Information Bottleneck for Brain Disorder Diagnosis | Neuro AI |
-| 7 | On Generative Spoken Language Modeling from Raw Audio | Speech / NLP |
-| 8 | Performance Analysis and Tuning for General Purpose Graphics Processing Units - GPGPU | GPU Computing |
-| 9 | ReAct - Synergizing Reasoning and Acting in Language Models | Agentic AI |
-| 10 | RL for Reasoning in LLMs with One Training Example | LLMs / RL |
-| 11 | SpeechGPT | Speech / NLP |
-| 12 | The Era of Agentic Organization - Learning to Organize with Language Models | Agentic AI |
-| 13 | Why Language Models Hallucinate | LLMs |
+| 3 | [BC-Z - Zero-Shot Task Generalization with Robotic Imitation Learning - Eric Jang - 2021](https://arxiv.org/abs/2202.02005) | Robotics / Imitation Learning |
+| 4 | [Categorical Reparameterization with Gumbel-Softmax - Eric Jang - 2017](https://arxiv.org/abs/1611.01144) | Generative Models |
+| 5 | CNN Biases from Human vs ML | Cognitive Bias / ML |
+| 6 | Generative Spoken Dialogue Language Modeling | Speech / NLP |
+| 7 | [Grasp2Vec - Learning Object Representations from Self-Supervised Grasping - Eric Jang - 2018](https://arxiv.org/abs/1811.06964) | Robotics / Representation Learning |
+| 8 | How Do Language Models Track State | LLMs |
+| 9 | Multi-View Higher-Order Information Bottleneck for Brain Disorder Diagnosis | Neuro AI |
+| 10 | On Generative Spoken Language Modeling from Raw Audio | Speech / NLP |
+| 11 | Performance Analysis and Tuning for General Purpose Graphics Processing Units - GPGPU | GPU Computing |
+| 12 | ReAct - Synergizing Reasoning and Acting in Language Models | Agentic AI |
+| 13 | RL for Reasoning in LLMs with One Training Example | LLMs / RL |
+| 14 | SpeechGPT | Speech / NLP |
+| 15 | [The Components of Agent Memory - Anthropic - 2026](https://www.anthropic.com/research/components-of-agent-memory) | Agentic AI |
+| 16 | The Era of Agentic Organization - Learning to Organize with Language Models | Agentic AI |
+| 17 | Why Language Models Hallucinate | LLMs |
 
 ---
 
