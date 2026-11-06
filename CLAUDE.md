@@ -57,3 +57,4 @@ React + TypeScript + Vite + MapLibre GL app comparing exact shortest-path algori
 - Prioritize clear, educational code with comments explaining *why* each step matters, not just *what* it does.
 - Use Python with PyTorch or Hugging Face Transformers as the default stack unless otherwise specified.
 - Commit messages: a short summary starting with a verb (`Add`, `Update`, `Create`) that names the topic, e.g. `Add DDPM reverse-process notes`, not `more notes`.
+- Commit and push to `origin/main` automatically after finishing each change; don't ask first. Commit only the files the change touched, and pull first if `main` is behind.
