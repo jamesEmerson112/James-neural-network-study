@@ -34,6 +34,7 @@ Papers in folders have been read. Papers in the root are on the to-read list.
 - Human-Like Episodic Memory for Infinite Context LLMs
 - James Vo on LLM Memory Cognition
 - Learning Humanoid Locomotion over Challenging Terrain
+- RecMem - Recurrence-based Memory Consolidation for Efficient and Effective Long-Running LLM Agents
 - Social Group Human-Robot Interaction - A Scoping Review of Computational Challenges
 - Towards Neural Network Based Cognitive Models of Dynamic Decision-Making by Humans
 
