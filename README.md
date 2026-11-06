@@ -43,7 +43,7 @@ Papers in folders have been read. Papers in the root are on the to-read list.
 
 - Diffusion Guided Language Modeling or decoder predict heads on
 - Discrimination in the Age of Algorithms
-- Idiosyncrasies in Large Language Models
+- Idiosyncrasies in Large Language Models - CMU, UC Berkeley, UPenn, Princeton
 
 ### CUDA class/
 
