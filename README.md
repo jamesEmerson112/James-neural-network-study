@@ -32,7 +32,7 @@ Papers in folders have been read. Papers in the root are on the to-read list.
 
 - AI-Assisted Decision Making with Human Learning
 - Demystifying Verbatim Memorization in Large Language Models
-- Human-Like Episodic Memory for Infinite Context LLMs
+- Human-Like Episodic Memory for Infinite Context LLMs - UCL - 2025
 - James Vo on LLM Memory Cognition
 - Learning Humanoid Locomotion over Challenging Terrain
 - RecMem - Recurrence-based Memory Consolidation for Efficient and Effective Long-Running LLM Agents - CUHK, BUPT, Wuhan University - 2026
