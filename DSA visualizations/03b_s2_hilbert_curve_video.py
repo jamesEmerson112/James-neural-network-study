@@ -215,8 +215,44 @@ class HilbertS2(Scene):
         self.say("The guarantee runs one way. Two cells touching across the middle\ncan still sit far apart on the curve.", wait=0)
         self.play(FadeIn(marks))
         self.wait(2.5)
-        self.say("So S2 answers a query with a covering: a handful of cells,\nwhich is a handful of number ranges to scan.", wait=2.5)
-        self.play(FadeOut(VGroup(marks, *[b for b, _, _ in boards])))
+        self.cover(boards, marks, n, side)
+
+    def cover(self, boards, marks, n, side):
+        """A circle across the bad midline, covered by a few cells, read off as a few ranges."""
+        zboard, hboard, ch = boards[0][0], boards[1][0], boards[1][2]
+        centre, radius = np.array([8.0, 3.0]), 2.6  # in order-4 cell units, straddling the midline
+        cells = covering(centre, radius, n, max_level=3)
+        unit = side / 2 ** n
+
+        def to_pt(x, y):
+            return ch + np.array([(x / 2 ** n - 0.5) * side, (y / 2 ** n - 0.5) * side, 0])
+
+        circle = Circle(radius * unit).move_to(to_pt(*centre)).set_stroke(WHITE, 3)
+        squares = VGroup()
+        for level, a, b in cells:
+            size = 2 ** (n - level)
+            squares.add(Square(size * unit).move_to(to_pt((a + 0.5) * size, (b + 0.5) * size))
+                        .set_stroke(ACCENT, 2).set_fill(ACCENT, 0.3))
+        spans = [(hilbert_pos(a, b, level) * 4 ** (n - level), (hilbert_pos(a, b, level) + 1) * 4 ** (n - level) - 1)
+                 for level, a, b in cells]
+        ranges = merge(spans)
+        width, total, y = 6.0, 4 ** n, 0.3
+        bar = Rectangle(width=width, height=0.45).move_to(np.array([-3.5, y, 0])).set_stroke(GREY_B, 1.5)
+        x0 = bar.get_left()[0]
+        segs = VGroup(*[Rectangle(width=(e + 1 - s) / total * width, height=0.45).set_stroke(width=0).set_fill(ACCENT, 0.9)
+                        .move_to(np.array([x0 + (s + e + 1) / 2 / total * width, y, 0])) for s, e in ranges])
+        ticks = VGroup(*[Text(str(v), font=MONO, font_size=20, color=GREY_B)
+                         .move_to(np.array([x0 + v / total * width, y - 0.5, 0])) for v in (0, 64, 128, 192, 255)])
+        title = Text("the same 256 cells as one sorted line", font=SERIF, font_size=26).next_to(bar, UP, buff=0.5)
+        self.say("S2 answers a query with a covering: a few cells that together contain the circle.", wait=0)
+        self.play(FadeOut(marks), FadeOut(zboard), Create(circle))
+        self.play(LaggedStart(*[FadeIn(s) for s in squares], lag_ratio=0.1), run_time=1.5)
+        self.wait(1.5)
+        self.say(f"Each cell is one unbroken run of numbers, so these {len(cells)} cells\nbecome {len(ranges)} range scans on the sorted index, midline and all.", wait=0)
+        self.play(FadeIn(bar), FadeIn(ticks), FadeIn(title))
+        self.play(LaggedStart(*[FadeIn(s, scale=0.5) for s in segs], lag_ratio=0.15), run_time=1.5)
+        self.wait(3.5)
+        self.play(FadeOut(VGroup(hboard, circle, squares, bar, segs, ticks, title)))
 
     def cell_id(self):
         cells = VGroup(*[Square(0.18).set_stroke(GREY_B, 1) for _ in range(64)]).arrange(RIGHT, buff=0.02).move_to(0.6 * UP)
@@ -287,6 +323,47 @@ def z_ij(p, n):
         d = (p >> (2 * (n - 1 - level))) & 3
         i, j = (i << 1) | (d >> 1), (j << 1) | (d & 1)
     return i, j
+
+
+def covering(centre, radius, n, max_level):
+    """Quadtree cells (level, a, b) covering a circle: keep a cell once it is inside or at max_level."""
+    out = []
+
+    def visit(level, a, b):
+        size = 2 ** (n - level)
+        x0, y0, x1, y1 = a * size, b * size, (a + 1) * size, (b + 1) * size
+        nx, ny = min(max(centre[0], x0), x1), min(max(centre[1], y0), y1)
+        if (nx - centre[0]) ** 2 + (ny - centre[1]) ** 2 >= radius ** 2:
+            return
+        corners = ((x0, y0), (x0, y1), (x1, y0), (x1, y1))
+        if level == max_level or all((x - centre[0]) ** 2 + (y - centre[1]) ** 2 <= radius ** 2 for x, y in corners):
+            out.append((level, a, b))
+            return
+        start = len(out)
+        for da in (0, 1):
+            for db in (0, 1):
+                visit(level + 1, 2 * a + da, 2 * b + db)
+        # Like S2's normalize step: four kept siblings become their parent.
+        if set(out[start:]) == {(level + 1, 2 * a + da, 2 * b + db) for da in (0, 1) for db in (0, 1)}:
+            del out[start:]
+            out.append((level, a, b))
+
+    for a in (0, 1):
+        for b in (0, 1):
+            visit(1, a, b)
+    return out
+
+
+def merge(spans):
+    """Join position ranges that touch end to start."""
+    spans = sorted(spans)
+    out = [list(spans[0])]
+    for s, e in spans[1:]:
+        if s == out[-1][1] + 1:
+            out[-1][1] = e
+        else:
+            out.append([s, e])
+    return out
 
 
 def cell_center(i, j, n, side, c):
