@@ -291,8 +291,9 @@ class HilbertS2(Scene):
             anims.append(FadeOut(self.cap, shift=0.15 * UP))
         self.play(*anims, run_time=0.6)
         self.cap = new
-        if wait:
-            self.wait(wait)
+        # No narration, so hold long enough to read (~20 characters a second);
+        # captions that lead into an animation get half that, the animation covers the rest.
+        self.wait(max(wait, len(text) / 20) if wait else len(text) / 45)
 
 
 def hilbert_ij(p, n):
