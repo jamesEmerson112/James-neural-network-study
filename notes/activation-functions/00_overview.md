@@ -1,6 +1,13 @@
-# Activation Functions: From Sigmoid to GeGLU
+# Activation Functions
 
 > See also: [Vanishing gradient and tanh](../13_vanishing_gradient_and_tanh.md), [Softmax](../22_softmax.md).
+
+This folder holds a series of Manim videos on neural-network activation functions, each with a script that renders it.
+
+- `01_sigmoid_to_geglu_video.mp4` runs from sigmoid through tanh, ReLU, Leaky ReLU, GELU and SiLU to the gated feed-forward blocks GLU, SwiGLU and GeGLU. This page describes it.
+- `02_gelu_silu_and_recent_activations_video.mp4` looks again at GELU and SiLU through the Swish-β family, then covers the activations that released LLMs adopted from 2024 to 2026: squared ReLU, gpt-oss's clamped SwiGLU, xIELU, and a sigmoid gate on the attention output. Its companion note is [GELU, SiLU and Recent LLM Activations](02_gelu_silu_and_recent_activations.md).
+
+## Video 1: from sigmoid to GeGLU
 
 `01_sigmoid_to_geglu_video.mp4` is a Manim explainer, about five and a half minutes long at 1080p30, that walks the activation functions in the order they were adopted and ends at the gated feed-forward blocks that modern LLMs use. It opens with why a network needs a nonlinearity at all: two linear layers multiply out to one matrix, $W_2(W_1x) = (W_2W_1)x$. It then plots sigmoid and its derivative, shows how a slope of at most $0.25$ per layer makes the gradient vanish, and moves through tanh, ReLU and its dead-neuron problem, Leaky ReLU, GELU and SiLU. The last third builds GLU, SwiGLU and GeGLU as diagrams and works out why SwiGLU's hidden width is $\tfrac{2}{3}\cdot 4d$.
 
@@ -12,7 +19,7 @@ manim --resolution 1920,1080 --frame_rate 30 01_sigmoid_to_geglu_video.py Activa
 
 On a machine without Manim installed, `uvx --from manim manim ...` runs the same command.
 
-## The functions
+### The functions
 
 | Function | Formula | History |
 |---|---|---|
@@ -26,6 +33,6 @@ On a machine without Manim installed, `uvx --from manim manim ...` runs the same
 | SwiGLU | $W_2\big(\mathrm{SiLU}(W_1x) \odot W_3x\big)$ | Shazeer's "GLU Variants Improve Transformer" (2020) introduced it; PaLM, LLaMA, Mistral, Qwen and DeepSeek use it. |
 | GeGLU | $W_2\big(\mathrm{GELU}(W_1x) \odot W_3x\big)$ | It comes from the same Shazeer (2020) paper, and Google's Gemma models use it. |
 
-## Why SwiGLU's hidden width is $\tfrac{2}{3}\cdot 4d$
+### Why SwiGLU's hidden width is $\tfrac{2}{3}\cdot 4d$
 
 A standard transformer feed-forward block has two matrices of size $d \times 4d$, so $8d^2$ parameters. SwiGLU has three matrices of size $d \times h$, so $3dh$. Setting $3dh = 8d^2$ gives $h = \tfrac{8d}{3} = \tfrac{2}{3}\cdot 4d$. LLaMA-7B has $d = 4096$, which gives about $10923$, and the model rounds that up to $11008$, a multiple of $256$.
