@@ -448,11 +448,12 @@ pre.out { background: var(--bg); border-top: 1px solid var(--rule); max-height: 
 <section class="plate" aria-labelledby="video">
   <div class="text">
     <div class="plate-head">
-      <p class="eyebrow">Interlude · 3-minute video</p>
+      <p class="eyebrow">Interlude · 4-minute video</p>
       <h2 id="video">Watch the curve get built</h2>
     </div>
     <p>This animation covers the same ground with motion. It starts with the quadtree and the question of which child comes first. Then it shows Z-order's jumps and grows the Hilbert curve from four copies of itself, flipping the first and last copy so each one ends beside the start of the next.</p>
     <p>The middle section answers how S2 finds a cell's position without drawing anything. It reads one bit of i and one bit of j per level, looks up the child number for the current orientation, and flips the orientation when that child's copy is flipped. The last section shows why the one-way guarantee is enough: a circle that straddles the midline is covered by 6 cells, and those cells are only 2 ranges on the sorted line.</p>
+    <p>It closes with a "places near me" search on a map. Each place is stored under its cell ID. The search circle is covered by cells, those cells become a few ID range scans, and an exact distance check keeps only the places truly inside. Google describes S2 as the geometry under its global geographic database but has not published how Maps uses it internally, so the video shows the query pattern S2 is built for rather than Maps code.</p>
     <p class="caption">There is no sound; the captions carry the explanation. It was made with Manim Community Edition, the open-source fork of the animation library Grant Sanderson built for 3Blue1Brown. The script uses the same S2 tables as this page, and every number on screen is computed from them.</p>
   </div>
   <figure class="figure" style="margin:0">

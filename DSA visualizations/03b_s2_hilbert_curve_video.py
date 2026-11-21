@@ -285,13 +285,71 @@ class HilbertS2(Scene):
         self.play(FadeIn(example, shift=0.1 * UP))
         self.wait(2.5)
         self.say("Places near each other on the curve get IDs near each other,\nso one sorted index keeps neighbouring places together.", wait=3)
-        self.play(FadeOut(VGroup(cells, face, position, marker, example, self.cap)))
+        self.play(FadeOut(VGroup(cells, face, position, marker, example)))
+        self.maps()
+        self.play(FadeOut(self.cap))
         self.cap = None
         end = Text("Every place on Earth, numbered along one line.", font=SERIF, font_size=40)
         bg = hcurve(5, 6.4, ORIGIN, 2).set_stroke(opacity=0.25)
         self.play(FadeIn(bg), Write(end), run_time=1.6)
         self.wait(3)
         self.play(FadeOut(end), FadeOut(bg))
+
+    def maps(self):
+        """A 'places near me' search: the query pattern S2 exists for on a map."""
+        n, side, c = 4, 5.0, np.array([-3.6, 0.45, 0])
+
+        def to_pt(x, y):
+            return c + np.array([(x / 2 ** n - 0.5) * side, (y / 2 ** n - 0.5) * side, 0])
+
+        frame = Square(side).move_to(c).set_stroke(GREY_B, 1.5)
+        grid = grid_lines(n, side, c).set_stroke(FAINT, 1)
+        places = np.random.default_rng(7).uniform(0.3, 15.7, size=(70, 2))
+        dots = VGroup(*[Dot(to_pt(*p), radius=0.05, color=GREY_B) for p in places])
+        me, radius = np.array([6.3, 9.4]), 2.5
+        you = Dot(to_pt(*me), radius=0.1, color=CURVE)
+        ring = Circle(radius * side / 2 ** n).move_to(to_pt(*me)).set_stroke(CURVE, 3)
+        cells = covering(me, radius, n, max_level=3)
+        squares = VGroup()
+        for level, a, b in cells:
+            size = 2 ** (n - level)
+            squares.add(Square(size * side / 2 ** n).move_to(to_pt((a + 0.5) * size, (b + 0.5) * size))
+                        .set_stroke(ACCENT, 2).set_fill(ACCENT, 0.25))
+
+        def in_cells(p):
+            return any(a * 2 ** (n - l) <= p[0] < (a + 1) * 2 ** (n - l) and b * 2 ** (n - l) <= p[1] < (b + 1) * 2 ** (n - l)
+                       for l, a, b in cells)
+
+        candidates = [k for k, p in enumerate(places) if in_cells(p)]
+        inside = [k for k in candidates if np.linalg.norm(places[k] - me) <= radius]
+        ranges = merge([(hilbert_pos(a, b, l) * 4 ** (n - l), (hilbert_pos(a, b, l) + 1) * 4 ** (n - l) - 1) for l, a, b in cells])
+        head = Text("Google describes S2 as the geometry under its\nglobal geographic database (open-source release, 2017).",
+                    font=SERIF, font_size=22, color=GREY_B)
+        head.next_to(frame, RIGHT, buff=0.5).align_to(frame, UP)
+        self.say("On a map, the job S2 is built for looks like a 'places near me' search.", wait=0)
+        self.play(FadeIn(head), Create(frame), Create(grid), run_time=1.2)
+        self.play(LaggedStart(*[FadeIn(d, scale=0.5) for d in dots], lag_ratio=0.02), run_time=1.5)
+        self.say("Each place is stored under the ID of the cell it sits in,\nso the index is just places sorted along the curve.")
+        self.play(FadeIn(you, scale=0.5), Create(ring))
+        self.play(LaggedStart(*[FadeIn(s) for s in squares], lag_ratio=0.1), run_time=1.2)
+        lines = VGroup(Text("ID ranges to scan:", font=MONO, font_size=24),
+                       *[Text(f"  #{s} to #{e}", font=MONO, font_size=24, color=ACCENT) for s, e in ranges])
+        lines.arrange(DOWN, aligned_edge=LEFT, buff=0.15).next_to(head, DOWN, buff=0.6).align_to(head, LEFT)
+        self.say(f"Cover the search circle with {len(cells)} cells. Each cell is one range of IDs,\nso the search is {len(ranges)} range scans on the sorted index.", wait=0)
+        self.play(FadeIn(lines, shift=0.1 * RIGHT))
+        self.wait(2.5)
+        self.play(*[dots[k].animate.set_color(ACCENT).scale(1.4) for k in candidates], run_time=0.8)
+        tally = Text(f"{len(candidates)} candidates from the scans", font=MONO, font_size=24).next_to(lines, DOWN, buff=0.4).align_to(lines, LEFT)
+        self.say("The scans return every place in those cells. A cheap exact distance check\nthen keeps only the places truly inside the circle.", wait=0)
+        self.play(FadeIn(tally))
+        self.wait(1.2)
+        outside = [k for k in candidates if k not in inside]
+        kept = Text(f"{len(inside)} inside the circle", font=MONO, font_size=24, color=CURVE).next_to(tally, DOWN, buff=0.15).align_to(tally, LEFT)
+        self.play(*[dots[k].animate.set_color(GREY_B).scale(1 / 1.4) for k in outside],
+                  *[dots[k].animate.set_color(CURVE) for k in inside], FadeIn(kept), run_time=1.0)
+        self.wait(2.5)
+        self.say("Google hasn't published how Maps uses S2 internally, but the same cell IDs\nare public elsewhere, such as BigQuery's S2_CELLIDFROMPOINT.", wait=3)
+        self.play(FadeOut(VGroup(frame, grid, dots, you, ring, squares, head, lines, tally, kept)))
 
     def say(self, text, wait=1.5):
         """Swap the caption at the bottom of the frame."""
