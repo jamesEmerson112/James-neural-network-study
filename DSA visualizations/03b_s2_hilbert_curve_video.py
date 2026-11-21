@@ -162,7 +162,7 @@ class HilbertS2(Scene):
             digits.append(pos)
             child_c = box_c + np.array([(ib - 0.5) * box_s / 2, (jb - 0.5) * box_s / 2, 0])
             box = Square(box_s / 2).move_to(child_c).set_stroke(ACCENT, 3)
-            note = "next U is mirrored" if POS_TO_ORIENT[pos] else "next U is the same"
+            note = "last level" if level == 2 else ("next U flips" if POS_TO_ORIENT[pos] else "next U stays")
             entry = VGroup(
                 Text(f"level {level + 1}: bits ({ib}, {jb}) → child {pos}", font=MONO, font_size=21),
                 Text(note, font=MONO, font_size=18, color=GREY_B),
@@ -179,9 +179,9 @@ class HilbertS2(Scene):
             if level == 2:
                 second = f"The digits {digits[0]}, {digits[1]}, {digits[2]} are the cell's place on the curve."
             elif POS_TO_ORIENT[pos]:
-                second = f"Write down {pos}. That copy was mirrored, so the next U is mirrored too."
+                second = f"Write down {pos}. That copy is flipped, so the next level uses a flipped U."
             else:
-                second = f"Write down {pos}. That copy wasn't mirrored, so the next U keeps its shape."
+                second = f"Write down {pos}. That copy isn't flipped, so the next level keeps this U."
             self.say(first + "\n" + second, wait=2.5)
             orient ^= POS_TO_ORIENT[pos]
             box_c, box_s, u_prev, box_prev = child_c, box_s / 2, u, box
@@ -212,7 +212,7 @@ class HilbertS2(Scene):
         self.say(f"Take the same run of 32 consecutive numbers, {lo} to {hi}, on both curves.", wait=0)
         self.play(*[LaggedStart(*[FadeIn(s) for s in run], lag_ratio=0.08) for _, run, _ in boards], run_time=2.5)
         self.wait(0.8)
-        self.say("Hilbert's run is always one connected patch; this Z-order run splits in two.\nIn reverse, a map region breaks into fewer runs on Hilbert, so fewer ranges to scan.", wait=3.5)
+        self.say("Hilbert's run is always one connected patch; this Z-order run splits in two.\nOn average a map region also breaks into fewer runs on Hilbert, so fewer ranges to scan.", wait=3.5)
         self.play(*[FadeOut(run) for _, run, _ in boards])
         ch = boards[1][2]
         marks = VGroup()
@@ -276,8 +276,12 @@ class HilbertS2(Scene):
         self.say("An S2 cell ID packs it all into 64 bits: the cube face,\nthe Hilbert position, then a 1 that marks the cell's level.", wait=0)
         self.play(LaggedStart(*[FadeIn(s) for s in cells], lag_ratio=0.01), run_time=1.5)
         self.play(FadeIn(face), FadeIn(position), FadeIn(marker))
-        example = Text("Ferry Building, San Francisco, level 16 → token 80858066f", font=MONO, font_size=24)
-        example.next_to(cells, DOWN, buff=1.0)
+        # Both IDs come from the Rust s2 crate run in the S2 Cell Atlas lesson.
+        example = VGroup(
+            Text("Ferry Building, San Francisco", font=SERIF, font_size=26),
+            Text("leaf cell 80858066ed4b7795, inside level-16 cell 80858066f", font=MONO, font_size=24),
+        ).arrange(DOWN, buff=0.2)
+        example.next_to(cells, DOWN, buff=0.9)
         self.play(FadeIn(example, shift=0.1 * UP))
         self.wait(2.5)
         self.say("Places near each other on the curve get IDs near each other,\nso one sorted index keeps neighbouring places together.", wait=3)

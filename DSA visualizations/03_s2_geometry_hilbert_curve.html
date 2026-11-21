@@ -146,6 +146,7 @@ canvas.wide { aspect-ratio: 5 / 4; }
 canvas.strip { aspect-ratio: 9 / 1; }
 canvas.pair { aspect-ratio: 2 / 1.02; }
 canvas.orient { aspect-ratio: 4 / 1.32; background: var(--plate); border: 1px solid var(--rule); border-radius: 4px; }
+video.film { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #0b0d10; border-radius: 3px; }
 canvas.drag { cursor: grab; }
 canvas.drag:active { cursor: grabbing; }
 .caption { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.45; }
@@ -312,7 +313,7 @@ pre.out { background: var(--bg); border-top: 1px solid var(--rule); max-height: 
 </header>
 
 <nav class="toc" aria-label="Contents">
-  <a href="#step1">1 Cube</a><a href="#step2">2 Warp</a><a href="#step3">3 Quadtree</a><a href="#step4">4 Hilbert curve</a><a href="#step5">5 Cell ID</a><a href="#step6">6 Covering</a><a href="#sf">San Francisco</a><a href="#code">Code</a><a href="#why">Adoption</a><a href="#history">Lineage</a>
+  <a href="#step1">1 Cube</a><a href="#step2">2 Warp</a><a href="#step3">3 Quadtree</a><a href="#step4">4 Hilbert curve</a><a href="#video">Video</a><a href="#step5">5 Cell ID</a><a href="#step6">6 Covering</a><a href="#sf">San Francisco</a><a href="#code">Code</a><a href="#why">Adoption</a><a href="#history">Lineage</a>
 </nav>
 
 <section class="plate" aria-labelledby="why-not-latlng">
@@ -440,6 +441,25 @@ pre.out { background: var(--bg); border-top: 1px solid var(--rule); max-height: 
     </div>
     <p class="readout" id="hilbertReadout" aria-live="polite"></p>
     <p class="readout" id="hilbertHover"></p>
+  </figure>
+</section>
+
+<!-- Video -->
+<section class="plate" aria-labelledby="video">
+  <div class="text">
+    <div class="plate-head">
+      <p class="eyebrow">Interlude · 3-minute video</p>
+      <h2 id="video">Watch the curve get built</h2>
+    </div>
+    <p>This animation covers the same ground with motion. It starts with the quadtree and the question of which child comes first. Then it shows Z-order's jumps and grows the Hilbert curve from four copies of itself, flipping the first and last copy so each one ends beside the start of the next.</p>
+    <p>The middle section answers how S2 finds a cell's position without drawing anything. It reads one bit of i and one bit of j per level, looks up the child number for the current orientation, and flips the orientation when that child's copy is flipped. The last section shows why the one-way guarantee is enough: a circle that straddles the midline is covered by 6 cells, and those cells are only 2 ranges on the sorted line.</p>
+    <p class="caption">There is no sound; the captions carry the explanation. It was made with Manim Community Edition, the open-source fork of the animation library Grant Sanderson built for 3Blue1Brown. The script uses the same S2 tables as this page, and every number on screen is computed from them.</p>
+  </div>
+  <figure class="figure" style="margin:0">
+    <video class="film" controls preload="metadata" playsinline poster="03b_s2_hilbert_curve_video.jpg" aria-label="Animated explanation of the Hilbert curve in S2, about three minutes, captions only">
+      <source src="03b_s2_hilbert_curve_video.mp4" type="video/mp4">
+    </video>
+    <p class="caption">The lookup example follows cell (6, 3) on an 8 × 8 grid. Its digits are 3, 0, 3, so it sits at position 51. At the second level the flipped U calls that quadrant child 0, where the plain U would call it child 2. That is the orientation state doing its job.</p>
   </figure>
 </section>
 
