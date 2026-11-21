@@ -5,7 +5,7 @@
 This folder holds a series of Manim videos on neural-network activation functions, each with a script that renders it.
 
 - `01_sigmoid_to_geglu_video.mp4` runs from sigmoid through tanh, ReLU, Leaky ReLU, GELU and SiLU to the gated feed-forward blocks GLU, SwiGLU and GeGLU. This page describes it.
-- `02_gelu_silu_and_recent_activations_video.mp4` looks again at GELU and SiLU through the Swish-β family, then covers the activations that released LLMs adopted from 2024 to 2026: squared ReLU, gpt-oss's clamped SwiGLU, xIELU, and a sigmoid gate on the attention output. Its companion note is [GELU, SiLU and Recent LLM Activations](02_gelu_silu_and_recent_activations.md).
+- `02_gelu_silu_and_recent_activations_video.mp4`, about five minutes long at 1080p30, looks again at GELU and SiLU through the Swish-β family, then covers the activations that released LLMs adopted from 2024 to 2026: squared ReLU, gpt-oss's clamped SwiGLU, xIELU, and a sigmoid gate on the attention output. Its companion note is [GELU, SiLU and Recent LLM Activations](02_gelu_silu_and_recent_activations.md).
 
 ## Video 1: from sigmoid to GeGLU
 

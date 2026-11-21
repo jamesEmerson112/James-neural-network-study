@@ -2,7 +2,7 @@
 
 > Companion note to `02_gelu_silu_and_recent_activations_video.mp4`, the second video in this series. See [the overview](00_overview.md) for video 1.
 
-The video has two parts. Part 1 looks again at GELU and SiLU, the two smooth gates that video 1 introduced, and shows how the Swish-β family connects them to each other and to ReLU. Part 2 covers activation functions that released LLMs adopted between 2024 and 2026. Every number in the video is computed by the script itself, and every adoption claim comes from a paper, a model card or a model's `config.json`.
+The video is about five minutes long at 1080p30 and has two parts. Part 1 looks again at GELU and SiLU, the two smooth gates that video 1 introduced, and shows how the Swish-β family connects them to each other and to ReLU. Part 2 covers activation functions that released LLMs adopted between 2024 and 2026. Every number in the video is computed by the script itself, and every adoption claim comes from a paper, a model card or a model's `config.json`.
 
 Render it from this folder (Manim Community; no LaTeX needed):
 
