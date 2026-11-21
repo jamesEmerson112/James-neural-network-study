@@ -115,7 +115,7 @@ class Activations(Scene):
         self.mark("sigmoid")
         self.heading("Sigmoid   σ(x) = 1 / (1 + e⁻ˣ)")
         ax = make_axes((-6, 6), (-0.2, 1.2), 7.2, 4.2, np.array([-2.9, 0.15, 0]),
-                       xticks=(-6, -3, 0, 3, 6), yticks=(0.25, 0.5, 1))
+                       xticks=(-6, -3, 0, 3, 6), yticks=(0.5, 1))
         s = graph(ax, sigmoid, -6, 6).set_stroke(CURVE, 5)
         self.say("The logistic curve squashes any number into the range 0 to 1.\nIt was the default unit when backpropagation spread in 1986.", wait=0)
         self.play(Create(ax), run_time=1)
@@ -161,8 +161,8 @@ class Activations(Scene):
         left = Rectangle(width=ax.c2p(-2.5, 0)[0] - ax.c2p(-6, 0)[0], height=4.4).set_stroke(width=0).set_fill(BAD, 0.15)
         left.move_to(np.array([(ax.c2p(-6, 0)[0] + ax.c2p(-2.5, 0)[0]) / 2, ax.get_center()[1], 0]))
         right = left.copy().move_to(np.array([(ax.c2p(2.5, 0)[0] + ax.c2p(6, 0)[0]) / 2, ax.get_center()[1], 0]))
-        sat = VGroup(Text("saturated", font=SERIF, font_size=24, color=BAD).move_to(left.get_top() + 0.3 * DOWN),
-                     Text("saturated", font=SERIF, font_size=24, color=BAD).move_to(right.get_top() + 0.3 * DOWN))
+        sat = VGroup(Text("saturated", font=SERIF, font_size=24, color=BAD).move_to(left.get_top() + 0.35 * DOWN),
+                     Text("saturated", font=SERIF, font_size=24, color=BAD).move_to(right.get_bottom() + 0.35 * UP))
         self.say("But both ends still go flat. A unit pushed far from zero\nhas a slope near 0, and the gradient through it vanishes again.", wait=0)
         self.play(FadeIn(left), FadeIn(right), FadeIn(sat))
         self.wait(4.5)
@@ -185,15 +185,16 @@ class Activations(Scene):
         self.play(Create(gax), FadeIn(glabel))
         self.play(Create(g0), Create(g1))
         self.wait(4)
-        xs = [-1.5, -0.6, 0.4, 1.1, 1.9, 2.7]
+        xs = [-1.0, -0.4, 0.4, 1.1, 1.7, 2.3]
         dots = VGroup(*[Dot(ax.c2p(x, relu(x)), radius=0.1, color=GOOD if x > 0 else GREY_B) for x in xs])
         self.say("The catch: each dot is this neuron's input on one example.\nWhere the input is negative, no gradient flows back at all.", wait=0)
         self.play(LaggedStart(*[FadeIn(d, scale=0.5) for d in dots], lag_ratio=0.15))
         self.wait(3.5)
         self.say("One large update can push the bias down so every input is negative.\nThe neuron now outputs 0 everywhere, with slope 0: it is dead.", wait=0)
-        self.play(*[d.animate.move_to(ax.c2p(x - 3, 0)).set_color(GREY_B) for d, x in zip(dots, xs)], run_time=2)
-        dead = Text("dead neuron: no gradient, no recovery", font=SERIF, font_size=28, color=BAD)
-        dead.next_to(gax, DOWN, buff=0.7)
+        self.play(*[d.animate.move_to(ax.c2p(x - 2.7, 0)).set_color(GREY_B) for d, x in zip(dots, xs)], run_time=2)
+        dead = VGroup(Text("dead neuron:", font=SERIF, font_size=28, color=BAD),
+                      Text("no gradient, no recovery", font=SERIF, font_size=28, color=BAD))
+        dead.arrange(DOWN, aligned_edge=LEFT, buff=0.15).next_to(gax, DOWN, buff=0.6).align_to(gax, LEFT)
         self.play(FadeIn(dead))
         self.wait(4)
         self.ax, self.curve, self.dots = ax, r, dots
@@ -207,10 +208,13 @@ class Activations(Scene):
         self.say("Leaky ReLU keeps a small slope α on the negative side,\nso a neuron below zero still gets some gradient.", wait=0)
         self.play(Transform(self.curve, lk), run_time=1.5)
         note = VGroup(
-            Text("α = 0.01 in Maas, Hannun and Ng (2013)", font=SERIF, font_size=26),
-            Text("drawn here with α = 0.1 so it is visible", font=SERIF, font_size=22, color=GREY_B),
-            Text("He et al. (2015): learn α per channel (PReLU)", font=SERIF, font_size=26),
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.3).move_to(np.array([3.6, 0.6, 0]))
+            Text("α = 0.01 in Maas, Hannun and Ng (2013)", font=SERIF, font_size=24),
+            Text("drawn here with α = 0.1 so it is visible", font=SERIF, font_size=20, color=GREY_B),
+            Text("PReLU (He et al. 2015) learns α", font=SERIF, font_size=24),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.3)
+        if note.width > 5.2:
+            note.scale_to_fit_width(5.2)
+        note.move_to(np.array([1.2, 0.6, 0]), aligned_edge=LEFT)
         self.play(FadeIn(note[0]), FadeIn(note[1]))
         self.wait(4)
         self.play(FadeIn(note[2]))
@@ -237,7 +241,9 @@ class Activations(Scene):
         self.say("The result is a smooth ReLU. Small negative inputs leak through\nas a shallow dip, and the slope changes continuously.", wait=0)
         self.play(FadeIn(dip), FadeIn(dl))
         self.wait(4)
-        users = Text("BERT, GPT-2 and GPT-3 use GELU", font=SERIF, font_size=30, color=CURVE).move_to(ax.c2p(1.0, 2.75))
+        users = VGroup(Text("BERT, GPT-2 and GPT-3", font=SERIF, font_size=28, color=CURVE),
+                       Text("use GELU", font=SERIF, font_size=28, color=CURVE)).arrange(DOWN, buff=0.15)
+        users.move_to(ax.c2p(-2.2, 2.45))
         self.say("GELU became the transformer default: BERT used it in 2018,\nand GPT-2 and GPT-3 kept it.", wait=0)
         self.play(FadeIn(users))
         self.wait(3.5)
@@ -295,7 +301,7 @@ class Activations(Scene):
             ).arrange(RIGHT, buff=0.18))
         vec.arrange(DOWN, buff=0.22, aligned_edge=RIGHT).move_to(np.array([5.4, -1.0, 0]))
         hdr = Text("element by element", font=SERIF, font_size=22, color=GREY_B).next_to(vec, UP, buff=0.25)
-        self.say("The ⊙ is an element-wise product. Each gate value between 0 and 1\ndecides how much of the matching feature gets through.", wait=0)
+        self.say("The circled dot is an element-wise product. Each gate value between 0 and 1\ndecides how much of the matching feature gets through.", wait=0)
         self.play(FadeIn(hdr), LaggedStart(*[FadeIn(r, shift=0.1 * LEFT) for r in vec], lag_ratio=0.25), run_time=2)
         self.wait(4)
         self.say("Unlike SiLU, where x gates itself, the gate here is learned separately,\nso the layer chooses what to pass based on the whole input.", wait=4)
@@ -338,12 +344,12 @@ class Activations(Scene):
         self.play(MoveAlongPath(pulses[0], path_c), run_time=1.2, rate_func=linear)
         self.play(FadeOut(pulses[0]))
         self.wait(2.5)
-        self.play(diagram.animate.scale(0.6).move_to(np.array([0, 1.75, 0])), run_time=1)
+        self.play(diagram.animate.scale(0.6).move_to(np.array([0, 1.85, 0])), run_time=1)
         budget = VGroup(
             Text("standard FFN:  2 matrices of d × 4d  =  8d²", font=MATH, font_size=28),
             Text("SwiGLU FFN:    3 matrices of d × h    =  3dh", font=MATH, font_size=28),
             Text("3dh = 8d²   gives   h = 8d / 3 = (2/3) · 4d", font=MATH, font_size=28, color=ACCENT),
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.32).move_to(np.array([0.0, -0.35, 0]))
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.26).move_to(np.array([0.0, -0.15, 0]))
         self.say("Why three matrices? Two make the gate and the value, one projects back.\nA plain FFN has two, so for the same parameters the hidden width must shrink.", wait=0)
         self.play(FadeIn(budget[0]))
         self.play(FadeIn(budget[1]))
@@ -351,12 +357,12 @@ class Activations(Scene):
         self.play(FadeIn(budget[2], shift=0.1 * UP))
         self.wait(4)
         llama = Text("LLaMA-7B:  d = 4096,  (2/3) · 4d ≈ 10923,  rounded up to 11008",
-                     font=MATH, font_size=26, color=GREY_B).next_to(budget, DOWN, buff=0.35)
+                     font=MATH, font_size=26, color=GREY_B).next_to(budget, DOWN, buff=0.3)
         self.say("Shazeer cut the hidden width from 3072 to 2048 to keep the cost equal.\nLLaMA uses (2/3) · 4d, rounded up to a multiple of 256.", wait=0)
         self.play(FadeIn(llama))
         self.wait(4.5)
         users = Text("SwiGLU:  PaLM · LLaMA · Mistral · Qwen · DeepSeek", font=SERIF, font_size=30, color=ACCENT)
-        users.next_to(llama, DOWN, buff=0.35)
+        users.next_to(llama, DOWN, buff=0.28)
         self.say("It trained to lower loss than ReLU or GELU feed-forward layers at equal cost.\nLLaMA, Mistral, Qwen and DeepSeek all use SwiGLU.", wait=0)
         self.play(FadeIn(users))
         self.wait(5)
@@ -395,7 +401,7 @@ class Activations(Scene):
         self.wait(3)
         events = (("1986", "sigmoid\nbackprop"), ("1998", "tanh\nadvice"), ("2010", "ReLU"), ("2013", "Leaky\nReLU"),
                   ("2016", "GELU"), ("2017", "SiLU, GLU"), ("2020", "SwiGLU\nGeGLU"), ("2023", "LLaMA"))
-        y0 = -1.65
+        y0 = -1.8
         line = Line(np.array([-6.3, y0, 0]), np.array([6.3, y0, 0])).set_stroke(GREY_B, 2)
         marks = VGroup()
         for k, (yr, what) in enumerate(events):

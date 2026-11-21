@@ -2,7 +2,7 @@
 
 > See also: [Vanishing gradient and tanh](../13_vanishing_gradient_and_tanh.md), [Softmax](../22_softmax.md).
 
-`01_sigmoid_to_geglu_video.mp4` is a Manim explainer, about five minutes long, that walks the activation functions in the order they were adopted and ends at the gated feed-forward blocks that modern LLMs use. It opens with why a network needs a nonlinearity at all: two linear layers multiply out to one matrix, $W_2(W_1x) = (W_2W_1)x$. It then plots sigmoid and its derivative, shows how a slope of at most $0.25$ per layer makes the gradient vanish, and moves through tanh, ReLU and its dead-neuron problem, Leaky ReLU, GELU and SiLU. The last third builds GLU, SwiGLU and GeGLU as diagrams and works out why SwiGLU's hidden width is $\tfrac{2}{3}\cdot 4d$.
+`01_sigmoid_to_geglu_video.mp4` is a Manim explainer, about five and a half minutes long at 1080p30, that walks the activation functions in the order they were adopted and ends at the gated feed-forward blocks that modern LLMs use. It opens with why a network needs a nonlinearity at all: two linear layers multiply out to one matrix, $W_2(W_1x) = (W_2W_1)x$. It then plots sigmoid and its derivative, shows how a slope of at most $0.25$ per layer makes the gradient vanish, and moves through tanh, ReLU and its dead-neuron problem, Leaky ReLU, GELU and SiLU. The last third builds GLU, SwiGLU and GeGLU as diagrams and works out why SwiGLU's hidden width is $\tfrac{2}{3}\cdot 4d$.
 
 Render it from this folder (Manim Community; no LaTeX needed, every formula is drawn with `Text`):
 
