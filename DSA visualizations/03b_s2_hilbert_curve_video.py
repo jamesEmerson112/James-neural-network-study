@@ -134,7 +134,9 @@ class HilbertS2(Scene):
 
     def lookup(self):
         side, c = 5.0, np.array([-3.7, 0.45, 0])
-        ti, tj = 5, 2
+        # (6, 3) passes through a quadrant where the mirrored U and the plain U disagree,
+        # so the orientation state visibly changes the answer.
+        ti, tj = 6, 3
         board = Square(side).move_to(c).set_stroke(GREY_B, 2)
         grid = grid_lines(3, side, c).set_stroke(FAINT, 1)
         dim = hcurve(3, side, c, 3).set_stroke(opacity=0.22)
@@ -169,11 +171,18 @@ class HilbertS2(Scene):
             log.arrange(DOWN, aligned_edge=LEFT, buff=0.22).next_to(panel, DOWN, aligned_edge=LEFT, buff=0.5)
             box_anim = ReplacementTransform(box_prev, box) if box_prev else Create(box)
             self.play(Indicate(u[1][pos], color=ACCENT), box_anim, FadeIn(entry, shift=0.1 * RIGHT), run_time=1.0)
-            self.say((
-                "Bits (1, 0) pick the lower-right quadrant, which this U visits as child 3.\nWrite down 3. That copy was mirrored, so the next U is mirrored too.",
-                "Inside it the U is mirrored, so bits (0, 1) now mean child 1.\nThat copy wasn't flipped, so the orientation stays.",
-                "Last level: bits (1, 0) mean child 3 again.\nThe digits 3, 1, 3 are the cell's place on the curve.",
-            )[level], wait=2.5)
+            ij = (ib << 1) | jb
+            region = ("lower-left", "upper-left", "lower-right", "upper-right")[ij]
+            plain = IJ_TO_POS[0][ij]
+            first = f"Bits ({ib}, {jb}) pick the {region} quadrant: child {pos} in this U"
+            first += "." if plain == pos else f", though the plain U calls it {plain}."
+            if level == 2:
+                second = f"The digits {digits[0]}, {digits[1]}, {digits[2]} are the cell's place on the curve."
+            elif POS_TO_ORIENT[pos]:
+                second = f"Write down {pos}. That copy was mirrored, so the next U is mirrored too."
+            else:
+                second = f"Write down {pos}. That copy wasn't mirrored, so the next U keeps its shape."
+            self.say(first + "\n" + second, wait=2.5)
             orient ^= POS_TO_ORIENT[pos]
             box_c, box_s, u_prev, box_prev = child_c, box_s / 2, u, box
         value = sum(d * 4 ** (2 - k) for k, d in enumerate(digits))
