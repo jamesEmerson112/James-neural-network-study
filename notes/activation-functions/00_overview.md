@@ -21,7 +21,7 @@ On a machine without Manim installed, `uvx --from manim manim ...` runs the same
 | ReLU | $\max(0, x)$ | Nair and Hinton (2010) used it in restricted Boltzmann machines, and AlexNet (Krizhevsky, Sutskever and Hinton, 2012) made it the default for deep networks. |
 | Leaky ReLU | $\max(\alpha x, x)$, $\alpha = 0.01$ | Maas, Hannun and Ng (2013) kept a small negative slope so units below zero still receive gradient. |
 | GELU | $x\,\Phi(x)$ | Hendrycks and Gimpel (2016) weighted the input by the Gaussian CDF; BERT, GPT-2 and GPT-3 use it. |
-| SiLU / Swish | $x\,\sigma(x)$ | Elfwing, Uchibe and Doya (2017) proposed it for reinforcement learning, and Ramachandran, Zoph and Le (2017) rediscovered it by automated search and named it Swish. |
+| SiLU / Swish | $x\,\sigma(x)$ | The GELU paper named it the Sigmoid Linear Unit; Elfwing, Uchibe and Doya (2017) used it for reinforcement learning, and Ramachandran, Zoph and Le (2017) rediscovered it by automated search and named it Swish. |
 | GLU | $(Wx) \odot \sigma(Vx)$ | Dauphin, Fan, Auli and Grangier (2017) gated the layers of a convolutional language model. |
 | SwiGLU | $W_2\big(\mathrm{SiLU}(W_1x) \odot W_3x\big)$ | Shazeer's "GLU Variants Improve Transformer" (2020) introduced it; PaLM, LLaMA, Mistral, Qwen and DeepSeek use it. |
 | GeGLU | $W_2\big(\mathrm{GELU}(W_1x) \odot W_3x\big)$ | It comes from the same Shazeer (2020) paper, and Google's Gemma models use it. |

@@ -145,7 +145,7 @@ class Activations(Scene):
     def tanh_section(self):
         self.mark("tanh")
         ax_old = self.ax
-        ax = make_axes((-6, 6), (-1.2, 1.2), 9, 4.4, 0.2 * UP, xticks=(-6, -3, 0, 3, 6), yticks=(-1, 1))
+        ax = make_axes((-6, 6), (-1.2, 1.2), 9, 4.4, 0.2 * UP, xticks=(-6, -3, 0, 3, 6), yticks=(-1,))
         self.heading("Tanh   tanh(x) = (eˣ − e⁻ˣ) / (eˣ + e⁻ˣ)")
         t = graph(ax, math.tanh, -6, 6).set_stroke(TEAL, 5)
         dt = graph(ax, dtanh, -6, 6).set_stroke(ACCENT, 5)
@@ -227,8 +227,9 @@ class Activations(Scene):
         ax = make_axes((-4, 3), (-0.6, 3), 8.4, 4.4, 0.2 * UP, xticks=(-4, -2, 0, 2), yticks=(1, 2, 3))
         r = graph(ax, relu, -4, 3).set_stroke(BAD, 3, opacity=0.5)
         phi = graph(ax, Phi, -4, 3).set_stroke(PURPLE, 3)
-        phil = Text("Φ(x): chance a standard normal is below x", font=MATH, font_size=24, color=PURPLE)
-        phil.move_to(ax.c2p(-1.9, 1.6))
+        phil = VGroup(Text("Φ(x): chance a standard", font=MATH, font_size=24, color=PURPLE),
+                      Text("normal is below x", font=MATH, font_size=24, color=PURPLE)).arrange(DOWN, buff=0.1)
+        phil.move_to(ax.c2p(-2.2, 1.45))
         self.say("Hendrycks and Gimpel (2016): weight x by Φ(x), the Gaussian CDF.\nLarge x is kept, very negative x is dropped, and in between it is gradual.", wait=0)
         self.play(Create(ax), FadeIn(r), run_time=1)
         self.play(Create(phi), FadeIn(phil), run_time=1.5)
@@ -238,6 +239,7 @@ class Activations(Scene):
         xm = -0.7518
         dip = Dot(ax.c2p(xm, gelu(xm)), radius=0.08, color=ACCENT)
         dl = Text("minimum ≈ −0.17", font=MATH, font_size=24, color=ACCENT).next_to(dip, DOWN, buff=0.2)
+        dl.shift(max(0, dl.get_right()[0] - ax.c2p(0, 0)[0] + 0.15) * LEFT)
         self.say("The result is a smooth ReLU. Small negative inputs leak through\nas a shallow dip, and the slope changes continuously.", wait=0)
         self.play(FadeIn(dip), FadeIn(dl))
         self.wait(4)
@@ -259,7 +261,7 @@ class Activations(Scene):
             legend_row("GELU   x · Φ(x)", CURVE),
             legend_row("SiLU   x · σ(x)", ACCENT),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.25).move_to(ax.c2p(-2.4, 2.4))
-        self.say("Swap Φ for the logistic σ and you get SiLU: Elfwing et al. (2017).\nRamachandran et al. found it the same year by search and named it Swish.", wait=0)
+        self.say("Swap Φ for the logistic σ and you get SiLU, a name from the GELU paper.\nElfwing et al. (2017) used it in RL; Ramachandran et al. (2017) found it\nby automated search and called it Swish.", wait=0)
         self.play(Create(s), FadeIn(legend), run_time=2)
         self.wait(4)
         xm = -1.2785
