@@ -73,7 +73,7 @@ $$g \leftarrow \min(g, 7), \qquad u \leftarrow \mathrm{clamp}(u, -7, 7), \qquad 
 
 The gate $g\,\sigma(1.702\,g)$ uses the same constant as GELU's sigmoid approximation from 2016, so it traces a GELU-shaped curve rather than SiLU's. The model card does not say why that constant was chosen, and the video does not guess. The card calls the design "unconventional, including clamping and a residual connection". The reference code adds $1$ to the linear branch, with a comment calling it an extra bias of $1$. With both clamps, the script finds that every output of the gated product lies between $-42.0$ and $56.0$. DeepSeek-V4.1-Flash's `config.json` (2026) also sets a `swiglu_limit`, of $10.0$, but the exact form of its clamp is not checked here.
 
-The sigmoid form of GELU did ship before gpt-oss. OpenAI's CLIP code (2021) defines `QuickGELU` as $x\,\sigma(1.702\,x)$, used as a plain activation rather than as the gate of a GLU. The video's summary says the constant waited nine years before gpt-oss used it in a gate; that is true only of its use inside a gate.
+The sigmoid form of GELU did ship before gpt-oss. OpenAI's CLIP code (2021) defines `QuickGELU` as $x\,\sigma(1.702\,x)$, used as a plain activation rather than as the gate of a GLU. The video's summary caption gives all three dates: the sigmoid form dates from 2016, CLIP used it as QuickGELU in 2021, and gpt-oss put it inside a SwiGLU gate in 2025.
 
 ### xIELU
 
@@ -98,7 +98,7 @@ These were checked and left out, because the sourcing rule needs a primary sourc
 
 ## Limits of the adoption claims
 
-The adoption years in the video are the earliest released models found during a short search, not proven first uses. "Squared ReLU waited three years" means no released LLM using it before Nemotron-4 (2024) was found. "Clamped SwiGLU, introduced 2025" means no released model with a SwiGLU clamp before gpt-oss was found.
+The adoption years in the video are the earliest released models found during a short search, not proven first uses. Nemotron-4 (2024) is the earliest released LLM found using squared ReLU, but an earlier one may exist. "Clamped SwiGLU, introduced 2025" means no released model with a SwiGLU clamp before gpt-oss was found.
 
 ## Sources
 

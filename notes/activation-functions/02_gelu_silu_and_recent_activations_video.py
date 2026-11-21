@@ -441,11 +441,12 @@ class RecentActivations(Scene):
         sg = box("σ", 0.9, 0.9, PURPLE).move_to(np.array([-1.6, 0.6, 0]))
         prod = node("⊙", ACCENT).move_to(np.array([0.3, 1.6, 0]))
         wo = box("out proj", 1.9, 0.9, GREY_B).move_to(np.array([2.5, 1.6, 0]))
-        y = node("Y′", CURVE).move_to(np.array([4.7, 1.6, 0]))
+        y = node("out", CURVE).move_to(np.array([4.7, 1.6, 0]))
         arrows = VGroup(arrow(x, att), arrow(x, wt), arrow(wt, sg), arrow(att, prod), arrow(sg, prod),
                         arrow(prod, wo), arrow(wo, y))
         ylab = Text("Y", font=MATH, font_size=26, color=GREY_A).next_to(arrows[3].get_center(), UR, buff=0.08)
-        diagram = VGroup(x, att, wt, sg, prod, wo, y, arrows, ylab)
+        yplab = Text("Y′", font=MATH, font_size=26, color=ACCENT).next_to(arrows[5], UP, buff=0.1)
+        diagram = VGroup(x, att, wt, sg, prod, wo, y, arrows, ylab, yplab)
         eq = MarkupText("Y′ = Y ⊙ σ(X W<sub>θ</sub>)", font=MATH, font_size=32, color=ACCENT).move_to(np.array([5.2, 0.4, 0]))
         if eq.get_right()[0] > 6.8:
             eq.shift((eq.get_right()[0] - 6.8) * LEFT)
@@ -454,7 +455,7 @@ class RecentActivations(Scene):
         self.play(FadeIn(x), FadeIn(att), Create(arrows[0]), run_time=1)
         self.play(Create(arrows[1]), FadeIn(wt), Create(arrows[2]), FadeIn(sg), run_time=1.2)
         self.play(Create(arrows[3:5]), FadeIn(prod), FadeIn(ylab), run_time=1)
-        self.play(Create(arrows[5:]), FadeIn(wo), FadeIn(y), run_time=1)
+        self.play(Create(arrows[5:]), FadeIn(yplab), FadeIn(wo), FadeIn(y), run_time=1)
         self.play(FadeIn(eq))
         self.wait(2.5)
         self.say("Each head's attention output Y is multiplied by σ(X W_θ), a gate computed\n"
@@ -505,8 +506,8 @@ class RecentActivations(Scene):
                 cell.move_to(np.array([cols[i], yk, 0]), aligned_edge=LEFT)
             table.add(cells)
         rule = Line(np.array([-6.4, y0 - 0.32, 0]), np.array([6.7, y0 - 0.32, 0])).set_stroke(GREY_B, 1.5)
-        self.say("The invention year and the adoption year often differ. Squared ReLU waited three years,\n"
-                 "and GELU's 1.702 constant waited nine before gpt-oss used it in a gate.", wait=0)
+        self.say("Squared ReLU dates from 2021 and reached Nemotron-4 in 2024. GELU's sigmoid form,\n"
+                 "from 2016, was CLIP's QuickGELU in 2021 and became the gpt-oss SwiGLU gate in 2025.", wait=0)
         self.play(FadeIn(hdr), Create(rule))
         self.play(LaggedStart(*[FadeIn(r, shift=0.1 * RIGHT) for r in table[1:]], lag_ratio=0.3), run_time=3)
         self.wait(5)
