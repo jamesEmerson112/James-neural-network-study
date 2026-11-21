@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a personal study collection rather than a packaged application. `notes/` contains the main Markdown material: numbered files at its root follow the broad curriculum, while folders such as `ddpm/`, `rl/`, `turing/`, and `llm-inference-stack/` hold topic-specific series. Use `00_overview.md` to introduce a new series. `TODO/` stores unread papers; completed papers belong in `human_cognitive_ai/`, `general_ai_and_society/`, or `CUDA class/`. Keep the reading lists in `README.md` synchronized when moving papers. Standalone browser demonstrations live in `DSA visualizations/`; the only current Python program is `notes/turing/turing_machine_simulator.py`.
+This repository is a personal study collection rather than a packaged application. `notes/` contains the main Markdown material: numbered files at its root follow the broad curriculum, while folders such as `ddpm/`, `rl/`, `turing/`, and `llm-inference-stack/` hold topic-specific series. Use `00_overview.md` to introduce a new series. `TODO/` stores unread papers; completed papers belong in `human_cognitive_ai/`, `general_ai_and_society/`, or `CUDA class/`. Keep the reading lists in `README.md` synchronized when moving papers. Standalone browser demonstrations live in `DSA visualizations/`; the only current Python program is `notes/turing/turing_machine_simulator.py`. Private CS 6601 study material goes in the gitignored `AI Fall 2026/CS 6601 Artificial Intelligence/private/` folder, which exists only in the main checkout, not in worktrees.
 
 ## Development and Validation Commands
 

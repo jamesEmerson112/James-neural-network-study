@@ -27,6 +27,7 @@ Run from the repository root unless noted.
 - `TODO/` — papers not yet read. `human_cognitive_ai/`, `general_ai_and_society/`, `CUDA class/` — read papers, organized by topic.
 - `README.md` — the reading index: a "To Read" table mirroring `TODO/` and a "Read" list mirroring the topic folders. When a paper is added or moves from `TODO/` into a topic folder, update README.md to match.
 - `notes/job_insights/` and `notes/mira/` are private career notes listed in `.gitignore`; the existing files were committed before that rule, so edits to them are still tracked, but new files there are ignored.
+- `AI Fall 2026/CS 6601 Artificial Intelligence/private/` is a gitignored folder for private CS 6601 study material (course handouts, challenge-question walkthroughs). It exists only in the main checkout at `E:/GitHub/James-neural-network-study`, so worktrees don't have it; save private class material there, not in the public course folder.
 
 ## Paper Files
 
