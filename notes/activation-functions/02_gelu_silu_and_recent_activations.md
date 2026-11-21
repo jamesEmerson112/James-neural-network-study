@@ -2,7 +2,7 @@
 
 > Companion note to `02_gelu_silu_and_recent_activations_video.mp4`, the second video in this series. See [the overview](00_overview.md) for video 1.
 
-The video is about five minutes long at 1080p30 and has two parts. Part 1 looks again at GELU and SiLU, the two smooth gates that video 1 introduced, and shows how the Swish-β family connects them to each other and to ReLU. Part 2 covers activation functions that released LLMs adopted between 2024 and 2026. Every number in the video is computed by the script itself, and every adoption claim comes from a paper, a model card or a model's `config.json`.
+The video is about five minutes long at 1080p30 and has two parts. Part 1 looks again at GELU and SiLU, the two smooth gates that video 1 introduced, and shows how the Swish-$\beta$ family connects them to each other and to ReLU. Part 2 covers activation functions that released LLMs adopted between 2024 and 2026. Every number in the video is computed by the script itself, and every adoption claim comes from a paper, a model card or a model's `config.json`.
 
 Render it from this folder (Manim Community; no LaTeX needed):
 
@@ -28,7 +28,7 @@ $$\mathrm{GELU}(x) \approx 0.5\,x\left(1+\tanh\!\left(\sqrt{2/\pi}\,\big(x+0.044
 
 On $[-6, 6]$ the script finds that the tanh form is never more than $0.00047$ from the exact GELU, while the sigmoid form is off by up to $0.0203$. GPT-2's released code writes the tanh form out in full, and its Hugging Face config names it `gelu_new`.
 
-### The Swish-β family
+### The Swish-$\beta$ family
 
 Ramachandran, Zoph and Le (2017) wrote Swish as $x\,\sigma(\beta x)$. One knob, $\beta$, connects several curves:
 
@@ -50,7 +50,7 @@ Both curves dip below zero and then come back toward it as $x \to -\infty$. The 
 | GELU | $-0.1700$ | $-0.7518$ |
 | SiLU | $-0.2785$ | $-1.2785$ |
 
-Left of each minimum the slope is negative, so a more negative input gives a larger output. For example $\mathrm{SiLU}(-3) \approx -0.142$, which is larger than $\mathrm{SiLU}(-1.28) \approx -0.278$. ReLU, sigmoid and tanh are all monotonic, so this dip is new with the smooth gates.
+Left of each minimum the slope is negative, so a more negative input gives a larger output. For example $\mathrm{SiLU}(-3) \approx -0.142$, which is larger than $\mathrm{SiLU}(-1.28) \approx -0.278$. ReLU, sigmoid and tanh are all monotonic, so they have no such dip.
 
 ## Part 2: activations in recent LLMs, 2024 to 2026
 
@@ -71,7 +71,9 @@ OpenAI's reference implementation splits the expert's projection into a gate inp
 
 $$g \leftarrow \min(g, 7), \qquad u \leftarrow \mathrm{clamp}(u, -7, 7), \qquad \mathrm{out} = g\,\sigma(1.702\,g)\cdot(u+1).$$
 
-The gate $g\,\sigma(1.702\,g)$ uses the same constant as GELU's sigmoid approximation from 2016, so it traces a GELU-shaped curve rather than SiLU's. The model card does not say why that constant was chosen, and the video does not guess. The card calls the design "unconventional, including clamping and a residual connection"; the residual connection is the extra $+1$ on the linear branch. With both clamps, the script finds that every output of the gated product lies between $-42.0$ and $56.0$. DeepSeek-V4.1-Flash's `config.json` (2026) also sets a `swiglu_limit`, of $10.0$, but the exact form of its clamp is not checked here.
+The gate $g\,\sigma(1.702\,g)$ uses the same constant as GELU's sigmoid approximation from 2016, so it traces a GELU-shaped curve rather than SiLU's. The model card does not say why that constant was chosen, and the video does not guess. The card calls the design "unconventional, including clamping and a residual connection". The reference code adds $1$ to the linear branch, with a comment calling it an extra bias of $1$. With both clamps, the script finds that every output of the gated product lies between $-42.0$ and $56.0$. DeepSeek-V4.1-Flash's `config.json` (2026) also sets a `swiglu_limit`, of $10.0$, but the exact form of its clamp is not checked here.
+
+The sigmoid form of GELU did ship before gpt-oss. OpenAI's CLIP code (2021) defines `QuickGELU` as $x\,\sigma(1.702\,x)$, used as a plain activation rather than as the gate of a GLU. The video's summary says the constant waited nine years before gpt-oss used it in a gate; that is true only of its use inside a gate.
 
 ### xIELU
 
@@ -79,11 +81,11 @@ Huang and Schlag derived xIELU by choosing a trainable gradient and integrating 
 
 $$\mathrm{xIELU}(x) = \begin{cases} \alpha_p\,x^2 + \beta\,x & x > 0 \\ \alpha_n\,(e^{x}-1) - \alpha_n\,x + \beta\,x & x \le 0 \end{cases}$$
 
-with $\alpha_p = \mathrm{softplus}(\cdot) > 0$ and $\alpha_n = \beta + \mathrm{softplus}(\cdot) > \beta$ learned in each layer and $\beta = 0.5$ fixed. Both $\alpha$ parameters start at $0.8$. With those initial values the curve has a minimum of $-0.206$ at $x \approx -0.98$, and as $x \to -\infty$ its slope tends to $-(\alpha_n - \beta)$, so it climbs again. A trained model's curve will differ, because the $\alpha$ values move during training. The paper reports lower perplexity than ReLU² and SwiGLU at matched compute and parameter count, in 1.1B and 3B Llama models trained on 125B tokens of FineWeb Edu.
+with $\alpha_p = \mathrm{softplus}(\cdot) > 0$ and $\alpha_n = \beta + \mathrm{softplus}(\cdot) > \beta$ learned in each layer and $\beta = 0.5$ fixed. Both $\alpha$ parameters start at $0.8$. With those initial values the curve has a minimum of $-0.206$ at $x \approx -0.98$, and as $x \to -\infty$ its slope tends to $-(\alpha_n - \beta)$, so it climbs again. A trained model's curve will differ, because the $\alpha$ values move during training. The paper reports lower perplexity than $\mathrm{ReLU}^2$ and SwiGLU at matched compute and parameter count, in 1.1B and 3B Llama models trained on 125B tokens of FineWeb Edu.
 
 ### A sigmoid gate on the attention output
 
-Qiu et al. tested gates at several positions in attention and found the best one to be a head-specific sigmoid gate applied to the output of scaled dot-product attention, $Y' = Y \odot \sigma(XW_\theta)$. Here $X$ is the hidden state after pre-normalization, the same input the attention reads. This is an element-wise sigmoid, but it sits in attention, not in the feed-forward block. Qwen3-Next's model card lists Gated Attention layers next to Gated DeltaNet layers, and the Qwen3.5 and Qwen3.8 configs switch on `attn_output_gate`.
+Qiu et al. report that a head-specific sigmoid gate applied to the output of scaled dot-product attention, $Y' = Y \odot \sigma(XW_\theta)$, consistently improves performance. Here $X$ is the hidden state after pre-normalization, the same input the attention reads. This is an element-wise sigmoid, but it sits in attention, not in the feed-forward block. Qwen3-Next's model card lists Gated Attention layers next to Gated DeltaNet layers, and the Transformers implementation of Qwen3-Next multiplies the attention output by `torch.sigmoid(gate)`. The Qwen3.5 and Qwen3.8 configs switch on `attn_output_gate`.
 
 ## Leads that did not make the video
 
@@ -93,6 +95,10 @@ These were checked and left out, because the sourcing rule needs a primary sourc
 - PolyCom (Zhuo et al., 2025) and Smooth-SwiGLU (2024) were not verified within the research time, and no released LLM using them was found.
 - The modded-nanogpt speedrun reportedly uses squared ReLU, but it is a training benchmark repository rather than a released model with a model card.
 - Gemma's configs reportedly use `gelu_pytorch_tanh`, but the Gemma config files are gated behind a login and could not be read.
+
+## Limits of the adoption claims
+
+The adoption years in the video are the earliest released models found during a short search, not proven first uses. "Squared ReLU waited three years" means no released LLM using it before Nemotron-4 (2024) was found. "Clamped SwiGLU, introduced 2025" means no released model with a SwiGLU clamp before gpt-oss was found.
 
 ## Sources
 
@@ -115,8 +121,10 @@ These were checked and left out, because the sourcing rule needs a primary sourc
 - Apertus technical report (September 2025): https://arxiv.org/abs/2509.14233
 - Gated attention: Qiu et al., "Gated Attention for Large Language Models: Non-linearity, Sparsity, and Attention-Sink-Free", https://arxiv.org/abs/2505.06708
 - Qwen3-Next's Gated Attention layers: https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct
+- Qwen3-Next's `attn_output * torch.sigmoid(gate)` in Transformers: https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_next/modeling_qwen3_next.py
 - Qwen3.5 `attn_output_gate: true`: https://huggingface.co/Qwen/Qwen3.5-397B-A17B/blob/main/config.json
 - Qwen3.8 `attn_output_gate: true`: https://huggingface.co/Qwen/Qwen3.8-27B/blob/main/config.json
+- `QuickGELU`, $x\,\sigma(1.702x)$, in OpenAI's CLIP: https://github.com/openai/CLIP/blob/main/clip/model.py
 - Dynamic Tanh (left out of the video): Zhu et al., "Transformers without Normalization", https://arxiv.org/abs/2503.10622
 
 Release months for models without a dated paper (Nemotron-H, AFM-4.5B, Qwen3-Next, Qwen3.5, Qwen3.8, DeepSeek-V4.1-Flash) come from the `createdAt` date of each Hugging Face repository.
