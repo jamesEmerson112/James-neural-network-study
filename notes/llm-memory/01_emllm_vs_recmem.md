@@ -63,7 +63,7 @@ Storing a unit needs no LLM call. When a new unit arrives, RecMem first looks fo
 
 $$E^\star \leftarrow \text{LLM}_{\text{merge}}(E^\star, u_i) \quad \text{if} \quad \cos(v_i, v_{E^\star}) \ge \theta_{\text{sim}}.$$
 
-This merge-first step keeps one topic from forking into parallel episodes. Otherwise, RecMem retrieves the top-$k$ similar earlier units $N_i$ and keeps the close ones,
+This merge-first step keeps one topic from forking into parallel episodes. Otherwise, RecMem retrieves the top-$k$ most similar units $N_i$ from the subconscious store and keeps the close ones,
 
 $$R_i = \{\, s_j \in N_i \mid \cos(v_i, v_j) \ge \theta_{\text{sim}} \,\}.$$
 
@@ -71,13 +71,13 @@ If $|R_i| \ge \theta_{\text{count}}$, the cluster $C_i = R_i \cup \{s_i\}$ is co
 
 The paper's thresholds are $\theta_{\text{sim}} = 0.7$ with $\theta_{\text{count}} = 5$ on LoCoMo, and $\theta_{\text{sim}} = 0.6$ with $\theta_{\text{count}} = 4$ on LongMemEval-S.
 
-**Counting convention.** $R_i$ is drawn from the units stored before $s_i$, so $|R_i|$ counts earlier turns only. The paper's own appendix example sets $\theta_{\text{count}} = 2$ and describes it as a topic "observed in at least two interaction units", which counts the new turn as well. The video follows the equation's convention. Its six-turn chat therefore uses $\theta_{\text{count}} = 1$ so that the second cake turn triggers consolidation. The comparison page from the same session drew that example with $\theta_{\text{count}} = 2$, following the appendix wording.
+**Counting convention.** The paper can be read two ways here, and the readings differ by one. Read strictly, $R_i$ holds the matching units already in the store, and $C_i = R_i \cup \{s_i\}$ adds the new unit separately, so $|R_i|$ counts earlier turns only. But the paper also says each unit is indexed into the store immediately, and its appendix walk-through sets $\theta_{\text{count}} = 2$ and fires on a topic's second mention, described as a topic "observed in at least two interaction units". That reading counts the new turn too. The video follows the earlier-turns reading and says so on screen. Its write demo counts earlier matches, and its six-turn chat uses a toy rule that fires on one earlier match. Under the appendix reading, the same chat would use $\theta_{\text{count}} = 2$.
 
 The write demo in the video uses 7 turns, $\theta_{\text{sim}} = 0.7$ and a toy $\theta_{\text{count}} = 3$. It draws embeddings as directions on a circle, so the similarity test becomes a cone with half-angle $\arccos 0.7 \approx 45.6^\circ$. Turns 1 to 6 find $|R| = 0, 0, 1, 0, 2, 3$ earlier matches. Turn 6 consolidates the four cake turns with two calls, and turn 7 merges into the cake episode with one call. That makes 3 LLM calls in seven turns, where an eager memory system, which runs extraction on every turn, makes at least 7.
 
 ## The six-turn chat
 
-The chat is illustrative: order a birthday cake, ask how to wash dark jeans, ask what to write on the cake, report a cancelled flight, move the cake pickup, and say thanks. EM-LLM's illustrative surprises are 1.0, 2.9, 2.2, 3.7, 2.5 and 0.6 against a threshold of 1.8, so it cuts before turns 2, 3, 4 and 5. That gives five events, and the cancelled flight is an event of its own. RecMem with $\theta_{\text{count}} = 1$ consolidates the cake topic at turn 3, merges turn 5 into that episode, and leaves the jeans, the flight and the thanks raw.
+The chat is illustrative: order a birthday cake, ask how to wash dark jeans, ask what to write on the cake, report a cancelled flight, move the cake pickup, and say thanks. EM-LLM's illustrative surprises are 1.0, 2.9, 2.2, 3.7, 2.5 and 0.6 against a threshold of 1.8, so it cuts before turns 2, 3, 4 and 5. That gives five events, and the cancelled flight is an event of its own. RecMem, with a toy rule that fires on one earlier match, consolidates the cake topic at turn 3, merges turn 5 into that episode, and leaves the jeans, the flight and the thanks raw.
 
 The example shows the two signals pulling in opposite directions. EM-LLM marks what is new, and RecMem keeps what comes back. EM-LLM's events stay in time order, while RecMem's episode gathers turns 1, 3 and 5 by meaning.
 
@@ -110,7 +110,7 @@ On LongMemEval-S, RecMem scores 76.80 with 365.5K construction tokens. Full cont
 | | EM-LLM | RecMem |
 |---|---|---|
 | Memory unit | Events of keys and values | Turns, episodes and facts, as text |
-| Written when | Surprise beats a moving threshold | $\theta_{\text{count}}$ similar earlier turns exist |
+| Written when | Surprise beats a moving threshold | Similar turns recur $\theta_{\text{count}}$ times |
 | LLM calls to write | None; refinement is graph math on keys | Only for topics that recur |
 | Recall | k-NN on keys, in every layer and chunk | Embedding search, once per question |
 | Model access | Open weights, with attention patched | Any chat model plus an embedder |

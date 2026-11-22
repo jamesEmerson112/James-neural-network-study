@@ -463,7 +463,7 @@ class MemoryTwoWays(Scene):
         self.play(*[bars[b].animate.set_fill(BAD, 1) for b in d["chat_bounds"]], LaggedStart(*[Create(c) for c in cuts], lag_ratio=0.15), run_time=1)
         self.play(FadeIn(labs), run_time=0.6)
         self.say("EM-LLM cuts wherever a turn surprises the model. Each topic switch spikes, and the cancelled flight gets an event of its own.")
-        rl = P("RecMem · consolidate on recurrence (toy θ<sub>count</sub> = 1)", 22, RC).move_to(np.array([0, -1.05, 0])).align_to(cards, LEFT)
+        rl = P("RecMem · consolidate on recurrence (toy rule: fires on 1 earlier match)", 22, RC).move_to(np.array([0, -1.05, 0])).align_to(cards, LEFT)
         chips = VGroup(*[chip(state, xs[i]) for i, state in enumerate(d["chat_states"])])
         self.play(FadeIn(rl), LaggedStart(*[FadeIn(cp, shift=0.1 * UP) for cp in chips], lag_ratio=0.15), run_time=1.6)
         link = VGroup(ArcBetweenPoints(np.array([xs[0], -2.0, 0]), np.array([xs[2], -2.0, 0]), angle=0.7),
@@ -536,7 +536,7 @@ class MemoryTwoWays(Scene):
         self.mark("tradeoffs")
         self.heading("Side by side")
         rows = (("memory unit", "events of keys and values", "turns, episodes and facts, as text"),
-                ("written when", "surprise beats a moving threshold", "θ<sub>count</sub> similar earlier turns exist"),
+                ("written when", "surprise beats a moving threshold", "similar turns recur θ<sub>count</sub> times"),
                 ("LLM calls to write", "none: graph math on keys", "only for topics that recur"),
                 ("recall", "k-NN on keys, every layer and chunk", "embedding search, once per question"),
                 ("model access", "open weights, attention patched", "any chat model plus an embedder"),
@@ -612,7 +612,7 @@ class MemoryTwoWays(Scene):
             "refines the cuts on attention keys, and recalls events per layer.",
             f'<span foreground="{RC}">RecMem</span> stores every turn as raw text and spends LLM calls only on\n'
             "topics that recur, turning them into episodes and facts.",
-            "One keys on novelty and the other on repetition, and the brain uses both signals.",
+            "One keys on novelty and the other on repetition.",
         )])
         syn = P("Synthesis, not a claim in either paper: EM-LLM's surprise could be the salience signal\n"
                 "that RecMem's limitations section asks for, so rare but important events get kept.", 23, AMBER)
