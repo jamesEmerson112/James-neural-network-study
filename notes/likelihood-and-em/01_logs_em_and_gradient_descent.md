@@ -2,7 +2,7 @@
 
 > Companion note to `01_logs_em_and_gradient_descent_video.mp4`. See [the overview](00_overview.md).
 
-The video is a Manim explainer at 1080p30 about how a model is fit to data by maximizing its log-likelihood. It covers three ways of doing that. The log itself makes the objective usable. EM's E-step and M-step climb it for a Gaussian mixture. Today's gradient training climbs it with autograd. Every number on screen is computed by the script from one seeded dataset of 120 points, and the script asserts each claim a caption makes. Examples are that EM's log-likelihood never decreases and that the bound in the staircase never rises above the curve.
+The video is a Manim explainer at 1080p30 about how a model is fit to data by maximizing its log-likelihood. It covers three ways of doing that. The log itself makes the objective usable. EM's E-step and M-step climb it for a Gaussian mixture. Today's gradient training climbs it with autograd. Every number on screen is computed by the script from one seeded dataset of 120 points, and the script asserts the main claims the captions make. Examples are that EM's log-likelihood never decreases and that the bound in the staircase never rises above the curve.
 
 Render it from this folder (Manim Community; no LaTeX needed):
 
@@ -63,7 +63,7 @@ Dempster, Laird and Rubin named and generalized the expectation-maximization alg
 
 - **E-step.** Each point's responsibilities are the share of its density that each curve supplies:
   $$r_{ik} = \frac{\pi_k\,\mathcal{N}(x_i \mid \mu_k, \sigma_k^2)}{\sum_j \pi_j\,\mathcal{N}(x_i \mid \mu_j, \sigma_j^2)}.$$
-  At the starting guess, the point $x = 2.53$ gets $0.021$ of its density from the left curve and $0.056$ from the right one. Its responsibility toward the right curve is therefore $0.73$.
+  At the starting guess, the point $x = 2.53$ gets $0.0207$ of its density from the left curve and $0.0557$ from the right one. Its responsibility toward the right curve is therefore $0.0557 / 0.0764 \approx 0.73$.
 - **M-step.** Treat the responsibilities as soft labels and refit each curve in closed form:
   $$N_k = \sum_i r_{ik}, \quad \pi_k = \frac{N_k}{N}, \quad \mu_k = \frac{1}{N_k}\sum_i r_{ik}\,x_i, \quad \sigma_k^2 = \frac{1}{N_k}\sum_i r_{ik}\,(x_i - \mu_k)^2.$$
 
@@ -90,6 +90,8 @@ for step in range(1000):
     loss = -torch.logsumexp(log_px, dim=1).mean()   # NLL
     opt.zero_grad(); loss.backward(); opt.step()
 ```
+
+The snippet sketches the same model in PyTorch, and the video never runs it. The race below uses the script's own NumPy implementation, which stores a single logit for $\pi_1$, so it has five parameters in all.
 
 `logsumexp` computes $\log\sum_k e^{a_k}$ as $m + \log\sum_k e^{a_k - m}$, where $m = \max_k a_k$, so nothing underflows. Mixture-model code computes EM's responsibilities the same way, in log space.
 
@@ -122,7 +124,7 @@ The largest curvature of the mean log-likelihood at the answer is about $1.085$,
 EM wins this small race, but it needs things deep networks don't offer:
 
 1. **A closed-form M-step.** A network's best weights have no weighted-mean formula, while autograd gives a gradient for any differentiable model.
-2. **The whole dataset per step.** Each EM step reads all the data. A gradient step reads a minibatch, which works because $\ell$ is a sum.
+2. **The whole dataset per step.** Each step of classic EM reads all the data, though incremental variants exist (Neal and Hinton, 1998). A gradient step reads a minibatch, which works because $\ell$ is a sum.
 3. **Hidden variables to infer.** A classifier's labels are in the data, so its log-likelihood is just cross-entropy and there is no E-step at all.
 4. **An exact E-step.** When the hidden part is rich, like an image's latent code, the exact posterior is out of reach.
 
@@ -132,7 +134,7 @@ EM wins this small race, but it needs things deep networks don't offer:
 |---|---|---|
 | One step | closed-form refit | small step along the gradient |
 | Step size | built in | $\eta$, by hand or adapted (Adam) |
-| Data per step | the whole dataset | a minibatch |
+| Data per step | the whole dataset (classic EM) | a minibatch |
 | Works for | closed-form E- and M-steps | any differentiable model |
 | Guarantee | $\ell$ never decreases | none for one minibatch step |
 
@@ -144,9 +146,11 @@ The encoder network predicts $q(z \mid x)$ in one forward pass, standing in for 
 
 ## Sources
 
-- A. P. Dempster, N. M. Laird and D. B. Rubin, "Maximum Likelihood from Incomplete Data via the EM Algorithm," *Journal of the Royal Statistical Society, Series B* 39(1), 1977.
-- J. L. W. V. Jensen, "Sur les fonctions convexes et les inégalités entre les valeurs moyennes," *Acta Mathematica* 30, 1906.
-- C. F. J. Wu, "On the Convergence Properties of the EM Algorithm," *Annals of Statistics* 11(1), 1983.
-- L. Xu and M. I. Jordan, "On Convergence Properties of the EM Algorithm for Gaussian Mixtures," *Neural Computation* 8(1), 1996.
-- R. M. Neal and G. E. Hinton, "A View of the EM Algorithm that Justifies Incremental, Sparse, and Other Variants," in *Learning in Graphical Models*, M. I. Jordan (ed.), 1998.
-- D. P. Kingma and M. Welling, "Auto-Encoding Variational Bayes," arXiv:1312.6114, 2013.
+- A. P. Dempster, N. M. Laird and D. B. Rubin, "Maximum Likelihood from Incomplete Data via the EM Algorithm," *Journal of the Royal Statistical Society, Series B* 39(1), 1–38, 1977. [doi:10.1111/j.2517-6161.1977.tb01600.x](https://doi.org/10.1111/j.2517-6161.1977.tb01600.x)
+- L. E. Baum, T. Petrie, G. Soules and N. Weiss, "A Maximization Technique Occurring in the Statistical Analysis of Probabilistic Functions of Markov Chains," *Annals of Mathematical Statistics* 41(1), 1970.
+- R. Sundberg, "Maximum Likelihood Theory for Incomplete Data from an Exponential Family," *Scandinavian Journal of Statistics* 1(2), 1974, based on his 1972 Stockholm University thesis.
+- J. L. W. V. Jensen, "Sur les fonctions convexes et les inégalités entre les valeurs moyennes," *Acta Mathematica* 30, 175–193, 1906. [Scan on Zenodo](https://zenodo.org/records/2371297)
+- C. F. J. Wu, "On the Convergence Properties of the EM Algorithm," *Annals of Statistics* 11(1), 95–103, 1983. [Project Euclid](https://www.projecteuclid.org/euclid.aos/1176346060)
+- L. Xu and M. I. Jordan, "On Convergence Properties of the EM Algorithm for Gaussian Mixtures," *Neural Computation* 8(1), 129–151, 1996. [doi:10.1162/neco.1996.8.1.129](https://doi.org/10.1162/neco.1996.8.1.129)
+- R. M. Neal and G. E. Hinton, "A View of the EM Algorithm that Justifies Incremental, Sparse, and Other Variants," in *Learning in Graphical Models*, M. I. Jordan (ed.), 355–368, 1998. [Author's page](https://www.cs.toronto.edu/~hinton/absps/em.htm)
+- D. P. Kingma and M. Welling, "Auto-Encoding Variational Bayes," 2013. [arXiv:1312.6114](https://arxiv.org/abs/1312.6114)

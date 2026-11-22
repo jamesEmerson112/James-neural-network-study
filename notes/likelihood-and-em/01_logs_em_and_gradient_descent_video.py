@@ -3,7 +3,7 @@
 Contents:
 - LogsEMGradient: the scene, with one method per section of the video
 - Chart: a plot frame whose ranges need not contain 0
-- precompute: every number on screen, with an assert for each claim a caption makes
+- precompute: every number on screen, with asserts for the main claims the captions make
 - em_step, ascend, mean_ll_grad, mean_ll, unpack: fitting the mixture by EM and by gradient ascent
 - make_bound, first_within, loglik, mix_pdf, comp: EM's lower bound, the convergence test and the mixture density
 - component_curves, density_curve, number_line, blend, box, arrow, M: drawing helpers
@@ -289,18 +289,20 @@ class LogsEMGradient(Scene):
 
         i = d["zoom_idx"]
         a, b = float(comp(params[0], 0, X[i])), float(comp(params[0], 1, X[i]))
+        a4, b4 = round(a, 4), round(b, 4)  # the shown heights; the shown sum and share come from them so the screen adds up
+        assert f"{b4 / (a4 + b4):.2f}" == f"{b / (a + b):.2f}", "rounding must not change the shown share"
         xa, xb = sx(X[i]) - 0.07, sx(X[i]) + 0.07
         seg_a = Line(np.array([xa, Y0, 0]), np.array([xa, sy(a), 0])).set_stroke(BLUE_K, 6)
         seg_b = Line(np.array([xb, Y0, 0]), np.array([xb, sy(b), 0])).set_stroke(AMBER, 6)
         ring = Circle(radius=0.17).set_stroke(WHITE, 3).move_to(dots[i])
         zoom = VGroup(
             M(f"x = {X[i]:.2f}", 26),
-            M(f"π<sub>1</sub>N<sub>1</sub>(x) = {a:.3f}", 26, BLUE_K),
-            M(f"π<sub>2</sub>N<sub>2</sub>(x) = {b:.3f}", 26, AMBER),
-            M(f"amber share = {b:.3f} / {a + b:.3f} = {b / (a + b):.2f}", 26),
+            M(f"π<sub>1</sub>N<sub>1</sub>(x) = {a4:.4f}", 26, BLUE_K),
+            M(f"π<sub>2</sub>N<sub>2</sub>(x) = {b4:.4f}", 26, AMBER),
+            M(f"amber share = {b4:.4f} / {a4 + b4:.4f} = {b4 / (a4 + b4):.2f}", 26),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.16).move_to(np.array([-3.6, 1.9, 0]))
         self.say("E-step: for each point, ask what share of its height each curve supplies.\n"
-                 f"At x = {X[i]:.2f} the amber curve supplies {b:.3f} of {a + b:.3f}, a share of {b / (a + b):.2f}.", wait=0)
+                 f"At x = {X[i]:.2f} the amber curve supplies {b4:.4f} of {a4 + b4:.4f}, a share of {b4 / (a4 + b4):.2f}.", wait=0)
         self.play(Create(ring), Create(seg_a), Create(seg_b), run_time=1)
         self.play(FadeIn(zoom, lag_ratio=0.3), run_time=1.6)
         self.play(dots[i].animate.set_color(blend(resp[0][1][i])))
@@ -523,8 +525,8 @@ class LogsEMGradient(Scene):
         reasons = VGroup(*[Text(s, font=SERIF, font_size=27) for s in (
             "1.  No closed-form M-step. A deep network's best weights have no weighted-mean\n"
             "     formula, but autograd gives a gradient for any differentiable model.",
-            "2.  Minibatches. Each EM step reads the whole dataset; a gradient step reads a\n"
-            "     few hundred examples, because ℓ is a sum.",
+            "2.  Minibatches. Each step of classic EM reads the whole dataset, while a gradient\n"
+            "     step reads a few hundred examples, because ℓ is a sum.",
             "3.  Often nothing is hidden. A classifier's labels are in the data, so its\n"
             "     log-likelihood is just cross-entropy and there is no E-step.",
             "4.  When the hidden part is rich, like an image's latent code, the exact\n"
@@ -550,7 +552,7 @@ class LogsEMGradient(Scene):
         data = (
             ("one step", "closed-form refit", "small step along the gradient"),
             ("step size", "built in", "η, by hand or adapted (Adam)"),
-            ("data per step", "the whole dataset", "a minibatch"),
+            ("data per step", "the whole dataset (classic EM)", "a minibatch"),
             ("works for", "closed-form E- and M-steps", "any differentiable model"),
             ("guarantee", "ℓ never decreases", "none for one minibatch step"),
         )
@@ -793,7 +795,7 @@ class Chart:
 
 def precompute():
     """
-    Description: Computes every number the video shows and asserts each claim a caption makes.
+    Description: Computes every number the video shows and asserts the main claims the captions make.
     Inputs: none
     Outputs: a dict holding the EM and gradient-descent trajectories, the staircase's bounds, the dot
     positions and the numbers the captions quote.
