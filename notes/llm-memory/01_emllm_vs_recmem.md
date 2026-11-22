@@ -16,7 +16,7 @@ Setting `MEM_ONLY=emllm_cut,same_chat` renders only the named sections. Every se
 
 ## Timeline
 
-The video runs 5 minutes 22 seconds.
+The video runs 5 minutes 48 seconds.
 
 | Time | Section |
 |---|---|
@@ -30,7 +30,8 @@ The video runs 5 minutes 22 seconds.
 | 3:39 | One six-turn chat under both rules |
 | 4:17 | Results, each against the baselines in its own paper |
 | 4:42 | Side-by-side table |
-| 5:01 | Summary and one labelled synthesis |
+| 5:01 | Where the ideas come from: the psychology each paper borrows, as two timelines |
+| 5:27 | Summary and one labelled synthesis |
 
 ## EM-LLM in three steps
 
@@ -122,7 +123,11 @@ The closing idea of the video is a synthesis, not a claim in either paper. RecMe
 
 ## Where the ideas come from
 
-Each paper borrows a different part of the psychology of memory. EM-LLM builds on event segmentation theory, in which people split continuous experience into events at moments of high prediction error (Zacks and colleagues, 2007). It also builds on the finding that event boundaries are where memories are retrieved from (Michelmann, Hasson and Norman, 2023). RecMem builds on Atkinson and Shiffrin's multi-store model (1968), in which information passes from fast, transient stores into a stable long-term store. It also builds on Complementary Learning Systems (McClelland, McNaughton and O'Reilly, 1995), in which a fast hippocampal system records experiences and the neocortex slowly extracts what repeats.
+Each paper borrows a different part of the psychology of memory, and the video's second-to-last section draws the two lineages as timelines.
+
+EM-LLM's lineage starts with Howard and Kahana's temporal context model (2002). It explains why, in free recall, people tend to recall next the items studied near the last one, more often forward than backward, and the contiguity buffer copies that habit. Event segmentation theory (Zacks and colleagues, 2007) holds that people split continuous experience into events at moments of high prediction error, which is the idea behind cutting at surprise. Kumar and colleagues (2023) showed that Bayesian surprise from a language model predicts where human listeners mark event boundaries in stories. EM-LLM also cites the finding that event boundaries are where memories are retrieved from (Michelmann, Hasson and Norman, 2023).
+
+RecMem's lineage starts with Atkinson and Shiffrin's multi-store model (1968), in which information passes from fast, transient stores into a stable long-term store. Its subconscious store plays the transient role. Complementary Learning Systems (McClelland, McNaughton and O'Reilly, 1995) adds that a fast hippocampal system records experiences and the neocortex slowly extracts what repeats, which is what the recurrence trigger stands in for. Kumaran, Hassabis and McClelland revisited the theory in 2016 with an eye on artificial agents.
 
 ## Sources
 

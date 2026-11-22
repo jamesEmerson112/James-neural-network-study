@@ -38,7 +38,7 @@ DIM = "#2a313a"
 config.background_color = "#0b0d10"
 
 SECTIONS = ("intro", "where", "emllm_cut", "emllm_refine", "emllm_recall", "recmem_write",
-            "recmem_read", "same_chat", "results", "tradeoffs", "summary")
+            "recmem_read", "same_chat", "results", "tradeoffs", "roots", "summary")
 """Description: The video's sections in playing order."""
 
 RNG = np.random.default_rng(20261122)
@@ -73,6 +73,14 @@ THR6 = 1.8
 
 EM_LONGBENCH = (("RAG", 36.44, GREY_T), ("full context", 39.30, GREY_T), ("EM-LLM", 51.58, EM))
 """Description: LongBench averages with LLaMA-3.1-8B, from EM-LLM's Table 9 (RAG uses NV-Embed-v2; EM-LLM is S at 4K+4K)."""
+EM_ROOTS = (("2002", "Howard, Kahana", "recall drifts to\nnearby moments"),
+            ("2007", "Zacks et al.", "experience is cut\nat prediction errors"),
+            ("2023", "Kumar et al.", "surprise predicts\nevent boundaries"))
+"""Description: The psychology EM-LLM cites, as (year, authors, finding), oldest first."""
+RC_ROOTS = (("1968", "Atkinson, Shiffrin", "fast stores feed a\nlong-term store"),
+            ("1995", "McClelland, McNaughton,\nO'Reilly", "the cortex slowly\nextracts what repeats"),
+            ("2016", "Kumaran, Hassabis,\nMcClelland", "learning systems\ntheory, revisited"))
+"""Description: The psychology RecMem cites, as (year, authors, finding), oldest first."""
 RC_LOCOMO = (("full context", 0.0, 84.18), ("naive RAG", 0.0, 54.42), ("MemoryOS", 400.7, 67.60),
              ("Mem0", 1520.8, 62.92), ("A-Mem", 1459.9, 68.83), ("RecMem", 193.2, 81.10))
 """Description: LoCoMo with GPT-4.1-mini, from RecMem's Tables 1 and 2, as (method, construction tokens in K, LLM-judge overall)."""
@@ -553,6 +561,42 @@ class MemoryTwoWays(Scene):
         self.say("They work at different layers of the stack. EM-LLM changes attention inside one forward pass; "
                  "RecMem manages text between the turns of an agent.")
         self.say("So they could be stacked: RecMem for memory across sessions, and EM-LLM for reading one very long input.")
+        self.end_section()
+
+    def roots(self):
+        """
+        Description: Shows the psychology each method borrows, as two lanes of dated findings that end at each paper.
+        Inputs: none
+        Outputs: none
+        """
+        self.mark("roots")
+        self.heading("Where the ideas come from")
+        lanes = []
+        for col, y, side, title, paper, roots in ((EM, 1.45, UP, "EM-LLM's roots", "EM-LLM\nICLR 2025", EM_ROOTS),
+                                                   (RC, -0.7, DOWN, "RecMem's roots", "RecMem\nACL Findings 2026", RC_ROOTS)):
+            t = P(title, 24, col).move_to(np.array([-5.45, y, 0]))
+            line = Arrow(np.array([-4.25, y, 0]), np.array([4.0, y, 0]), buff=0, stroke_width=3, color=col,
+                         tip_length=0.2, max_tip_length_to_length_ratio=0.05)
+            pb = box(paper, 2.4, 0.95, col, 22).move_to(np.array([5.45, y, 0]))
+            stations = VGroup()
+            for k, (year, who, idea) in enumerate(roots):
+                dot = Dot(np.array([-3.3 + 2.9 * k, y, 0]), radius=0.09, color=col)
+                # One mobject per line, so each line is centred under the year.
+                rows = [Text(year, font=MONO, font_size=20, color=col)]
+                rows += [P(s, 16, GREY_B) for s in who.split("\n")] + [P(s, 18) for s in idea.split("\n")]
+                lab = VGroup(*rows).arrange(DOWN, buff=0.06).next_to(dot, side, buff=0.18)
+                stations.add(VGroup(dot, lab))
+            lanes.append((t, line, pb, stations))
+        self.play(*[FadeIn(t) for t, _, _, _ in lanes], *[GrowArrow(l) for _, l, _, _ in lanes], run_time=1)
+        self.say("Each method borrows from a different corner of memory research.")
+        for (t, line, pb, stations), text in zip(lanes, (
+                "EM-LLM: people cut experience into events at prediction errors, surprise predicts where they "
+                "mark boundaries, and recall drifts to neighbouring moments.",
+                "RecMem: fast stores feed a stable long-term store, and the cortex slowly extracts what repeats. "
+                "That is why recurrence triggers consolidation.")):
+            self.play(LaggedStart(*[FadeIn(s, shift=0.1 * RIGHT) for s in stations], lag_ratio=0.3), run_time=1.5)
+            self.play(FadeIn(pb, shift=0.1 * LEFT), run_time=0.6)
+            self.say(text)
         self.end_section()
 
     def summary(self):
