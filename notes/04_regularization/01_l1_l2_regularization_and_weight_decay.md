@@ -95,7 +95,7 @@ Here $n = 14$, $z_i$ is flight $i$'s standardized features, and $b$ is the mean 
 
 Individual weights do not shrink monotonically. Landing pad number goes from $-0.007$ under least squares to $+0.026$ at the best $\lambda$. Hour of day crosses $0$ near $\lambda = 0.068$ on its way from positive to negative, and it keeps moving.
 
-Arthur Hoerl and Robert Kennard published ridge regression in *Technometrics* in 1970, building on Hoerl's "ridge analysis" of 1962. The idea is to add small positive quantities to the diagonal of $X^\top X$. That trades a little bias for a large cut in variance when the features overlap. Their paper also introduced the ridge trace, a plot of each coefficient against $\lambda$. The bar chart's sweep in the video is a ridge trace drawn as bars.
+Arthur Hoerl and Robert Kennard published ridge regression in *Technometrics* in 1970, building on an idea Hoerl first proposed in 1962. The idea is to add small positive quantities to the diagonal of $X^\top X$. That trades a little bias for a large cut in variance when the features overlap. Their paper also introduced the ridge trace, a plot of each coefficient against $\lambda$. The bar chart's sweep in the video is a ridge trace drawn as bars.
 
 ## L1 regularization: the lasso
 
@@ -167,7 +167,7 @@ with $\hat m_t$ and $\hat v_t$ the bias-corrected averages. The penalty's share 
 
 Single runs spread around these averages with a standard deviation between $0.07$ and $0.41$ at step 2,000, so the averaging matters.
 
-Ilya Loshchilov and Frank Hutter made this point in "Decoupled Weight Decay Regularization", first posted to arXiv in November 2017 as "Fixing Weight Decay Regularization in Adam" and published at ICLR 2019. They showed that L2 regularization and weight decay are equivalent for SGD but not for adaptive methods like Adam. Under the L2 version, weights with large historic gradient amplitudes are regularized less, and decoupling fixes it. The update in the video follows PyTorch's AdamW documentation.
+Ilya Loshchilov and Frank Hutter made this point in "Decoupled Weight Decay Regularization", first posted to arXiv in November 2017 as "Fixing Weight Decay Regularization in Adam" and published at ICLR 2019. They showed that L2 regularization and weight decay are equivalent for SGD but not for adaptive methods like Adam. Under the L2 version, weights with large historic gradient amplitudes are regularized less, and decoupling fixes it. The update in the video follows PyTorch's AdamW documentation. AdamW is the usual choice for training transformers today. LLaMA, for example, was trained with AdamW and a weight decay of $0.1$, and Hugging Face's `Trainer` uses AdamW by default.
 
 ## A probabilistic reading
 
@@ -185,3 +185,5 @@ A Gaussian prior $w_j \sim \mathcal N(0, \tau^2)$ gives the L2 penalty with $\la
 - A. Krogh and J. A. Hertz, "A Simple Weight Decay Can Improve Generalization," *Advances in Neural Information Processing Systems 4*, 950–957, 1991. [NeurIPS proceedings](https://papers.nips.cc/paper/1991/hash/8eefcfdf5990e441f0fb6f3fad709e21-Abstract.html)
 - I. Loshchilov and F. Hutter, "Decoupled Weight Decay Regularization," ICLR 2019. [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
 - PyTorch documentation: [torch.optim.Adam](https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html) and [torch.optim.AdamW](https://docs.pytorch.org/docs/stable/generated/torch.optim.AdamW.html), read for version 2.15.
+- H. Touvron et al., "LLaMA: Open and Efficient Foundation Language Models," 2023. [arXiv:2302.13971](https://arxiv.org/abs/2302.13971)
+- Hugging Face Transformers documentation, [Optimizers](https://huggingface.co/docs/transformers/en/optimizers), which names `adamw_torch` as the `Trainer` default.
