@@ -2,7 +2,7 @@
 
 ## The question
 
-In [../ddpm/02_what_is_a_gaussian.md](../ddpm/02_what_is_a_gaussian.md) you saw the Gaussian probability density function:
+In [../09_ddpm/02_what_is_a_gaussian.md](../09_ddpm/02_what_is_a_gaussian.md) you saw the Gaussian probability density function:
 
 $$
 p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\!\left(-\frac{(x - \mu)^2}{2\sigma^2}\right)

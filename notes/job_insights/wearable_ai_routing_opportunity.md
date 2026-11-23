@@ -62,7 +62,7 @@ Prefill/decode disaggregation          On-device vs. phone vs. cloud split
 
 | What I've Studied | Where | Why It Matters |
 |-------------------|-------|----------------|
-| NVIDIA Dynamo — smart routing across GPU clusters | `notes/llm-inference-stack/llm-inference-stack.md` | Dynamo IS a model router. KV-cache-aware routing, prefill/decode disaggregation, Pareto frontier optimization. Their wearable router is this concept at smaller scale. |
+| NVIDIA Dynamo — smart routing across GPU clusters | `notes/06_llm-inference-stack/llm-inference-stack.md` | Dynamo IS a model router. KV-cache-aware routing, prefill/decode disaggregation, Pareto frontier optimization. Their wearable router is this concept at smaller scale. |
 | SGLang + FlashInfer (29% faster than vLLM) | Same file | Understanding inference engine internals — what makes inference fast or slow, and where bottlenecks appear. |
 | Prefill = compute-bound, Decode = memory-bandwidth-bound | Same file | The router needs to understand WHY different model sizes have different latency profiles. This is the answer. |
 | vLLM PagedAttention | Same file | Memory-efficient inference — critical on constrained hardware where you can't waste RAM. |
@@ -72,8 +72,8 @@ Prefill/decode disaggregation          On-device vs. phone vs. cloud split
 | Experience / Knowledge | Where | Why It Matters |
 |------------------------|-------|----------------|
 | **3 years production ThreadX at JCM Global** — daily RTOS development on embedded hardware, UART/BLE data buffers | Professional experience (2023–present) | This isn't studied knowledge — I ship production code on ThreadX daily. Wearable AI devices run an RTOS, and I already work in that world professionally. |
-| RTOS landscape (FreeRTOS, Zephyr, ThreadX, NuttX) | `notes/NVIDIA_2026/rtos-ros-nvidia-research.md` | Broad understanding of the RTOS ecosystem beyond just ThreadX — can evaluate which RTOS fits their wearable's constraints. |
-| Micro-ROS + ThreadX gap analysis | `notes/NVIDIA_2026/micro-ros-threadx-opportunity.md` | Deep analysis of safety-certified RTOS integration — shows I think about system-level architecture on embedded devices. |
+| RTOS landscape (FreeRTOS, Zephyr, ThreadX, NuttX) | `notes/07_NVIDIA_2026/rtos-ros-nvidia-research.md` | Broad understanding of the RTOS ecosystem beyond just ThreadX — can evaluate which RTOS fits their wearable's constraints. |
+| Micro-ROS + ThreadX gap analysis | `notes/07_NVIDIA_2026/micro-ros-threadx-opportunity.md` | Deep analysis of safety-certified RTOS integration — shows I think about system-level architecture on embedded devices. |
 | Real-time constraints (hard vs. soft, PREEMPT_RT, Xenomai) | Same files | "Real-time routing" means the routing decision itself must meet latency constraints. I understand what that requires at the OS level. |
 | Two-layer architecture (Linux for AI + RTOS for hardware control) | RTOS research notes | Their wearable likely has a similar split — ML inference on one core/processor, hardware control on another. I work with this kind of architecture at JCM. |
 
@@ -82,7 +82,7 @@ Prefill/decode disaggregation          On-device vs. phone vs. cloud split
 | What I've Studied | Where | Why It Matters |
 |-------------------|-------|----------------|
 | llm.c — pure C/CUDA implementation, 7% faster than PyTorch | `notes/James_notes_deepLearning_team_project/04_llmc-notes.md` | Proves you can get significant speedups by dropping to C/CUDA. On constrained hardware, every % matters. |
-| FlashInfer kernels (MLSys 2025 Best Paper) | `notes/llm-inference-stack/llm-inference-stack.md` | Attention kernels, GEMM, MoE, sampling — the actual compute primitives that run during inference. |
+| FlashInfer kernels (MLSys 2025 Best Paper) | `notes/06_llm-inference-stack/llm-inference-stack.md` | Attention kernels, GEMM, MoE, sampling — the actual compute primitives that run during inference. |
 | CUDA programming guide + parallel programming patterns | `CUDA class/` directory | Foundational GPU programming knowledge. |
 
 ### E. Active Team Project → DRY RUN FOR THIS JOB

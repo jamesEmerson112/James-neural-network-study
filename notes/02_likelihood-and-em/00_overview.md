@@ -1,6 +1,6 @@
 # Likelihood and EM
 
-> See also: [The logarithm](../exponential-and-logarithm/02_the_logarithm.md), [Why the Gaussian has exp](../exponential-and-logarithm/04_why_the_gaussian_has_exp.md), [Softmax](../22_softmax.md), [GANs and VAEs](../33_gan_and_vae.md).
+> See also: [The logarithm](../01_exponential-and-logarithm/02_the_logarithm.md), [Why the Gaussian has exp](../01_exponential-and-logarithm/04_why_the_gaussian_has_exp.md), [Softmax](../22_softmax.md), [GANs and VAEs](../33_gan_and_vae.md).
 
 This folder covers how a model is fit to data by maximizing its log-likelihood. It looks at the expectation-maximization (EM) algorithm for models with hidden variables, and at the gradient training that neural networks use instead.
 

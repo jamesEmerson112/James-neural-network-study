@@ -21,7 +21,7 @@ Run from the repository root unless noted.
 
 ## Repository Structure
 
-- `notes/` — the main content. Curriculum notes live at the root with numbered prefixes (`00_timeline.md` … `35_calibration_and_fairness.md`); deeper series live in topic subfolders (`ddpm/`, `rl/`, `turing/`, `godel/`, `exponential-and-logarithm/`, `llm-inference-stack/`, `NVIDIA_2026/`, `researchers/`, etc.).
+- `notes/` — the main content. Curriculum notes live at the root with numbered prefixes (`00_timeline.md` … `35_calibration_and_fairness.md`); deeper series live in topic subfolders. The subfolders on the LLM learning path carry a two-digit rank in study order: `01_exponential-and-logarithm/`, `02_likelihood-and-em/`, `03_activation-functions/`, `04_regularization/`, `05_rl/`, `06_llm-inference-stack/`, `07_NVIDIA_2026/`, `08_llm-memory/`, `09_ddpm/`. Subfolders off that path stay unnumbered (`turing/`, `godel/`, `researchers/`, `clrs/`, etc.).
 - `AI Fall 2026/CS 6601 Artificial Intelligence/` — course material: numbered single-file HTML labs (`03_` … `09_`), reference PDFs under `bidirectional search/resources/`, and the `metropolitan-route-lab/` app.
 - `DSA visualizations/` — standalone single-file HTML visualizations of graph algorithms.
 - `TODO/` — papers not yet read. `human_cognitive_ai/`, `general_ai_and_society/`, `CUDA class/` — read papers, organized by topic.
@@ -47,7 +47,7 @@ React + TypeScript + Vite + MapLibre GL app comparing exact shortest-path algori
 ## Note Conventions
 
 - One file per topic; create separate files rather than appending unrelated sections to an existing one.
-- Root notes use two-digit prefixes in rough chronological/curriculum order with lowercase snake_case names. Insertions between existing numbers get a letter suffix (`00a_`, `06b_`, `17b_`). A new topic subfolder starts with a `00_overview.md` (some older ones, like `ddpm/` and `rl/`, start at `01_`).
+- Root notes use two-digit prefixes in rough chronological/curriculum order with lowercase snake_case names. Insertions between existing numbers get a letter suffix (`00a_`, `06b_`, `17b_`). A new topic subfolder starts with a `00_overview.md` (some older ones, like `09_ddpm/` and `05_rl/`, start at `01_`). A new subfolder on the LLM learning path takes the two-digit rank of its place in study order; one that belongs between two ranks gets a letter suffix (`04b_`), and subfolders off the path stay unnumbered.
 - Math uses GFM LaTeX syntax (`$...$` inline, `$$...$$` display), never Unicode approximations.
 - Notes weave in historical context: who created the idea, why, what inspired them, and what happened after. The `history-lore-researcher` agent (`.claude/agents/`) exists for researching this.
 - ASCII diagrams are used liberally for visual intuition (timelines, architecture sketches, geometric comparisons).

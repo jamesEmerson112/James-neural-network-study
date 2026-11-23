@@ -14,7 +14,7 @@ When you see $e^x$ or $\log$ in a paper, stop for three seconds and identify whi
 
 ## Probability distributions
 
-**Gaussian PDF.** $p(x) \propto \exp(-(x-\mu)^2/(2\sigma^2))$. Category **(a)**: max-entropy distribution with fixed mean and variance, equivalently forced by Herschel's independence+rotational-symmetry theorem. See [../ddpm/02_what_is_a_gaussian.md](../ddpm/02_what_is_a_gaussian.md) and [04_why_the_gaussian_has_exp.md](04_why_the_gaussian_has_exp.md).
+**Gaussian PDF.** $p(x) \propto \exp(-(x-\mu)^2/(2\sigma^2))$. Category **(a)**: max-entropy distribution with fixed mean and variance, equivalently forced by Herschel's independence+rotational-symmetry theorem. See [../09_ddpm/02_what_is_a_gaussian.md](../09_ddpm/02_what_is_a_gaussian.md) and [04_why_the_gaussian_has_exp.md](04_why_the_gaussian_has_exp.md).
 
 **Multivariate Gaussian.** $p(x) \propto \exp(-\tfrac{1}{2}(x-\mu)^\top \Sigma^{-1}(x-\mu))$. Category **(a)**: same as above, generalized to multiple dimensions with a covariance matrix. The exp lets the density factor into a product across whitened coordinates — category **(b)** is also at work.
 
@@ -90,9 +90,9 @@ When you see $e^x$ or $\log$ in a paper, stop for three seconds and identify whi
 
 **Variational Autoencoder (VAE) ELBO.** $\mathcal{L} = \mathbb{E}_{q(z|x)}[\log p(x|z)] - D_{KL}(q(z|x) \| p(z))$. Category **(b)** via the logs and the KL term. The log-likelihood term is the reconstruction error (often Gaussian, hence exp-in-disguise); the KL term regularizes the encoder toward a Gaussian prior.
 
-**Reparameterization trick.** $z = \mu + \sigma \cdot \varepsilon$ where $\varepsilon \sim \mathcal{N}(0, I)$. Category **(a)**: exploits the Gaussian's exponential form to sample through a differentiable operation. See [../ddpm/04_visualizing_one_noising_step.md](../ddpm/04_visualizing_one_noising_step.md).
+**Reparameterization trick.** $z = \mu + \sigma \cdot \varepsilon$ where $\varepsilon \sim \mathcal{N}(0, I)$. Category **(a)**: exploits the Gaussian's exponential form to sample through a differentiable operation. See [../09_ddpm/04_visualizing_one_noising_step.md](../09_ddpm/04_visualizing_one_noising_step.md).
 
-**Diffusion forward process.** $q(x_t | x_{t-1}) = \mathcal{N}(\sqrt{1-\beta_t}\,x_{t-1}, \beta_t \mathbf{I})$. Category **(a)**: Gaussian noise at every step. See [../ddpm/03_forward_process.md](../ddpm/03_forward_process.md).
+**Diffusion forward process.** $q(x_t | x_{t-1}) = \mathcal{N}(\sqrt{1-\beta_t}\,x_{t-1}, \beta_t \mathbf{I})$. Category **(a)**: Gaussian noise at every step. See [../09_ddpm/03_forward_process.md](../09_ddpm/03_forward_process.md).
 
 **Diffusion noise schedules.** Cosine schedules (e.g., in improved DDPM) use $\bar{\alpha}_t = \cos^2(\ldots)$, which are related to the complex exponential via Euler's formula. Linear and geometric schedules use exponential decay in the variance. Category **(c)**: exponential or cosine-based decay.
 

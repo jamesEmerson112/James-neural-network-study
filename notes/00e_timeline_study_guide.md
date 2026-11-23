@@ -61,7 +61,7 @@ All notes in this repository, organized by narrative arc.
 
 ### LLM Inference & Benchmarks
 
-- [LLM Inference Stack](llm-inference-stack/) — how LLMs actually run in production
+- [LLM Inference Stack](06_llm-inference-stack/) — how LLMs actually run in production
 - [LLM Benchmarks](21_llm_benchmarks.md) — benchmark descriptions and what they measure
 
 ### Applied ML & Forecasting

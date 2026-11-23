@@ -257,7 +257,7 @@ The max-entropy theorem explains something that otherwise feels magical: why the
 
 And the exponential is there because entropy — the thing being maximized — has a log in it. The log and the exp are the unique pair of functions that convert between additive and multiplicative structures (see [03_the_functional_equation.md](03_the_functional_equation.md)). Entropy is an additive quantity (entropy of independent systems adds); probability is a multiplicative quantity (probabilities of independent events multiply); the exp/log pair is what lets you go between them without loss.
 
-When this pattern repeats in your notes — from the Gaussian in [../ddpm/02_what_is_a_gaussian.md](../ddpm/02_what_is_a_gaussian.md) to softmax in [../22_softmax.md](../22_softmax.md) to Boltzmann machines in [../10b_boltzmann_machines_energy_and_randomness.md](../10b_boltzmann_machines_energy_and_randomness.md) — you are seeing the same theorem being applied with different constraints.
+When this pattern repeats in your notes — from the Gaussian in [../09_ddpm/02_what_is_a_gaussian.md](../09_ddpm/02_what_is_a_gaussian.md) to softmax in [../22_softmax.md](../22_softmax.md) to Boltzmann machines in [../10b_boltzmann_machines_energy_and_randomness.md](../10b_boltzmann_machines_energy_and_randomness.md) — you are seeing the same theorem being applied with different constraints.
 
 ---
 
