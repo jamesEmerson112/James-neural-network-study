@@ -62,6 +62,23 @@ Study notes and questions organized by topic. See individual files in `notes/`.
 
 ---
 
+## Videos
+
+Manim explainers, each rendered at 1080p30 and stored next to the note it accompanies. They are listed in learning-path order, with the DSA side topic last, and run about 52 minutes in total.
+
+| # | Folder | Topic | Length | Files |
+|---|--------|-------|--------|-------|
+| 1 | `notes/02_likelihood-and-em/` | Log-likelihood, EM on a Gaussian mixture, and the same fit by gradient descent | 7:34 | [video](notes/02_likelihood-and-em/01_logs_em_and_gradient_descent_video.mp4), [note](notes/02_likelihood-and-em/01_logs_em_and_gradient_descent.md) |
+| 2 | `notes/02_likelihood-and-em/` | EM in medicine: MRI voxel labels, PET reconstruction and combining doctors' calls | 8:04 | [video](notes/02_likelihood-and-em/02_em_in_medicine_video.mp4), [note](notes/02_likelihood-and-em/02_em_in_medicine.md) |
+| 3 | `notes/02_likelihood-and-em/` | KL divergence in pretraining, the ELBO and RLHF | 6:46 | [video](notes/02_likelihood-and-em/03_kl_divergence_video.mp4), [note](notes/02_likelihood-and-em/03_kl_divergence.md) |
+| 4 | `notes/03_activation-functions/` | Activation functions from sigmoid to GeGLU | 5:42 | [video](notes/03_activation-functions/01_sigmoid_to_geglu_video.mp4), [overview](notes/03_activation-functions/00_overview.md) |
+| 5 | `notes/03_activation-functions/` | GELU, SiLU and the activations LLMs adopted from 2024 to 2026 | 5:01 | [video](notes/03_activation-functions/02_gelu_silu_and_recent_activations_video.mp4), [note](notes/03_activation-functions/02_gelu_silu_and_recent_activations.md) |
+| 6 | `notes/04_regularization/` | L1 and L2 regularization, and weight decay | 9:19 | [video](notes/04_regularization/01_l1_l2_regularization_and_weight_decay_video.mp4), [note](notes/04_regularization/01_l1_l2_regularization_and_weight_decay.md) |
+| 7 | `notes/08_llm-memory/` | EM-LLM vs RecMem, two approaches to LLM memory | 5:49 | [video](notes/08_llm-memory/01_emllm_vs_recmem_video.mp4), [note](notes/08_llm-memory/01_emllm_vs_recmem.md) |
+| 8 | `DSA visualizations/` | How S2 numbers the Earth with a Hilbert curve | 3:49 | [video](DSA%20visualizations/03b_s2_hilbert_curve_video.mp4) |
+
+---
+
 ## certificates/
 
 - GenAI Pic.png

@@ -25,7 +25,7 @@ Run from the repository root unless noted.
 - `AI Fall 2026/CS 6601 Artificial Intelligence/` — course material: numbered single-file HTML labs (`03_` … `09_`), reference PDFs under `bidirectional search/resources/`, and the `metropolitan-route-lab/` app.
 - `DSA visualizations/` — standalone single-file HTML visualizations of graph algorithms.
 - `TODO/` — papers not yet read. `human_cognitive_ai/`, `general_ai_and_society/`, `CUDA class/` — read papers, organized by topic.
-- `README.md` — the reading index: a "To Read" table mirroring `TODO/` and a "Read" list mirroring the topic folders. When a paper is added or moves from `TODO/` into a topic folder, update README.md to match.
+- `README.md` — the reading index: a "To Read" table mirroring `TODO/`, a "Read" list mirroring the topic folders, and a "Videos" table of the pushed Manim videos. When a paper is added or moves from `TODO/` into a topic folder, or a video is pushed, update README.md to match. Leave gitignored and unpushed videos out of the Videos table, since README.md is public.
 - `notes/job_insights/` and `notes/mira/` are private career notes listed in `.gitignore`; the existing files were committed before that rule, so edits to them are still tracked, but new files there are ignored.
 - `AI Fall 2026/CS 6601 Artificial Intelligence/private/` is a gitignored folder for private CS 6601 study material (course handouts, challenge-question walkthroughs). It exists only in the main checkout at `E:/GitHub/James-neural-network-study`, so worktrees don't have it; save private class material there, not in the public course folder.
 
