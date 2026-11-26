@@ -173,7 +173,7 @@ class Activations(Scene):
         self.heading("ReLU   max(0, x)")
         ax = make_axes((-4, 4), (-1.5, 4), 7.0, 4.4, np.array([-3.0, 0.2, 0]), xticks=(-4, -2, 0, 2, 4), yticks=(1, 2, 3))
         r = graph(ax, relu, -4, 4).set_stroke(BAD, 5)
-        self.say("ReLU passes positive inputs through and zeroes the rest.\nNair and Hinton used it in 2010; AlexNet made it standard in 2012.", wait=0)
+        self.say("ReLU passes positive inputs through and zeroes the rest.\nFukushima used it in a 1969 vision network. It took off in deep learning\nwith Nair and Hinton in 2010, and AlexNet made it standard in 2012.", wait=0)
         self.play(Create(ax), run_time=1)
         self.play(Create(r), run_time=1.5)
         self.wait(3)
@@ -401,8 +401,9 @@ class Activations(Scene):
         self.play(LaggedStart(*[Create(c) for c in curves], lag_ratio=0.3), FadeIn(legend, lag_ratio=0.2), run_time=3)
         self.play(FadeIn(gl))
         self.wait(3)
-        events = (("1986", "sigmoid\nbackprop"), ("1998", "tanh\nadvice"), ("2010", "ReLU"), ("2013", "Leaky\nReLU"),
-                  ("2016", "GELU"), ("2017", "SiLU, GLU"), ("2020", "SwiGLU\nGeGLU"), ("2023", "LLaMA"))
+        events = (("1969", "ReLU\nFukushima"), ("1986", "sigmoid\nbackprop"), ("1998", "tanh\nadvice"),
+                  ("2010", "ReLU\ntakes off"), ("2013", "Leaky\nReLU"), ("2016", "GELU"), ("2017", "SiLU, GLU"),
+                  ("2020", "SwiGLU\nGeGLU"), ("2023", "LLaMA"))
         y0 = -1.8
         line = Line(np.array([-6.3, y0, 0]), np.array([6.3, y0, 0])).set_stroke(GREY_B, 2)
         marks = VGroup()
@@ -412,7 +413,7 @@ class Activations(Scene):
             t1 = Text(yr, font=MONO, font_size=20, color=ACCENT).next_to(d, UP, buff=0.12)
             t2 = Text(what, font=SERIF, font_size=18, color=GREY_A, line_spacing=0.8).next_to(d, DOWN, buff=0.12)
             marks.add(VGroup(d, t1, t2))
-        self.say("One line of history: 1986 sigmoid, 2010 ReLU, 2016 GELU, 2017 gates,\n2020 SwiGLU and GeGLU, and since 2023 the open LLMs built on them.", wait=0)
+        self.say("The line runs from Fukushima's 1969 network to the open LLMs of 2023.\nReLU took off in 2010, GELU came in 2016, and gates followed from 2017.", wait=0)
         self.play(Create(line), LaggedStart(*[FadeIn(m, shift=0.1 * UP) for m in marks], lag_ratio=0.2), run_time=3)
         self.wait(6)
         self.play(*[FadeOut(m) for m in self.mobjects])
